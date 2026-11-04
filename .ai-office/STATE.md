@@ -3,10 +3,14 @@
 ## Nhiệm vụ phát hành hiện hành
 
 - [DT Office 0.4.5 · làm sạch nguồn và lịch sử](state/dtoffice-clean-release.md) — Codex.
-- Đã đổi thương hiệu/liên kết, viết README mới; kiểm tra local đạt. Đang chuẩn bị push lịch sử mới và build/phát hành desktop.
-- Giữ nguyên LICENSE MIT, dữ liệu/hook tương thích và log tự sinh. Chi tiết kiểm tra/bước tiếp ở file nhiệm vụ.
+- Đã phát hành [v0.4.5](https://github.com/trancaodai1651/DTOffice/releases/tag/v0.4.5): Windows x64, macOS Universal DMG/app archive và SHA256SUMS.
+- Nhánh `main`; commit ứng dụng/root mới `e1f4715`; tag `v0.4.5`. Commit bàn giao nằm sau tag, chỉ sửa tài liệu.
+- README/metadata/thương hiệu đã đổi sang DT Office; chỉ giữ remote DTOffice. Đã gỡ release/tag v0.4.1, 21 run cũ, refs/reflog và commit cũ local.
+- CI và desktop release đạt; Mac Intel + Apple Silicon chạy server đóng gói thành công; ba checksum khớp digest GitHub.
+- Giữ LICENSE MIT, dữ liệu/hook tương thích và log tự sinh. GitHub vẫn phục vụ SHA cũ qua cache riêng; không thể xóa lớp này bằng Git/API repo.
+- Chi tiết kiểm tra, giới hạn và bước tiếp ở file nhiệm vụ. Các mục dưới giữ nội dung bàn giao bộ nhớ trước nhiệm vụ phát hành.
 
-## Nhiệm vụ hiện tại
+## Bàn giao trước · bộ nhớ dự án
 
 - Mục tiêu: hiểu dự án nhanh, hạn chế nạp ngữ cảnh, bàn giao chung Claude/Codex qua các tài khoản.
 - Người thực hiện: Codex. Sau đó người dùng đồng ý commit và đẩy toàn bộ lên DTOffice `main` (do Claude Code thực hiện).

@@ -15,7 +15,7 @@
 - Khi hoàn tất, cập nhật STATE; chỉ bổ sung kiến thức bền vững vào phần này. Không nối nhật ký công việc sau mỗi lượt vào MEMORY.
 - 04/11/2026 · Codex: nhật ký tự sinh mới chuyển sang SESSION-LOG.md; phần nhật ký cũ dưới đây được giữ nguyên. INDEX/STATE do agent quản lý, writer không ghi đè.
 
-- DT Office phát hành tại `trancaodai1651/DTOffice`; giữ LICENSE MIT và định danh dữ liệu/hook cũ khi đổi thương hiệu. Version package/Tauri/Cargo phải khớp tag; release notes theo `docs/RELEASE-<version>.md`.
+- DT Office phát hành tại `trancaodai1651/DTOffice`; lịch sử nguồn bắt đầu lại từ v0.4.5, không đưa branch/tag cũ trở lại. Giữ LICENSE MIT và định danh dữ liệu/hook cũ khi đổi thương hiệu. Version package/Tauri/Cargo phải khớp tag; release notes theo `docs/RELEASE-<version>.md`.
 
 ## Tra cứu theo nhu cầu
 
