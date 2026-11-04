@@ -30,6 +30,6 @@
 
 ## Còn dở / bước tiếp
 
-- Chưa commit/push, chưa nâng version, chưa đóng gói app desktop (bản cài cũ không có các thay đổi này).
+- Đã commit `6344f4e` và đẩy lên `main` (gồm cả code lượt 2a506d và phần xin phép của Codex). Chưa nâng version, chưa đóng gói app desktop.
 - Chưa thử trực quan resident ra phòng nghỉ (logic giống đường đi nhận việc đã thử). Chưa có e2e cho guide-work/projects.
 - Lượt `2026-11-04-2a506d` dừng: nếu muốn đội kiểm thử/rà soát phần hiện diện thì bấm Tiếp tục ở bảng đội.

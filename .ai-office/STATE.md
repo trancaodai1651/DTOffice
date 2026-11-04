@@ -65,7 +65,7 @@
 - Nhiệm vụ hiện hành: [Làm sạch nguồn và phát hành DT Office 0.4.5](state/dtoffice-clean-release.md) (Codex).
 
 - Nhiệm vụ song song: [Đội AI làm việc thật theo từng vai trò](state/ai-team-roles.md) (Claude Code, đã commit và đẩy).
-- Claude Code: [Đội AI Agent Dev, giao việc qua hướng dẫn viên, dự án người dùng, gói Codex](state/agent-teams-guide.md) — đã xong và kiểm tra (lint/typecheck/unit/build, Edge headless), chưa commit. Lượt `2026-11-04-2a506d` đã dừng ở build; code của nó được giữ và tích hợp.
+- Claude Code: [Đội AI Agent Dev, giao việc qua hướng dẫn viên, dự án người dùng, gói Codex](state/agent-teams-guide.md) — đã xong, kiểm tra, commit `6344f4e` và đẩy lên main. Lượt `2026-11-04-2a506d` đã dừng ở build; code của nó được giữ và tích hợp.
 - Nhiệm vụ trên (bộ nhớ ba lớp) là của Codex. Khi thêm việc song song, tạo `state/<mã-nhiệm-vụ>.md` với mục tiêu,
   tiến độ, file, test, việc dở, bước tiếp và commit; thêm liên kết tại đây, không ghi đè trạng thái phiên khác.
 
