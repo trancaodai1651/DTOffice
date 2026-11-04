@@ -276,7 +276,8 @@ export function setup() {
   });
   // the Codex pane's line (ui/ai-accounts.js) opens it on Codex
   document.addEventListener('office:burn', (e) => openBurn('today', e.detail?.agent));
-  document.addEventListener('office:burn-peek', () => { if (codexToday) codexPeek(codexToday); });
+  let peekAt = 0;   // (the Codex line drawn again: today's numbers, read at most every 20 s)
+  document.addEventListener('office:burn-peek', () => { if (codexToday) codexPeek(codexToday); if (Date.now() - peekAt > 20e3) { peekAt = Date.now(); fetchBurn('today', 'codex').then(codexPeek); } });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drB.hidden) closeBurn(); });
   document.addEventListener('visibilitychange', tick);
   // one drawer at a time: the Mac's or a session's opening closes this one; the plan card opening reads today's line

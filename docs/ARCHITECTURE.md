@@ -146,7 +146,7 @@ engine switches to demo mode and talks to no API.
 | `life/trophies.js` | 121 | The trophy cabinet and the opening plaque. |
 | `life/weather.js` | 90 | Real weather outside (Open-Meteo). |
 | `life/your-turn.js` | 37 | "Your turn": sessions that finished or wait for you. |
-| `net/live.js` | 182 | The live connection: sessions, desks, teams, events. |
+| `net/live.js` | 181 | The live connection: sessions, desks, teams, events. |
 | `people/accountant.js` | 258 | The accountant (company floor): her desk in the director's office, the day's API cost on her screen, the report to the director at 17:30, and a word with whoever spends the most when the plan's limit gets near. |
 | `people/ai-team.js` | 69 | … |
 | `people/bedding.js` | 64 | Nap bedding: blanket, pillow, folding it away. |
@@ -178,9 +178,9 @@ engine switches to demo mode and talks to no API.
 | `people/photobooth.js` | 223 | A strip from the photo booth for every release (world/backdrops/street-photo.js; the release: a new version tag in a session's repository or a GitHub release, server/git.mjs). |
 | `people/pickle.js` | 193 | Pickleball after work (world/backdrops/street-pickle.js). |
 | `people/rounds.js` | 130 | The director's rounds (company floor): twice a day out of the corner office and round the desks. |
-| `people/specialists.js` | 52 | The specialists in the office: the news reader and the video editor (server/specialists.mjs), each in an armchair of the library corner, always there. |
+| `people/specialists.js` | 80 | The specialists in the office: the news reader and the video editor (server/specialists.mjs), always there, resting in an armchair of the library corner. |
 | `people/staff.js` | 397 | People who work here but aren't sessions: the receptionist, the evening cleaner, a Shopee courier with a parcel. |
-| `people/team-brief.js` | 89 | The AI Agent Dev team's members (the residents of the team room, people/ai-team.js) are always in the office:  - called for a task (a member's job starting, server/team.mjs), they walk to the director (you) to take it, a sheet    of paper changes hands, and they go back to their own desk to work on it: you don't carry tasks to their desks;  - with nothing to do for a while, some go to the break room (a sofa, the pantry, the library) and come back the moment    they have work or are called. |
+| `people/team-brief.js` | 136 | The AI staff (the team room's residents, people/ai-team.js, and the specialists, people/specialists.js) are always in the office, and nobody starts work without a meeting:  - work starting (a stage of the AI Agent Dev team, server/team.mjs; a specialist's job): everyone taking part goes to    the meeting table, the director (you) comes too and opens it, each in turn takes their part (a sheet of paper    changes hands), and then they go to their desks and work there;  - with nothing to do for a while, some go to the break room (a sofa, the pantry, the library) and come back the moment    they have work or are called. |
 | `people/team-lines.js` | 28 | Dashed lines from a boss to its subagents. |
 | `people/teatime.js` | 91 | Friday 16:00: afternoon tea. |
 | `people/workers.js` | 587 | Workers: one character per session or subagent, what they do and where they walk. |
@@ -192,7 +192,7 @@ engine switches to demo mode and talks to no API.
 | `scene/renderer.js` | 91 | Renderer, cameras, orbit controls, post-processing and environment light. |
 | `ui/activity.js` | 303 | The activity column and the session list. |
 | `ui/ai-accounts.js` | 278 | The other AI tools' accounts, in the plan card under Claude's (server/codex-accounts.mjs, antigravity-accounts.mjs): Codex and Antigravity IDE, each with its accounts (usage, the one in use, out until when), adding one, using another, and switching by itself when the one in use runs out. |
-| `ui/burn.js` | 293 | What eats your plan: where Claude Code's usage goes, by model, MCP server, skill, plugin, subagent, project and session; and Codex's (its own session files, server/codex-burn.mjs): tokens by model, team member, project, session and day. |
+| `ui/burn.js` | 294 | What eats your plan: where Claude Code's usage goes, by model, MCP server, skill, plugin, subagent, project and session; and Codex's (its own session files, server/codex-burn.mjs): tokens by model, team member, project, session and day. |
 | `ui/cache-words.js` | 53 | How a session's prompt cache reads on screen ("Đồng hồ bộ nhớ đệm", src/shared/cache-clock.js; the cups on the desks are world/props/cups.js): the line under the session drawer's folder, the one under the chat's "Gửi tới" and in its list of conversations, list mode's cards, and the switch in Settings → More for the "about to go cold" notification. |
 | `ui/camera-bar.js` | 62 | The camera toolbar. |
 | `ui/chat-avatars.js` | 72 | Round photos for the group chat (group-chat-view.js): each person's own chibi, head and shoulders, drawn once by the office's renderer (the way Settings draws its portraits: same materials, light and tone mapping) and kept as a data URL. |

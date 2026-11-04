@@ -22,6 +22,11 @@
 - Edge headless trên server thử cổng 4317: 2 nhân sự ngồi thư viện (17 resident), bảng đọc báo và edit video hiện đúng, cảnh báo thiếu ffmpeg, 9 skill; Codex Bot hiện và di chuyển. PDF in thử tiếng Việt đúng.
 - Chưa chạy thật một lượt đọc báo/dựng video bằng CLI (Codex còn 2% hạn mức tuần; tránh tiêu gói). Máy này chưa có ffmpeg.
 
+## Commit / phát hành
+
+- `daa906b` tính năng; `e6e2390` CI in lỗi unit test thành annotation (đọc được không cần đăng nhập GitHub); `83c6c71` sửa test/tên dự án Codex trên macOS/Linux (đường dẫn kiểu Windows). CI Linux Node 22 đạt sau sửa.
+- Tag `v0.4.6` lần đầu trỏ `daa906b`, build Mac lỗi ở npm test nên chưa có release; đã xóa và gắn lại tag ở `83c6c71`, workflow Desktop release chạy lại.
+
 ## Còn dở / bước tiếp
 
 - Bản cài: tag `v0.4.6` kích hoạt workflow Desktop release (Windows NSIS + macOS Universal DMG, tự tạo GitHub Release). Theo dõi kết quả workflow trên GitHub.

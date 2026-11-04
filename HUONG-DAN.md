@@ -190,7 +190,7 @@ Kết quả chạy thật (Codex, GPT-5.6-Luna, effort Thấp, mục tiêu "modu
 Ở **Trụ sở**, phòng ban góc phải phía trước là phòng riêng của Đội AI Agent Dev: **PHÒNG AI 15 AGENT DEV**.
 - **15 nhân sự luôn có mặt** ở bàn của mình, kể cả khi chưa có việc (nhãn "Chờ việc"). Họ không biến mất khi phiên kết thúc và không tự ra khỏi tòa nhà.
 - **Rảnh** một lúc thì có thể ra **phòng nghỉ** (sofa, pantry, thư viện) rồi quay lại; có việc hay được gọi là về bàn ngay.
-- **Nhận việc:** khi PM/CTO gọi một nhân sự, người đó **đi tới bàn giám đốc (bạn)**, đợi nếu giám đốc đang đi một vòng, nhận tờ giao việc rồi về bàn làm. Nhân viên thường (phiên Claude/Codex) cũng vậy: có lời nhắn mới thì lên gặp sếp nhận việc rồi về bàn; chỉ khi chỗ trước bàn sếp đã kín hoặc bật giảm chuyển động thì giám đốc mới mang việc tới.
+- **Họp trước khi làm:** mỗi bước của đội bắt đầu, toàn bộ nhân sự được giao bước đó **đi họp ở bàn họp**, giám đốc (bạn) tới mở cuộc họp, từng người nhận phần việc của mình (tờ giao việc chuyền tay), rồi tất cả **về bàn làm việc** và làm ở đó. Nhân viên thường (phiên Claude/Codex) có lời nhắn mới thì lên gặp sếp nhận việc rồi về bàn; chỉ khi chỗ trước bàn sếp đã kín hoặc bật giảm chuyển động thì giám đốc mới mang việc tới.
 - **Ra ngoài phải xin phép:** nhân viên muốn ra ngoài (về nhà, đi mua đồ, lái xe dạo) phải tới gặp giám đốc; bảng "Xin phép ra ngoài" hiện để bạn bấm **Cho phép** hoặc **Ở lại**. Chờ lâu hay ẩn tab cũng không tự được phép.
 - Phòng có 4 cụm bàn xếp thành 2 hàng, tổng **16 bàn**: một bàn cho mỗi vai trò trong 15 agent, cộng một bàn **CEO (bạn)**.
 - Mỗi bàn có biển tên vai trò.
@@ -232,7 +232,7 @@ Văn phòng Nhỏ có 9 bàn, Công ty có 12 bàn. Khi **hết bàn**, hoặc k
 
 ### Nhân sự đọc báo và nhân sự edit video
 
-Hai nhân sự chuyên trách ngồi ở **góc thư viện** (hai ghế bành đầu tiên), lúc nào cũng có mặt. Bấm vào người đó trong văn phòng, hoặc mở chị Mai → 📰 / 🎬.
+Hai nhân sự chuyên trách nghỉ ở **góc thư viện** (hai ghế bành đầu tiên), lúc nào cũng có mặt. Khi nhận việc, họ **họp với giám đốc ở bàn họp** trước (làm video từ bản tin thì nhân sự đọc báo họp cùng để bàn giao), rồi **ngồi vào bàn làm việc** (bàn văn phòng xếp cho phiên của họ) và làm ở đó; xong việc thì về lại thư viện. Bấm vào người đó trong văn phòng, hoặc mở chị Mai → 📰 / 🎬.
 
 **📰 Nhân sự đọc báo**
 1. Nhân sự hỏi: "Sếp muốn em đọc báo về chủ đề gì?". Gõ chủ đề, chọn thư mục lưu nếu muốn (mặc định `Tài liệu/DT Office/Bao chi/<ngày>-<chủ đề>`), chọn CLI, model, effort, rồi bấm **Đọc báo**.

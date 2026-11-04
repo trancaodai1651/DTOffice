@@ -1,5 +1,5 @@
 export default {
-  brief: { take: 'Em nhận việc: {task}', onIt: 'Em về bàn làm ngay ạ' },
+  brief: { take: 'Em nhận việc: {task}', onIt: 'Em về bàn làm ngay ạ', toMeeting: 'Đi họp giao việc', open: 'Họp giao việc: {task}. Mỗi người nhận phần của mình nhé.', close: 'Rõ rồi, ai về bàn nấy bắt tay vào làm!', myPart: '{role} nhận: {part}', partDefault: 'đúng phần vai trò của em', partNews: 'đọc báo về "{topic}", tóm tắt PDF', partVideo: 'dựng video {about}', partHandover: 'bàn giao bản tin "{topic}" cho bên video' },
   exit: {
     title: 'Xin phép ra ngoài', request: '{name} xin phép {reason}.',
     reason: { home: 'về nhà', ride: 'đi dạo bằng xe', errand: 'ra ngoài có việc', finished: 'ra về sau khi xong việc' },

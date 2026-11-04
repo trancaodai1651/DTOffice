@@ -1,7 +1,7 @@
 // What the characters say and are called (people/*.js): subagents arriving and reporting, the director handing out work,
 // lunch and coffee, and the sleepy lines when you click someone who is resting. Speech bubbles: keep them short.
 export default {
-  brief: { take: 'Taking the task: {task}', onIt: 'Back to my desk to do it' },
+  brief: { take: 'Taking the task: {task}', onIt: 'Back to my desk to do it', toMeeting: 'Off to the kickoff meeting', open: 'Kickoff: {task}. Each of you takes your part.', close: 'Clear. Back to your desks and get going!', myPart: '{role} takes: {part}', partDefault: 'my part, as my role', partNews: 'reading the news on "{topic}", a PDF summary', partVideo: 'the video {about}', partHandover: 'handing the "{topic}" report to video' },
   exit: {
     title: 'Permission to leave', request: '{name} would like to {reason}.',
     reason: { home: 'go home', ride: 'go for a ride', errand: 'go outside on an errand', finished: 'leave after finishing work' },

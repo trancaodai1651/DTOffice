@@ -95,8 +95,8 @@ export function setup() {
       sfx.play('pop');
     }
     // someone came over to take a task (people/team-brief.js): the sheet goes from hand to hand
-    handTo(w, what) {
-      if (this.phase === 'walk' || this.job) return false;
+    handTo(w, what, meeting = false) {   // (meeting: at the table, people/team-brief.js)
+      if (this.phase === 'walk' || (this.job && !meeting)) return false;
       this.faceTarget = Math.atan2(w.pos.x - this.pos.x, w.pos.y - this.pos.y); this.anim = 'globe';
       this.say('prompt', tr('people.handOver', { what: state.streamer ? tr('people.newTask') : short(what, 44) }));
       flyPaper(this, w); sfx.play('pop'); this.given++;
