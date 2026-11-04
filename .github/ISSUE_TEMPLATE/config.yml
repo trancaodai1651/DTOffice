@@ -1,0 +1,9 @@
+# Questions, ideas and bugs are tracked in this repository.
+blank_issues_enabled: true
+contact_links:
+  - name: Hỏi đáp · Questions
+    url: https://github.com/trancaodai1651/DTOffice/issues/new
+    about: Cài đặt, cách dùng, dùng trên điện thoại · Setup, how-to, using it from your phone
+  - name: Ý tưởng · Ideas
+    url: https://github.com/trancaodai1651/DTOffice/issues/new
+    about: Muốn văn phòng có thêm gì · Something you'd like the office to have

@@ -1,0 +1,151 @@
+// The guide (ui/guide.js): her name, her words, her topics
+export default {
+  name: 'Chị Mai',
+  role: 'Hướng dẫn viên của văn phòng',
+  tag: 'Hướng dẫn',
+  title: 'Hướng dẫn sử dụng',
+  welcome: 'Xin chào! Mình là Mai, hướng dẫn viên ở đây. Cần giao việc, xem hạn mức hay chưa biết bắt đầu từ đâu, cứ bấm vào mình nhé.',
+  hello: 'Chào bạn, mình giúp được gì? Gõ điều bạn muốn làm, hoặc chọn một chủ đề bên dưới.',
+  askPh: 'Bạn muốn làm gì? Ví dụ: giao việc cho Codex',
+  noMatch: 'Mình chưa hiểu câu này. Thử một trong các chủ đề sau nhé:',
+  back: 'Quay lại',
+  showMe: 'Làm giúp tôi',
+  topics: {
+    team: {title: "Đội AI 15 agent",lead: "Bạn là CEO: giao mục tiêu, đội tự phân tích, thiết kế, viết code, kiểm thử, sửa lỗi, chuẩn bị triển khai.",keys: "doi ai agent ceo pm cto team muc tieu quy trinh 15",steps: ["Mở Nhóm chat, bấm biểu tượng 👥 (Đội AI).","Chọn dự án, giao cho PM hoặc CTO, chọn CLI (Claude Code hay Codex), model và effort.","Gõ mục tiêu rồi bấm \"Giao mục tiêu cho đội\".","Đội đi qua các bước: PM + PO + BA lập kế hoạch → Architect + UI/UX thiết kế → Frontend + Backend + App + AI viết code → QA + Reviewer + Security kiểm thử → DevOps + Database chuẩn bị triển khai → PM/CTO báo cáo CEO.","Kiểm thử chưa đạt thì đội lập trình tự sửa (tối đa 2 vòng). Báo cáo từng bước ở .ai-office/team/."]},
+    memfile: {title: "File bộ nhớ trong dự án",lead: "Claude Code và Codex đều đọc trước khi làm và ghi sau khi xong.",keys: "file bo nho memory md claude.md agents.md ghi nho",steps: ["Mỗi dự án có .ai-office/MEMORY.md: quy tắc, ghi chú của agent, nhật ký phiên.","Nhật ký ghi rõ: ai làm (vai trò hoặc tên phiên), dùng Claude Code hay Codex, model, được giao gì, sửa gì, kết quả.","CLAUDE.md (Claude Code tự đọc) và AGENTS.md (Codex tự đọc) có dặn: đọc file bộ nhớ trước, ghi thêm sau khi xong.","Bật/tắt ghi file: 📋 Giao việc → 🧠 Bộ nhớ → Xem."]},
+    start: {
+      title: 'Bắt đầu nhanh',
+      lead: 'Ba bước để văn phòng chạy việc thật cho bạn.',
+      keys: 'bat dau moi lam quen huong dan dau tien start',
+      steps: [
+        'Kết nối CLI: Cài đặt → "Chọn CLI kết nối", chọn Claude Code, Codex hoặc cả hai, rồi đăng nhập CLI đó.',
+        'Mở Claude Code hoặc Codex trong một thư mục dự án và nhắn một câu: một nhân viên sẽ vào bàn làm việc.',
+        'Hoặc giao việc ngay ở đây: mở Nhóm chat → 📋 Giao việc.',
+      ],
+    },
+    task: {
+      title: 'Giao việc ngay trong app',
+      lead: 'Gõ việc cần làm, chọn CLI, model, effort, rồi văn phòng tự chạy.',
+      keys: 'giao viec task lam viec nhiem vu yeu cau prompt gui',
+      steps: [
+        'Mở Nhóm chat, bấm 📋 Giao việc.',
+        'Chọn nơi giao: một cuộc trò chuyện đang có (làm tiếp đúng hội thoại đó), hoặc một thư mục dự án (phiên mới).',
+        'Gõ hoặc nói (🎤) việc cần làm, đính ảnh nếu cần, rồi bấm "Tiếp tục".',
+        'Chọn Claude Code hay Codex, chọn model và mức effort, rồi bấm Giao việc.',
+        'Thẻ việc trong chat hiện từng bước; câu trả lời quay về chat. Bấm Dừng nếu muốn ngừng.',
+      ],
+    },
+    run: {
+      title: 'Chọn CLI, model và effort',
+      lead: 'Mỗi lần giao việc đều được hỏi chạy bằng gì.',
+      keys: 'model effort codex claude cli opus sonnet haiku fable gpt suy nghi muc',
+      steps: [
+        'Claude Code: chọn Fable, Opus, Sonnet hoặc Haiku; effort từ Thấp tới Tối đa.',
+        'Codex: danh sách model lấy từ chính Codex, mỗi model có các mức effort riêng.',
+        '"Mặc định" để CLI tự dùng cài đặt của nó.',
+        'Lựa chọn lần trước của mỗi CLI được nhớ cho lần sau.',
+        'Cuộc trò chuyện đang có thì tiếp tục bằng đúng CLI của nó.',
+      ],
+    },
+    memory: {
+      title: 'Bộ nhớ phiên',
+      lead: 'Phiên mới đọc lại những gì các phiên trước đã làm.',
+      keys: 'bo nho memory nho ghi nho nhat ky phien truoc',
+      steps: [
+        'Khi một phiên kết thúc, văn phòng ghi lại: được yêu cầu gì, đã sửa file nào, chạy bao nhiêu lệnh, kết quả.',
+        'Khi phiên mới bắt đầu ở cùng dự án, nó đọc bộ nhớ đó trước (Claude Code qua hook, Codex qua lời dặn khi giao việc).',
+        'Xem, thêm ghi nhớ của riêng bạn, xoá hoặc tắt: 📋 Giao việc → dòng 🧠 Bộ nhớ → Xem.',
+      ],
+    },
+    limits: {
+      title: 'Hạn mức 5 giờ và tuần',
+      lead: 'Xem còn bao nhiêu lượt của Claude và Codex.',
+      keys: 'han muc limit token luot 5 gio tuan het quota plan goi',
+      steps: [
+        'Viên trên thanh trên cùng hiện 5 giờ và tuần của từng CLI bạn đã chọn.',
+        'Màu cam từ 80%, đỏ từ 95%; có thông báo khi sắp hết.',
+        'Bấm vào viên để xem chi tiết, giờ reset và các tài khoản khác.',
+        'Claude cần đăng nhập Claude Code CLI (gói Pro/Max); Codex cần đăng nhập tài khoản ChatGPT.',
+      ],
+    },
+    approve: {
+      title: 'Duyệt lệnh và câu hỏi',
+      lead: 'Claude Code hỏi quyền hay hỏi bạn: trả lời ngay trong văn phòng.',
+      keys: 'duyet quyen cho phep tu choi permission cau hoi ke hoach plan approve',
+      steps: [
+        'Khi Claude cần quyền chạy lệnh, một thẻ hiện ra: Cho phép hoặc Từ chối (phím Y / N / A).',
+        'Câu hỏi và kế hoạch của Claude cũng trả lời được ở đây.',
+        'Phím N đưa bạn tới phiên đang chờ bạn.',
+        'Codex chạy trong app không hỏi duyệt: nó được ghi file trong thư mục dự án.',
+      ],
+    },
+    chat: {
+      title: 'Nhóm chat',
+      lead: 'Nhân viên nhắn về việc thật; bạn nhắn lại cho từng người.',
+      keys: 'chat nhom tin nhan nhan gui to mention',
+      steps: [
+        'Bấm "Nhóm chat" trên thanh trên cùng.',
+        'Gõ @tên để nhắn cho một cuộc trò chuyện; tin đầu tiên mở nhánh mới, tin sau nối tiếp.',
+        '💬 Chen lời: nhắn vào phiên Claude đang làm, nó đọc sau bước hiện tại.',
+      ],
+    },
+    sessions: {
+      title: 'Xem các phiên',
+      lead: 'Ai đang làm, ai đang chờ, đã nói gì.',
+      keys: 'phien session nhan vien hoi thoai lich su xem log',
+      steps: [
+        'Cột bên trái liệt kê các phiên: đang làm, đang chờ, đang nghỉ.',
+        'Bấm vào một phiên (hoặc nhân viên trong văn phòng) để mở ngăn chi tiết: hội thoại, file đã sửa, ghi nhớ.',
+        'Nút 2D trên cùng mở giao diện danh sách gọn.',
+      ],
+    },
+    cli: {
+      title: 'Kết nối Claude Code / Codex',
+      lead: 'Chọn CLI văn phòng kết nối, cài CLI còn thiếu, đăng nhập.',
+      keys: 'ket noi cai dat cli claude codex dang nhap login setup',
+      steps: [
+        'Cài đặt → "Chọn CLI kết nối (Claude / Codex)".',
+        'Chọn Claude Code, Codex hoặc Cả hai rồi bấm Bắt đầu: CLI còn thiếu được cài từ npm.',
+        'CLI chưa đăng nhập có nút Đăng nhập, mở sẵn cửa sổ terminal.',
+      ],
+    },
+    lang: {
+      title: 'Ngôn ngữ',
+      lead: 'Cả văn phòng nói tiếng Việt hoặc tiếng Anh.',
+      keys: 'ngon ngu tieng viet tieng anh english language doi',
+      steps: [
+        'Cài đặt → Ngôn ngữ, chọn Tiếng Việt hoặc English.',
+        'Mọi trang đang mở tải lại bằng ngôn ngữ mới, cả lời nhắn của nhân viên và bộ nhớ phiên.',
+      ],
+    },
+    replay: {
+      title: 'Xem lại',
+      lead: 'Tua lại những gì đã diễn ra trong văn phòng.',
+      keys: 'xem lai replay tua video quay',
+      steps: ['Bấm "Xem lại" trên thanh trên cùng.', 'Chọn 1 giờ, 3 giờ, hôm nay hoặc hôm qua, ở tốc độ ×10 tới ×120.'],
+    },
+    phone: {
+      title: 'Xem bằng điện thoại',
+      lead: 'Theo dõi và duyệt lệnh từ điện thoại cùng wifi.',
+      keys: 'dien thoai phone mobile wifi qr pin',
+      steps: ['Bấm nút điện thoại trên thanh trên cùng.', 'Bật cho điện thoại xem, quét mã QR, nhập mã PIN 6 số.', 'Muốn duyệt lệnh và giao việc từ điện thoại thì bật thêm trong cửa sổ đó.'],
+    },
+    tour: {
+      title: 'Tham quan văn phòng',
+      lead: 'Đèn, máy pha cà phê, chú mèo… bấm vào từng thứ.',
+      keys: 'tham quan tour van phong 3d do vat bam',
+      steps: ['Bấm "Làm giúp tôi": mình dẫn bạn đi một vòng, từng món một.'],
+    },
+    trouble: {
+      title: 'Khi có sự cố',
+      lead: 'Những lỗi hay gặp và cách xử lý.',
+      keys: 'loi su co khong thay khong chay bi chan error doctor',
+      steps: [
+        'Không thấy phiên Claude: chọn lại CLI trong Cài đặt (để cài lại hook), rồi mở lại phiên Claude Code.',
+        'Hạn mức "chưa đọc được": đăng nhập Claude Code CLI (gói Pro/Max) hoặc codex login.',
+        'Giao việc Codex báo lỗi 401: Codex chưa đăng nhập, chạy codex login.',
+        'App báo lỗi server: xem file %USERPROFILE%\\.my-office\\app-server.log.',
+      ],
+    },
+  },
+};

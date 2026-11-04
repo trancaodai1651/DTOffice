@@ -1,0 +1,45 @@
+/* The guide (ui/guide.js): her face in the corner, her word of welcome, her panel of topics */
+.gd-btn { position: fixed; right: 18px; bottom: 86px; z-index: 40; display: grid; justify-items: center; gap: 2px; padding: 4px; border: 0; border-radius: 16px; background: none; cursor: pointer; font: inherit; }
+.gd-btn .zc-av { border-radius: 50%; box-shadow: 0 6px 18px rgba(0, 0, 0, .35), 0 0 0 3px #3FA37C; transition: transform .15s; }
+.gd-btn:hover .zc-av { transform: translateY(-2px) scale(1.04); }
+.gd-tag { padding: 1px 7px; border-radius: 99px; background: #3FA37C; color: #fff; font-size: 10.5px; font-weight: 650; letter-spacing: .2px; white-space: nowrap; }
+.gd-bubble { position: fixed; right: 84px; bottom: 112px; z-index: 40; max-width: 260px; padding: 10px 12px; border: 0; border-radius: 14px 14px 4px 14px; background: #fff; color: #1F2A37; font: inherit; font-size: 13px; line-height: 1.45; text-align: left; box-shadow: 0 10px 28px rgba(0, 0, 0, .3); cursor: pointer; animation: gd-pop .25s ease-out; }
+@keyframes gd-pop { from { transform: translateY(8px) scale(.96); opacity: 0; } }
+.gd-panel { position: fixed; right: 18px; bottom: 150px; z-index: 41; width: min(380px, calc(100vw - 32px)); max-height: min(620px, calc(100dvh - 180px)); display: flex; flex-direction: column; border-radius: 16px; background: var(--card, #18202B); color: var(--text, #E8EDF4); border: 1px solid var(--line-2, rgba(255, 255, 255, .13)); box-shadow: 0 24px 60px rgba(0, 0, 0, .45); overflow: hidden; }
+.gd-panel[hidden] { display: none; }
+.gd-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 10px; border-bottom: 1px solid var(--line, rgba(255, 255, 255, .07)); }
+.gd-head .zc-av { border-radius: 50%; box-shadow: 0 0 0 2px #3FA37C; flex: none; }
+.gd-who { display: grid; flex: 1; min-width: 0; }
+.gd-who small { color: var(--muted, #8C99AB); font-size: 12px; }
+.gd-x, .gd-back { border: 0; background: none; color: var(--muted, #8C99AB); font: inherit; font-size: 16px; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+.gd-x:hover, .gd-back:hover { background: var(--card-3, #263040); color: inherit; }
+.gd-body { display: flex; flex-direction: column; gap: 10px; padding: 12px; overflow-y: auto; }
+.gd-hello { margin: 0; font-size: 13.5px; line-height: 1.5; }
+.gd-ask { width: 100%; box-sizing: border-box; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line-2, rgba(255, 255, 255, .13)); background: var(--card-2, #1E2734); color: inherit; font: inherit; font-size: 14px; outline: none; }
+.gd-ask:focus { border-color: #3FA37C; }
+.gd-none { margin: 0; color: var(--muted, #8C99AB); font-size: 12.5px; }
+.gd-none[hidden] { display: none; }
+.gd-list { display: grid; gap: 6px; }
+.gd-item { display: grid; gap: 2px; text-align: left; padding: 9px 11px; border-radius: 10px; border: 1px solid transparent; background: var(--card-2, #1E2734); color: inherit; font: inherit; cursor: pointer; }
+.gd-item:hover { border-color: #3FA37C; }
+.gd-item b { font-size: 13.5px; }
+.gd-item small { color: var(--muted, #8C99AB); font-size: 12px; line-height: 1.4; }
+.gd-topic { display: flex; flex-direction: column; gap: 8px; }
+.gd-topic-head { display: flex; align-items: center; gap: 6px; }
+.gd-topic-head b { font-size: 15px; }
+.gd-lead { margin: 0; color: var(--muted, #8C99AB); font-size: 13px; line-height: 1.45; }
+.gd-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; line-height: 1.5; }
+.gd-go { align-self: flex-start; margin-top: 4px; padding: 8px 14px; border: 0; border-radius: 10px; background: #3FA37C; color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.gd-go:hover { background: #369069; }
+.is-phone .gd-btn { bottom: calc(var(--ph-tabs, 64px) + 10px); right: 10px; }
+.is-phone .gd-panel { right: 8px; left: 8px; width: auto; bottom: calc(var(--ph-tabs, 64px) + 70px); }
+@media print { .gd-btn, .gd-panel, .gd-bubble { display: none; } }
+/* the group chat open on the right: she steps to its left, so neither covers the other */
+body:has(#zchat:not([hidden])) .gd-btn { right: calc(min(460px, 100vw - 28px) + 26px); }
+body:has(#zchat:not([hidden])) .gd-panel { right: calc(min(460px, 100vw - 28px) + 26px); }
+body:has(#zchat:not([hidden])) .gd-bubble { right: calc(min(460px, 100vw - 28px) + 92px); }
+.is-phone body:has(#zchat:not([hidden])) .gd-btn { display: none; }   /* (a phone: the chat fills the screen) */
+
+/* the office growing into headquarters (ui/expand.js) */
+.ex-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 12px; background: var(--card, #18202B); color: var(--text, #E8EDF4); border: 1px solid var(--accent-line, #EF8A5F); box-shadow: 0 12px 30px rgba(0, 0, 0, .4); font-size: 13.5px; }
+.ex-text { flex: 1; min-width: 0; line-height: 1.4; }

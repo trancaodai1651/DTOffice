@@ -1,0 +1,87 @@
+{
+  "name": "@trancaodai1651/dtoffice",
+  "version": "0.4.5",
+  "private": true,
+  "description": "DT Office: a local 3D workspace for Claude Code and Codex, AI teams, shared project memory and machine monitoring.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trancaodai1651/DTOffice.git"
+  },
+  "homepage": "https://github.com/trancaodai1651/DTOffice#readme",
+  "bugs": {
+    "url": "https://github.com/trancaodai1651/DTOffice/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "claude",
+    "anthropic",
+    "ai-agents",
+    "dashboard",
+    "office",
+    "3d",
+    "threejs",
+    "codex",
+    "developer-tools"
+  ],
+  "type": "module",
+  "bin": {
+    "dt-office": "bin/cli.mjs",
+    "my-office": "bin/cli.mjs"
+  },
+  "files": [
+    "bin/",
+    "server/",
+    "hooks/",
+    "src/i18n/",
+    "src/shared/",
+    "menubar/",
+    "vscode-extension/",
+    "public/",
+    "next.config.mjs",
+    ".next/",
+    "!.next/cache/",
+    "!.next/dev/",
+    "!.next/trace",
+    "!.next/trace-build",
+    "!.next/diagnostics/",
+    "!.next/types/"
+  ],
+  "scripts": {
+    "dev": "node server/index.mjs --dev",
+    "build": "next build",
+    "start": "NODE_ENV=production node server/index.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test",
+    "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test --grep @smoke",
+    "smoke": "node scripts/smoke.mjs",
+    "doctor": "node bin/cli.mjs doctor",
+    "prepack": "node scripts/prepack.mjs",
+    "desktop:prepare": "node scripts/build-desktop.mjs",
+    "desktop:dev": "node scripts/build-desktop.mjs && tauri dev",
+    "desktop:build": "node scripts/build-desktop.mjs && tauri build"
+  },
+  "engines": {
+    "node": ">=20.9"
+  },
+  "dependencies": {
+    "next": "16.4.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "three": "0.160.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@tauri-apps/cli": "^2.12.4",
+    "@types/node": "22.18.12",
+    "@types/react": "19.2.2",
+    "@types/react-dom": "19.2.2",
+    "eslint": "9.38.0",
+    "eslint-config-next": "16.4.3",
+    "gifenc": "1.0.3",
+    "pngjs": "7.0.0",
+    "typescript": "5.9.3"
+  }
+}

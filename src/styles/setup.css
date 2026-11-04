@@ -1,0 +1,32 @@
+/* The first run: which CLIs the office connects to (ui/setup.js) */
+.su-overlay { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: 16px; background: rgba(6, 9, 14, .62); backdrop-filter: blur(6px); }
+.su-overlay[hidden] { display: none; }
+.su-pane { width: min(640px, 100%); max-height: calc(100dvh - 32px); overflow-y: auto; display: grid; gap: 14px; padding: 22px; border-radius: 16px; background: var(--card); border: 1px solid var(--line-2); box-shadow: 0 24px 60px rgba(0, 0, 0, .45); }
+.su-pane h2 { margin: 0; font-size: 1.2rem; }
+.su-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.su-langs { display: flex; gap: 2px; padding: 2px; border-radius: 99px; background: var(--card-3); }
+.su-lang { border: 0; border-radius: 99px; padding: 4px 10px; background: none; color: var(--muted); font: inherit; font-size: .78rem; cursor: pointer; }
+.su-lang.is-sel { background: var(--accent); color: var(--on-accent); }
+.su-lead { margin: 0; color: var(--muted); line-height: 1.45; }
+.su-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 620px) { .su-cards { grid-template-columns: 1fr; } }
+.su-card { display: grid; gap: 6px; align-content: start; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--card-2); color: inherit; font: inherit; cursor: pointer; transition: border-color .15s, background .15s; }
+.su-card:hover { border-color: var(--accent-line); }
+.su-card.is-sel { border-color: var(--accent); background: var(--accent-soft); }
+.su-card b { font-size: 1rem; }
+.su-sub { color: var(--muted); font-size: .82rem; line-height: 1.4; }
+.su-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.su-tag { font-style: normal; font-size: .72rem; padding: 2px 7px; border-radius: 99px; background: var(--card-3); color: var(--muted); }
+.su-tag.is-ok { background: rgba(80, 190, 120, .16); color: #7fd79f; }
+.su-acts { display: flex; justify-content: flex-end; gap: 8px; }
+.su-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.su-step { display: grid; grid-template-columns: 14px 1fr; gap: 4px 10px; align-items: center; }
+.su-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--card-3); }
+.su-step.is-run .su-dot { background: var(--accent); animation: su-pulse 1s infinite alternate; }
+.su-step.is-ok .su-dot { background: #5cc985; }
+.su-step.is-fail .su-dot { background: #e5605a; }
+.su-note { grid-column: 2; color: var(--muted); font-size: .76rem; word-break: break-word; }
+.su-signs { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.su-hint { color: var(--muted); }
+.su-open { margin-top: 8px; width: 100%; }
+@keyframes su-pulse { from { opacity: .45; } to { opacity: 1; } }

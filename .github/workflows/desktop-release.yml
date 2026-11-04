@@ -1,0 +1,119 @@
+name: Desktop release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows-x64
+          - os: macos-15
+            name: macos-universal
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check release versions
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+          const tauri = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8')).version;
+          const cargo = fs.readFileSync('src-tauri/Cargo.toml', 'utf8').match(/^version = "([^"]+)"/m)?.[1];
+          if (version !== tauri || version !== cargo) throw new Error('Package, Tauri and Cargo versions must match');
+          if (process.env.GITHUB_REF_TYPE === 'tag' && process.env.GITHUB_REF_NAME !== `v${version}`) throw new Error('Tag does not match package version');
+          NODE
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: node scripts/module-map.mjs --check
+      - run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: npm run smoke
+      - if: runner.os == 'Windows'
+        run: npm run desktop:prepare
+      - if: runner.os == 'macOS'
+        run: |
+          rustup target add aarch64-apple-darwin x86_64-apple-darwin
+          npm run desktop:prepare -- --universal
+      - run: node scripts/verify-desktop.mjs
+      - if: runner.os == 'Windows'
+        run: npx tauri build --bundles nsis
+      - if: runner.os == 'macOS'
+        run: |
+          npx tauri build --target universal-apple-darwin --bundles app,dmg
+          APP='src-tauri/target/universal-apple-darwin/release/bundle/macos/DT Office.app'
+          lipo "$APP/Contents/MacOS/my-office" -verify_arch x86_64 arm64
+          lipo "$APP/Contents/Resources/node/node" -verify_arch x86_64 arm64
+          tar -czf DT-Office-macos-universal.app.tar.gz -C "$(dirname "$APP")" "DT Office.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+            DT-Office-macos-universal.app.tar.gz
+
+  verify-macos:
+    needs: build
+    strategy:
+      matrix:
+        os: [macos-15, macos-15-intel]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: macos-universal
+          path: artifacts
+      - run: |
+          tar -xzf artifacts/DT-Office-macos-universal.app.tar.gz
+          node scripts/verify-desktop.mjs 'DT Office.app/Contents/Resources'
+
+  publish:
+    needs: [build, verify-macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Publish installers and checksums
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir release
+          while IFS= read -r -d '' file; do
+            name="$(basename "$file")"
+            cp "$file" "release/${name// /.}"
+          done < <(find artifacts -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.tar.gz' \) -print0)
+          cd release
+          sha256sum * > SHA256SUMS.txt
+          TAG="v$(node -p "require('../package.json').version")"
+          gh release create "$TAG" ./* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "DT Office $TAG" --notes-file "../docs/RELEASE-${TAG#v}.md" --latest

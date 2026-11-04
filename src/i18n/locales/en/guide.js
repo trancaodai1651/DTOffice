@@ -1,0 +1,151 @@
+// The guide (ui/guide.js): her name, her words, her topics
+export default {
+  name: 'Mai',
+  role: "The office's guide",
+  tag: 'Guide',
+  title: 'How to use the office',
+  welcome: "Hi! I'm Mai, the guide here. Want to give work, check your limits, or not sure where to start? Just click me.",
+  hello: 'Hi, how can I help? Type what you want to do, or pick a topic below.',
+  askPh: 'What do you want to do? E.g. give work to Codex',
+  noMatch: "I didn't quite get that. Try one of these topics:",
+  back: 'Back',
+  showMe: 'Show me',
+  topics: {
+    team: {title: "The 15-agent AI team",lead: "You are the CEO: give a goal; the team analyses, designs, codes, tests, fixes and prepares to ship.",keys: "ai team agents ceo pm cto goal workflow 15",steps: ["Open the Team chat and click 👥 (AI team).","Pick the project, give it to the PM or the CTO, choose the CLI (Claude Code or Codex), the model and the effort.","Type the goal and click \"Give the goal to the team\".","The team goes through the stages: PM + PO + BA plan → Architect + UI/UX design → Frontend + Backend + App + AI code → QA + Reviewer + Security test → DevOps + Database prepare to ship → the PM/CTO reports to the CEO.","When testing fails, engineering fixes it (2 rounds at most). Each stage reports in .ai-office/team/."]},
+    memfile: {title: "The memory file in the project",lead: "Claude Code and Codex both read it before they start and add to it when done.",keys: "memory file md claude.md agents.md notes",steps: ["Each project has .ai-office/MEMORY.md: rules, agent notes, the session log.","The log says who worked (role or session name), Claude Code or Codex, which model, what was asked, what changed, the outcome.","CLAUDE.md (read by Claude Code) and AGENTS.md (read by Codex) tell them: read the memory file first, add to it when done.","Switch writing the file on or off: 📋 Give work → 🧠 Memory → Open."]},
+    start: {
+      title: 'Quick start',
+      lead: 'Three steps to get the office running real work for you.',
+      keys: 'start begin new first getting started help',
+      steps: [
+        'Connect a CLI: Settings → "Choose the CLIs to connect", pick Claude Code, Codex or both, then sign in to it.',
+        'Open Claude Code or Codex in a project folder and send a message: someone takes a desk.',
+        'Or give work right here: open the Team chat → 📋 Give work.',
+      ],
+    },
+    task: {
+      title: 'Give work in the app',
+      lead: 'Type the task, pick the CLI, model and effort, and the office runs it.',
+      keys: 'give work task job request prompt send assign',
+      steps: [
+        'Open the Team chat and click 📋 Give work.',
+        'Pick where it goes: a conversation (carried on as it is) or a project folder (a new session).',
+        'Type or say (🎤) what to do, add photos if needed, then click "Next".',
+        'Choose Claude Code or Codex, a model and an effort level, then click Give work.',
+        'The work card in the chat shows each step; the answer comes back to the chat. Click Stop to stop it.',
+      ],
+    },
+    run: {
+      title: 'Choose the CLI, model and effort',
+      lead: 'Every time you give work, you are asked what runs it.',
+      keys: 'model effort codex claude cli opus sonnet haiku fable gpt thinking level',
+      steps: [
+        'Claude Code: Fable, Opus, Sonnet or Haiku; effort from Low to Max.',
+        "Codex: the models come from Codex's own list, each with the efforts it takes.",
+        '"Default" leaves it to the CLI\'s own settings.',
+        "Each CLI's last choice comes back next time.",
+        'A conversation carries on with the CLI it is in.',
+      ],
+    },
+    memory: {
+      title: 'Session memory',
+      lead: 'A new session reads what the sessions before it did.',
+      keys: 'memory remember notes journal previous session',
+      steps: [
+        'When a session ends, the office keeps what it was asked, the files it changed, how many commands it ran, and the outcome.',
+        'When a new session starts in the same project, it reads that memory first (Claude Code through a hook, Codex in the words it is given with work).',
+        'See it, add notes of your own, remove entries or switch it off: 📋 Give work → the 🧠 Memory line → Open.',
+      ],
+    },
+    limits: {
+      title: '5-hour and weekly limits',
+      lead: 'How much of Claude and Codex you have left.',
+      keys: 'limit limits token usage quota 5 hour week weekly plan',
+      steps: [
+        'The pill in the top bar shows the 5 hours and the week of each CLI you chose.',
+        'Orange from 80%, red from 95%; a notice when one runs low.',
+        'Click the pill for the details, when each resets, and other accounts.',
+        'Claude needs Claude Code CLI signed in (Pro/Max plan); Codex needs a ChatGPT sign-in.',
+      ],
+    },
+    approve: {
+      title: 'Approvals and questions',
+      lead: 'Claude Code asks for permission or asks you something: answer right here.',
+      keys: 'approve permission allow deny question plan',
+      steps: [
+        'When Claude needs permission to run something, a card appears: Allow or Deny (keys Y / N / A).',
+        "Claude's questions and plans can be answered here too.",
+        'The N key takes you to the session waiting for you.',
+        'Codex run from the app asks nothing: it may write in its project folder.',
+      ],
+    },
+    chat: {
+      title: 'Team chat',
+      lead: 'Your people post about real work; you can reply to each of them.',
+      keys: 'chat team message send mention',
+      steps: [
+        'Click "Team chat" in the top bar.',
+        'Type @name to message a conversation; the first message starts a branch, the next ones carry it on.',
+        '💬 Butt in: a note to a Claude session at work, read after its current step.',
+      ],
+    },
+    sessions: {
+      title: 'See the sessions',
+      lead: 'Who is working, who is waiting, what was said.',
+      keys: 'session sessions people conversation history log',
+      steps: [
+        'The left column lists the sessions: working, waiting, resting.',
+        'Click a session (or a person in the office) for its drawer: the conversation, the files changed, pinned notes.',
+        'The 2D button at the top opens the compact list view.',
+      ],
+    },
+    cli: {
+      title: 'Connect Claude Code / Codex',
+      lead: 'Choose the CLIs the office connects to, install a missing one, sign in.',
+      keys: 'connect setup install cli claude codex sign in login',
+      steps: [
+        'Settings → "Choose the CLIs to connect (Claude / Codex)".',
+        'Pick Claude Code, Codex or Both and click Start: a missing CLI is installed from npm.',
+        'A CLI that isn\'t signed in gets a Sign in button, which opens a terminal window.',
+      ],
+    },
+    lang: {
+      title: 'Language',
+      lead: 'The whole office speaks Vietnamese or English.',
+      keys: 'language vietnamese english tieng viet change',
+      steps: [
+        'Settings → Language, pick Tiếng Việt or English.',
+        "Every open page reloads in the new language, the people's messages and the session memory too.",
+      ],
+    },
+    replay: {
+      title: 'Replay',
+      lead: 'Play back what happened in the office.',
+      keys: 'replay rewind video record',
+      steps: ['Click "Replay" in the top bar.', 'Pick 1 hour, 3 hours, today or yesterday, at ×10 to ×120.'],
+    },
+    phone: {
+      title: 'Watch from your phone',
+      lead: 'Follow along and approve from a phone on the same wifi.',
+      keys: 'phone mobile wifi qr pin',
+      steps: ['Click the phone button in the top bar.', 'Let phones watch, scan the QR code, enter the 6-digit PIN.', 'To approve and give work from the phone, switch that on in the same window.'],
+    },
+    tour: {
+      title: 'Tour of the office',
+      lead: 'The lamp, the coffee machine, the cat… click each one.',
+      keys: 'tour office 3d things click',
+      steps: ['Click "Show me": I take you round, one thing at a time.'],
+    },
+    trouble: {
+      title: 'When something goes wrong',
+      lead: 'Common problems and what to do.',
+      keys: 'problem error trouble not showing broken blocked doctor',
+      steps: [
+        'No Claude sessions: choose the CLIs again in Settings (it reinstalls the hooks), then reopen the Claude Code session.',
+        "Limits can't be read: sign in to Claude Code CLI (Pro/Max plan), or codex login.",
+        "Giving Codex work says 401: Codex isn't signed in, run codex login.",
+        'The app says the server failed: see %USERPROFILE%\\.my-office\\app-server.log.',
+      ],
+    },
+  },
+};

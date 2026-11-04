@@ -1,0 +1,34 @@
+# Local state: access token, phone PIN, replay logs, process owners, server log
+data/
+node_modules/
+# Machine-specific copy of the login service (the CLI writes its own to ~/Library/LaunchAgents)
+com.my-office.plist
+com.claude-office.plist
+.DS_Store
+# Next.js
+.next/
+.next-e2e/
+next-env.d.ts
+*.tsbuildinfo
+# tests
+test-results/
+test-results-*/
+.next-*/
+playwright-report/
+
+# the online demo build (scripts/build-demo.mjs)
+/.demo-build/
+/demo-site/
+/out/
+
+# the desktop app (src-tauri/, scripts/build-desktop.mjs)
+/.desktop/
+/src-tauri/target/
+/src-tauri/gen/
+
+# Local verification output and release helpers (never package credentials or old checksums)
+/context-preservation.json
+/context-tests.log
+/release-tests.log
+/github-release-api.ps1
+/SHA256SUMS.txt

@@ -1,0 +1,17 @@
+[package]
+name = "my-office"
+version = "0.4.5"
+description = "DT Office: a 3D workspace for Claude Code and Codex sessions"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+strip = true

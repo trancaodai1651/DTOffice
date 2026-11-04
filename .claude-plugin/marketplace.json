@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "dt-office",
+  "owner": {
+    "name": "trancaodai1651"
+  },
+  "metadata": {
+    "description": "A 3D office for your Claude Code sessions.",
+    "version": "0.4.5"
+  },
+  "plugins": [
+    {
+      "name": "dt-office",
+      "source": "./",
+      "description": "A 3D office for your Claude Code sessions: live agents, approve from the office, RAM per session and Mac cleanup.",
+      "version": "0.4.5",
+      "category": "productivity"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DT Office</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { height: 100%; margin: 0; }
+  body { display: grid; place-items: center; background: #0D1219; color: #E8EDF4; font: 15px/1.5 system-ui, "Segoe UI", sans-serif; }
+  .box { display: grid; gap: 14px; justify-items: center; text-align: center; max-width: 520px; padding: 24px; }
+  .spin { width: 34px; height: 34px; border-radius: 50%; border: 3px solid rgba(255,255,255,.12); border-top-color: #EF8A5F; animation: r 0.9s linear infinite; }
+  .muted { color: #8C99AB; font-size: 13px; }
+  .err { color: #F08A84; white-space: pre-wrap; word-break: break-word; }
+  @keyframes r { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="spin" id="spin"></div>
+  <b>DT Office</b>
+  <span class="muted" id="msg">Đang mở văn phòng… · Opening the office…</span>
+</div>
+<script>
+  // the app calls this when the office's server can't start (src-tauri/src/main.rs)
+  window.officeFailed = function (text) {
+    document.getElementById('spin').remove();
+    var m = document.getElementById('msg'); m.className = 'err'; m.textContent = text;
+  };
+</script>
+</body>
+</html>
