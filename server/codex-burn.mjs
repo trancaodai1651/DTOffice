@@ -88,7 +88,7 @@ export function createCodexBurn({ home, nameOf = () => null, now = Date.now }) {
         }
       }
       if (!mine.tokens) continue;
-      const proj = st.cwd ? path.basename(st.cwd) : '', key = st.cwd || '';
+      const proj = st.cwd ? String(st.cwd).split(/[\\/]/).filter(Boolean).pop() || '' : '', key = st.cwd || '';   // (a folder's name whichever way its path is written)
       const p = projects.get(key) || projects.set(key, { name: proj, cwd: st.cwd, ...zero(), sessions: 0 }).get(key);
       add(p, mine); p.sessions++;
       const who = nameOf(st.sid) || {};
