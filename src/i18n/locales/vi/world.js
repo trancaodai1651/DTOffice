@@ -34,7 +34,7 @@ export default {
   stairs: { exit: 'LỐI THOÁT HIỂM', exitSub: 'EXIT', floor: 'TẦNG', plate: 'THANG BỘ', plateSub: 'Tầng {n}' },
   dept: {
     team: 'PHÒNG AI 15 AGENT DEV',
-    teamSub: 'Đội AI · 15 agent và CEO',
+    teamSub: 'Đội AI Agent Dev · 15 agent và CEO',
     free: 'PHÒNG BAN {n}',
     freeSub: 'chờ dự án tiếp theo',
     name: '{name}',

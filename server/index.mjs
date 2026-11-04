@@ -24,8 +24,9 @@ import { createCodexAccounts } from './codex-accounts.mjs';
 import { createSetup, pickAgents } from './setup.mjs';
 import { agentModels, pickRun } from './agent-models.mjs';
 import { createMemory, wrap as wrapMemory } from './memory.mjs';
-import { createTeam, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS } from './team.mjs';
+import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS, TEAMS } from './team.mjs';
 import { createCodexSessions, readCodexLog } from './codex-sessions.mjs';
+import { createCodexBurn } from './codex-burn.mjs';
 import { createAntigravityAccounts, makeDb, windowsOf } from './antigravity-accounts.mjs';
 import { report as promptReport } from './prompt-report.mjs';
 import { testCounts, testRunner } from './testrun.mjs';
@@ -765,6 +766,7 @@ function transcriptCwd(sid) {
   }
   return '';
 }
+const codexBurn = createCodexBurn({ home: () => codexHome(), nameOf: (sid) => { const s = bySid(sid); const t = !s && tasks.list().find((x) => x.sid === sid); const m = !s && team.whoSid(sid); return s ? { name: s.title || s.name, open: true, role: s.role || '' } : t?.role ? { name: roleName(t.role), role: t.role } : m ? { name: roleName(m.role), role: m.role } : null; } });
 const otel = createOtel({ dir: path.join(DATA_DIR, 'otel'), cwdOf: (sid) => bySid(sid)?.cwd || transcriptCwd(sid) });
 // The panel's numbers: today or the last 7 days, the 40 sessions that cost most (the rest in one line, so they still add
 // up), and the plan's week as an exchange rate: the % of the weekly limit used so far over what was counted since that
@@ -876,9 +878,32 @@ async function sendLater(key) {
    picks one of these, never a path of its own); the last 30, kept in data/projects.json ---------- */
 const DIRS_FILE = path.join(DATA_DIR, 'projects.json');
 let knownDirs = []; try { knownDirs = JSON.parse(fs.readFileSync(DIRS_FILE, 'utf8')).filter((d) => typeof d === 'string'); } catch { /* none yet */ }
+// the ones you removed from the list: not added back by a session working there, until you add them yourself
+const HIDDEN_DIRS_FILE = path.join(DATA_DIR, 'projects-hidden.json');
+let hiddenDirs = []; try { hiddenDirs = JSON.parse(fs.readFileSync(HIDDEN_DIRS_FILE, 'utf8')).filter((d) => typeof d === 'string'); } catch { /* none */ }
+const sameDir = (a, b) => path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+/** Your projects: add a folder (it must exist) or remove one from the list (the folder itself is left alone). */
+function editProjects(op, raw) {
+  const want = String(raw || '').trim().replace(/^["']|["']$/g, '').replace(/^~(?=$|[\\/])/, os.homedir());
+  if (!want || !path.isAbsolute(want)) return { ok: false, code: 'badDir' };   // (a whole path, not one read against the office's own folder)
+  const dir = path.resolve(want);
+  if (op === 'add') {
+    let st = null; try { st = fs.statSync(dir); } catch { /* none */ }
+    if (!st?.isDirectory()) return { ok: false, code: 'noFolder' };
+    knownDirs = [dir, ...knownDirs.filter((d) => !sameDir(d, dir))].slice(0, 60);
+    hiddenDirs = hiddenDirs.filter((d) => !sameDir(d, dir));
+  } else if (op === 'del') {
+    knownDirs = knownDirs.filter((d) => !sameDir(d, dir));
+    hiddenDirs = [dir, ...hiddenDirs.filter((d) => !sameDir(d, dir))].slice(0, 200);
+  } else return { ok: false, code: 'badOp' };
+  fsp.writeFile(DIRS_FILE, JSON.stringify(knownDirs)).catch(() => {});
+  fsp.writeFile(HIDDEN_DIRS_FILE, JSON.stringify(hiddenDirs)).catch(() => {});
+  return { ok: true, dir };
+}
+const projectsOut = () => ({ ok: true, projects: knownDirs.map((d) => ({ dir: tilde(d), path: d, name: path.basename(d), here: fs.existsSync(d) })) });
 function noteDir(dir) {
-  if (!dir || !path.isAbsolute(dir) || knownDirs[0] === dir) return;
-  knownDirs = [dir, ...knownDirs.filter((d) => d !== dir)].slice(0, 30);
+  if (!dir || !path.isAbsolute(dir) || knownDirs[0] === dir || hiddenDirs.some((d) => sameDir(d, dir))) return;
+  knownDirs = [dir, ...knownDirs.filter((d) => d !== dir)].slice(0, 60);
   fsp.writeFile(DIRS_FILE, JSON.stringify(knownDirs)).catch(() => {});
 }
 
@@ -1510,10 +1535,13 @@ const team = createTeam({
     else if (what === 'fail') chat.system(tr('team.chat.fail', { why: x.code ? tr(`chat.task.why.${x.code}`) : x.stage ? tr(`team.stages.${x.stage.key}`) : '' }));
     else if (what === 'stopped') chat.system(tr('team.chat.stopped'));
     else if (what === 'resume') chat.system(tr('team.chat.resumed', { lead, stage: x.stage ? tr(`team.stages.${x.stage.key}`) : '' }));
+    else if (what === 'held') chat.system(tr(x.by.why === 'code' ? 'team.chat.heldCode' : 'team.chat.held', { name: roleName(x.job.role), other: roleName(x.by.role), folder: path.basename(r.dir) }));
+    else if (what === 'team') chat.system(tr('team.chat.nextTeam', { team: tr(`team.teams.${x.team}`) }));
+    else if (what === 'job') chat.system(tr('team.chat.called', { name: roleName(x.job.role), stage: tr(`team.stages.${x.stage.key}`) }));
     broadcast({ k: 'team', runs: team.list() });
   },
 });
-const teamOut = () => ({ ok: true, roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
+const teamOut = () => ({ ok: true, teams: TEAMS.map(({ id, roles }) => ({ id, roles })), roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
 
 /* ---------- "Ghi nhớ cho Claude": what you pin for a conversation (the session drawer's "Ghi nhớ" tab), said to Claude
    again each time Claude Code compacts it, when what it was told along the way may be summed up away. The synchronous
@@ -2844,17 +2872,23 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if (url.pathname === '/api/projects' && req.method === 'POST') {   // your projects: add or remove one (on this computer only)
+    if (!isLoopback(req) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
+    readJson(req, 8000).then((b) => { const r = editProjects(String(b?.op || ''), b?.dir); json(res, r.ok ? 200 : 400, r.ok ? { ...r, ...projectsOut() } : { ...r, message: tr(`server.projects.${r.code}`) }); });
+    return;
+  }
   if (url.pathname.startsWith('/api/team') && req.method === 'POST') {   // a goal for the AI team (from a phone only when allowed), or stopping one
     if (!authorized(req, url) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
     if (!isLoopback(req) && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
     readJson(req, 40_000).then((b) => {
       if (url.pathname === '/api/team/stop') { json(res, 200, { ok: team.halt(String(b?.id || '')) }); return; }
+      if (url.pathname === '/api/team/route') { json(res, 200, { ok: true, teams: routeTeams(String(b?.text || '').slice(0, 4000)) }); return; }   // the guide: which team(s) a task needs
       if (url.pathname === '/api/team/resume') { const ok = team.resume(String(b?.id || '')); json(res, ok ? 200 : 409, ok ? { ok } : { ok, message: tr('team.cantResume') }); return; }
       if (url.pathname !== '/api/team') { json(res, 404, { ok: false }); return; }
       const dir = memoryDir(b?.dir); if (!dir) { json(res, 400, { ok: false, code: 'noDir', message: tr('chat.task.noDir') }); return; }
       const agent = b?.agent === 'codex' ? 'codex' : 'claude';
       if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) { json(res, 409, { ok: false, code: agent === 'codex' ? 'noCodex' : 'noClaude', message: tr(`chat.task.why.${agent === 'codex' ? 'noCodex' : 'noClaude'}`) }); return; }
-      const r = team.begin({ dir, goal: b?.goal, lead: b?.lead, agent, ...pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome()) });
+      const r = team.begin({ dir, goal: b?.goal, lead: b?.lead, agent, teams: Array.isArray(b?.teams) ? b.teams.map(String) : null, ...pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome()) });
       json(res, r.ok ? 200 : 409, r.ok ? r : { ...r, message: tr(r.code === 'teamBusy' ? 'team.busy' : `chat.task.why.${r.code}`) });
     });
     return;
@@ -3215,6 +3249,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/cache') { json(res, 200, { ok: true, nudge: !!prefs.get('cacheNudge') }); return; }
   if (url.pathname === '/api/tasks') { json(res, 200, tasksOut(isLoopback(req))); return; }
   if (url.pathname === '/api/team') { json(res, 200, teamOut()); return; }
+  if (url.pathname === '/api/projects') { json(res, 200, projectsOut()); return; }
   if (url.pathname === '/api/setup') { json(res, 200, isLoopback(req) ? { ok: true, ...setup.out() } : { ok: true, agents: setup.agents() }); return; }
   if (url.pathname === '/api/quick') { let list = null; try { list = JSON.parse(fs.readFileSync(QUICK_FILE, 'utf8')); } catch { /* the page's own until you change them */ } json(res, 200, { ok: true, list }); return; }
   if (url.pathname === '/api/claude-version') { json(res, 200, { ok: true, ...claudeVersion.get() }); return; }   // (a new one: someone goes to Thế Giới Di Động, outings.js)
@@ -3302,6 +3337,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/vault/report') { reportOut().then((r) => json(res, 200, r)).catch(() => json(res, 500, { ok: false })); return; }   // the prompt report (server/prompt-report.mjs)
   if (url.pathname === '/api/undo') { undoOut(sessionById(url.searchParams.get('id'))).then((r) => json(res, 200, r)).catch(() => json(res, 500, { ok: false })); return; }   // what "Hoàn tác lượt cuối" would do
   if (url.pathname === '/api/vault') { vaultOut(url.searchParams, isLoopback(req)).then((r) => json(res, 200, r)).catch(() => json(res, 500, { ok: false })); return; }   // the history vault (server/vault.mjs)
+  if (url.pathname === '/api/burn' && url.searchParams.get('agent') === 'codex') { codexBurn.report(String(url.searchParams.get('range') || '')).catch(() => ({ ok: false })).then((r) => json(res, 200, r.ok ? { ...r, projects: r.projects.map((p) => ({ ...p, dir: tilde(p.dir) })), sessions: r.sessions.map((x) => ({ ...x, dir: tilde(x.cwd), cwd: undefined })) } : r)); return; }   // (Codex: from its own session files, server/codex-burn.mjs)
   if (url.pathname === '/api/burn') { json(res, 200, burnOut(String(url.searchParams.get('range') || ''))); return; }   // what eats the plan (server/otel.mjs)
   if (url.pathname === '/api/sys') {
     sysSnapshot({ open: url.searchParams.has('open') }).then((snap) => json(res, 200, { ...snap, claude: claudeRows(snap.claude), auto: { hours: prefs.autoClose(), last: autoLast[0] || null } })).catch((err) => json(res, 500, { error: String(err.message || err) }));

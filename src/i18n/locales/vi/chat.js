@@ -192,6 +192,7 @@ export default {
     title: 'Giao việc',
     conversations: 'Tiếp tục một cuộc trò chuyện (mang theo ngữ cảnh)',
     newIn: 'Cuộc trò chuyện mới trong thư mục',
+    manageProjects: 'Thêm hoặc bỏ dự án',
     placeholder: 'Việc cần làm… (gõ hoặc bấm 🎤 để nói)',
     mic: 'Nói',
     photo: 'Ảnh',

@@ -1,4 +1,6 @@
 export default {
+  takeTask: 'Lên gặp sếp nhận việc: “{task}”',
+  takeTaskHidden: 'Lên gặp sếp nhận việc',
   banner: 'Có sự cố: 3 lỗi trong 5 phút',
   bubble: 'Có sự cố!',
   pushed: '🚀 {name} vừa đẩy code lên {branch}',

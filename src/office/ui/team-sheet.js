@@ -1,17 +1,24 @@
-// "Đội AI" (server/team.mjs): you are the CEO. A sheet over the group chat: the 15 agents in their five groups, how a
+// "Đội AI Agent Dev" (server/team.mjs): you are the CEO. A sheet over the group chat: the 15 agents in their five groups, how a
 // goal goes through them (CEO → PM + PO + BA → Architect + UI/UX → Frontend + Backend + App + AI → QA + Reviewer +
 // Security → DevOps + Database), a goal to give (which project, to the PM or the CTO, which CLI, model and effort), and
 // each run's stages as they go ({ k: 'team' }).
-import { el } from '../core/env.js';
+import { $, el, HQ } from '../core/env.js';
+import { liveTeamEnabled } from '../people/ai-team.js';
+import { createTeamRoster } from './team-roster.js';
+import { openSession } from './session-drawer.js';
+import { goView } from './camera-bar.js';
+import { openLayoutSettings } from './settings.js';
 import { toast } from './activity.js';
 import { expandOffice } from './expand.js';
 import { TOKEN } from '../net/live.js';
+import { projectPicker } from './projects.js';
 import { t as tr } from '../../i18n/index.js';
 
 const q = () => (TOKEN ? `?k=${encodeURIComponent(TOKEN)}` : '');
 const KEY = 'office-team-run';
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
 let sheet = null, runsBox = null, lastRuns = [];
+let disposeRoster = null, restoreModal = null, returnFocus = null, dismissOnClose = null;
 const effortName = (e) => (EFFORTS.includes(e) ? tr(`chat.task.effort.${e}`) : e);
 const keep = (v) => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* private mode */ } };
 const kept = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch { return {}; } };
@@ -22,16 +29,6 @@ function select(label, items, value, onChange) {
   for (const [v, text] of items) { const o = el('option', null, text); o.value = v; if (v === value) o.selected = true; s.append(o); }
   s.addEventListener('change', () => onChange(s.value));
   return wrap;
-}
-function org(roles, groups) {
-  const box = el('div', 'tm-org');
-  for (const g of groups) {
-    const col = el('div', `tm-group is-${g}`);
-    col.append(el('b', null, tr(`team.groups.${g}`)));
-    for (const r of roles.filter((x) => x.group === g)) { const c = el('span', 'tm-role', tr(`team.roles.${r.id}.name`)); c.title = tr(`team.roles.${r.id}.duty`); col.append(c); }
-    box.append(col);
-  }
-  return box;
 }
 function flow(stages) {
   const box = el('ol', 'tm-flow');
@@ -50,7 +47,7 @@ function drawRuns() {
     const card = el('div', `tm-run is-${r.status}`), head = el('div', 'tm-run-head');
     head.append(el('b', null, `${tr(`team.roles.${r.lead}.name`)} · ${r.dir.split(/[\\/]/).pop()}`), el('em', `tm-badge is-${r.status}`, tr(`team.status.${r.status}`)));
     card.append(head, el('p', 'tm-goal', r.goal));
-    const meta = [r.agent === 'codex' ? 'Codex' : 'Claude Code', r.model, r.effort && effortName(r.effort), r.fixes ? tr('team.fixes', { n: r.fixes }) : ''].filter(Boolean).join(' · ');
+    const meta = [(r.teams || []).length > 1 ? tr('team.teamOf', { teams: r.teams.map((id, i) => `${i === r.ti ? '▸ ' : ''}${tr(`team.teams.${id}`)}`).join(' → ') }) : '', r.agent === 'codex' ? 'Codex' : 'Claude Code', r.model, r.effort && effortName(r.effort), r.fixes ? tr('team.fixes', { n: r.fixes }) : ''].filter(Boolean).join(' · ');
     card.append(el('small', 'tm-meta', meta));
     const list = el('ol', 'tm-stages');
     for (const s of r.stages) {
@@ -59,9 +56,11 @@ function drawRuns() {
       // each member: a session of its own, with its own state, verdict and last words
       const jobs = el('div', 'tm-jobs');
       for (const j of s.jobs || []) {
-        const c = el('span', `tm-job is-${j.state}`), name = tr(`team.roles.${j.role}.name`);
+        const held = j.state === 'wait' && j.held ? (j.held.why === 'code' ? tr('team.heldCode') : tr('team.held', { name: tr(`team.roles.${j.held.role}.name`) })) : '';
+        const c = el('span', `tm-job is-${j.state}${held ? ' is-held' : ''}`), name = tr(`team.roles.${j.role}.name`);
         c.append(el('i', 'tm-dot'), el('span', null, `${name.replace(/ Agent$/, '')}${j.verdict ? ` · ${tr(`team.verdict.${j.verdict}`)}` : ''}`));
-        c.title = `${name}: ${tr(`team.job.${j.state}`)}${j.summary ? `
+        if (held) c.append(el('small', 'tm-held', '⏳'));
+        c.title = `${name}: ${held || tr(`team.job.${j.state}`)}${j.summary ? `
 
 ${j.summary}` : ''}`;
         jobs.append(c);
@@ -91,18 +90,60 @@ export function setTeamRuns(runs) {
 }
 
 /** Opens the sheet inside the chat window. */
-export async function openTeamSheet(host) {
-  sheet?.remove();
-  const [t, r] = await Promise.all([fetch(`/api/team${q()}`).then((x) => x.json()).catch(() => null), fetch(`/api/tasks${q()}`).then((x) => x.json()).catch(() => null)]);
+export function closeTeamSheet(focus = true) {
+  const dismiss = dismissOnClose; dismissOnClose = null;
+  disposeRoster?.(); disposeRoster = null; restoreModal?.(); restoreModal = null;
+  sheet?.remove(); sheet = runsBox = null;
+  if (focus) { dismiss?.(); (returnFocus?.isConnected ? returnFocus : $('btn-team-presence'))?.focus({ preventScroll: true }); }
+}
+export async function openTeamSheet(host, options = {}) {
+  if (!liveTeamEnabled()) return;
+  closeTeamSheet(false); returnFocus = document.activeElement; dismissOnClose = options.onClose;
   sheet = el('div', 'zc-task tm-sheet'); sheet.setAttribute('role', 'dialog'); sheet.setAttribute('aria-label', tr('team.title'));
+  sheet.setAttribute('aria-modal', 'true');
+  const current = sheet;
   const head = el('div', 'zc-task-head'), close = el('button', 'zc-ib', '✕'); close.type = 'button'; close.title = tr('chat.close'); close.setAttribute('aria-label', close.title);
-  close.addEventListener('click', () => { sheet.remove(); sheet = null; runsBox = null; });
-  head.append(el('b', null, `👥 ${tr('team.title')}`), close);
+  close.addEventListener('click', () => closeTeamSheet());
+  const title = el('b', null, `👥 ${tr('team.title')}`); title.tabIndex = -1;
+  head.append(title, close);
   sheet.append(head);
-  if (!t?.ok || !r?.ok) { sheet.append(el('p', 'zc-task-note', tr('drawer.unreachable'))); host.append(sheet); return; }
+  const info = el('div', 'tm-task-info');
+  const roster = createTeamRoster({ roleId: options.roleId, onSession: id => { closeTeamSheet(false); options.onDismiss?.(); openSession(id); const heading = $('ds-name'); heading.tabIndex = -1; heading.focus(); },
+    onGoal: () => { const goal = current.querySelector('textarea'); if (goal) { goal.scrollIntoView({ block: 'center' }); goal.focus(); } else info.scrollIntoView({ block: 'center' }); },
+    onRoom: event => { event.stopPropagation(); closeTeamSheet(false); options.onDismiss?.(); if (HQ) goView('team'); else openLayoutSettings(); } });
+  disposeRoster = roster.dispose; sheet.append(roster.element, info); host.append(sheet);
+  const disabled = [];
+  for (let node = sheet; node.parentElement && node.parentElement !== document.body; node = node.parentElement) {
+    for (const sibling of node.parentElement.children) if (sibling !== node) { disabled.push([sibling, sibling.inert]); sibling.inert = true; }
+  }
+  restoreModal = () => { for (const [node, inert] of disabled) node.inert = inert; };
+  sheet.addEventListener('keydown', e => {
+    e.stopPropagation();
+    if (e.key === 'Escape') { e.preventDefault(); closeTeamSheet(); return; }
+    if (e.key !== 'Tab') return;
+    const controls = [...current.querySelectorAll('button, textarea, select, input, summary, [tabindex="0"]')].filter(n => !n.disabled && !n.closest('[hidden]') && n.getClientRects().length);
+    const first = controls[0], last = controls.at(-1);
+    if (e.shiftKey && (document.activeElement === first || document.activeElement === title)) { e.preventDefault(); last?.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first?.focus(); }
+  });
+  if (options.roleId) roster.focus(); else title.focus({ preventScroll: true });
+  async function loadInfo() {
+    info.replaceChildren(el('p', 'zc-task-note', tr('team.presence.loadingTasks')));
+    const [t, r] = await Promise.all([fetch(`/api/team${q()}`).then((x) => x.ok ? x.json() : null).catch(() => null), fetch(`/api/tasks${q()}`).then((x) => x.ok ? x.json() : null).catch(() => null)]);
+    if (sheet !== current) return;
+    info.replaceChildren();
+    if (!t?.ok || !r?.ok) {
+      const retry = el('button', 'zc-task-tool', tr('team.presence.retry')); retry.type = 'button'; retry.addEventListener('click', loadInfo);
+      info.append(el('p', 'zc-task-note', tr('team.presence.tasksError')), retry); return;
+    }
+    buildTaskInfo(info, t, r);
+  }
+  await loadInfo();
+}
+function buildTaskInfo(sheet, t, r) {
   sheet.append(el('p', 'zc-task-note', tr('team.sub')));
-  const about = el('details', 'tm-about'); about.open = !t.runs.length;
-  about.append(el('summary', null, `${tr('team.orgTitle')} · ${tr('team.flowTitle')}`), org(t.roles, t.groups), flow(t.stages));
+  const about = el('details', 'tm-about');
+  about.append(el('summary', null, tr('team.flowTitle')), flow(t.stages));
   sheet.append(about);
   // the goal
   const saved = kept(), dirs = [...r.projects.map((p) => [p.dir, p.name]), ...r.sessions.filter((s) => !r.projects.some((p) => p.dir === s.dir)).map((s) => [s.dir, s.dir.split(/[\\/]/).pop()])].filter((x, i, a) => a.findIndex((y) => y[0] === x[0]) === i);
@@ -110,7 +151,6 @@ export async function openTeamSheet(host) {
   const pick = { dir: dirs.some((d) => d[0] === saved.dir) ? saved.dir : dirs[0]?.[0] || '', lead: saved.lead === 'cto' ? 'cto' : 'pm', agent: can(saved.agent) ? saved.agent : can('claude') ? 'claude' : 'codex', model: saved.model || '', effort: saved.effort || '' };
   const form = el('div', 'tm-form');
   const goal = el('textarea', 'zc-task-in'); goal.rows = 3; goal.maxLength = 4000; goal.placeholder = tr('team.goalPh');
-  goal.addEventListener('keydown', (e) => e.stopPropagation());
   const fields = el('div', 'tm-fields'), go = el('button', 'zc-task-go', tr('team.go')); go.type = 'button';
   function drawFields() {
     const models = r.models?.[pick.agent] || [], m = models.find((x) => x.id === pick.model);
@@ -136,9 +176,22 @@ export async function openTeamSheet(host) {
   });
   if (!dirs.length) form.append(el('p', 'zc-task-note', tr('team.noProject')));
   else { drawFields(); form.append(goal, fields, el('p', 'zc-task-note', tr('team.note')), go); }
+  // your projects, added or taken off right here: the form is drawn again with the new list
+  const manage = el('details', 'zc-task-manage'); manage.append(el('summary', null, `📁 ${tr('team.manageProjects')}`));
+  manage.addEventListener('toggle', () => {
+    if (!manage.open || manage.querySelector('.pj-box')) return;
+    let first = true;
+    manage.append(projectPicker({ value: pick.dir, onPick: (p) => { if (p && dirs.some((d) => d[0] === p.dir)) { pick.dir = p.dir; drawFields(); } }, onList: (l) => {
+      if (first) { first = false; return; }
+      dirs.splice(0, dirs.length, ...l.filter((p) => p.here).map((p) => [p.dir, p.name]));
+      if (!dirs.some((d) => d[0] === pick.dir)) pick.dir = dirs[0]?.[0] || '';
+      if (dirs.length && !form.contains(goal)) form.replaceChildren(goal, fields, el('p', 'zc-task-note', tr('team.note')), go);
+      if (!dirs.length) form.replaceChildren(el('p', 'zc-task-note', tr('team.noProject')));
+      drawFields();
+    } }));
+  });
+  form.append(manage);
   runsBox = el('div', 'tm-runs');
   sheet.append(form, el('small', 'zc-task-h', tr('team.runs')), runsBox);
-  host.append(sheet);
   setTeamRuns(t.runs);
-  setTimeout(() => goal.focus({ preventScroll: true }), 50);
 }

@@ -1,6 +1,6 @@
 // The page markup (src/components/office), one group per component. The office's code fills most of it in later.
 export default {
-  expand: {desks: "The office is out of desks. Growing into headquarters (52 desks, 4 department rooms) in {n} s…",team: "The 15-agent AI team needs room. Growing the office into headquarters (52 desks, 4 department rooms) in {n} s…",now: "Grow now",cancel: "Later"},
+  expand: {desks: "The office is out of desks. Growing into headquarters (52 desks, 4 department rooms) in {n} s…",team: "The AI Agent Dev team (15 agents) needs room. Growing the office into headquarters (52 desks, 4 department rooms) in {n} s…",now: "Grow now",cancel: "Later"},
   meta: {
     title: 'DT Office: a 3D office for your Claude Code sessions',
     description: 'Each Claude Code session is a character at a desk in a 3D office. Approve permissions, watch RAM and plan limits, and see what every agent is doing. Free and open source.',

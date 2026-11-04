@@ -43,3 +43,50 @@ body:has(#zchat:not([hidden])) .gd-bubble { right: calc(min(460px, 100vw - 28px)
 /* the office growing into headquarters (ui/expand.js) */
 .ex-banner { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 32px); padding: 10px 14px; border-radius: 12px; background: var(--card, #18202B); color: var(--text, #E8EDF4); border: 1px solid var(--accent-line, #EF8A5F); box-shadow: 0 12px 30px rgba(0, 0, 0, .4); font-size: 13.5px; }
 .ex-text { flex: 1; min-width: 0; line-height: 1.4; }
+/* giving her a task (ui/guide-work.js) and your projects (ui/projects.js) */
+.gd-work { display: grid; gap: 2px; text-align: left; padding: 11px 12px; border-radius: 12px; border: 1px solid #3FA37C; background: color-mix(in srgb, #3FA37C 16%, var(--card-2, #1E2734)); color: inherit; font: inherit; cursor: pointer; }
+.gd-work:hover { background: color-mix(in srgb, #3FA37C 26%, var(--card-2, #1E2734)); }
+.gd-work b { font-size: 14px; }
+.gd-work small { color: var(--muted, #8C99AB); font-size: 12px; line-height: 1.4; }
+.gd-work:focus-visible, .pj-pick:focus-visible, .pj-del:focus-visible, .gw-prev:focus-visible, .gd-go:focus-visible { outline: 2px solid #3FA37C; outline-offset: 2px; }
+.gw-body { display: flex; flex-direction: column; gap: 9px; }
+.gw-say { margin: 0; padding: 9px 11px; border-radius: 4px 12px 12px 12px; background: var(--card-2, #1E2734); font-size: 13.5px; line-height: 1.5; }
+.gw-in, .pj-in { width: 100%; box-sizing: border-box; padding: 9px 11px; border-radius: 10px; border: 1px solid var(--line-2, rgba(255, 255, 255, .13)); background: var(--card-2, #1E2734); color: inherit; font: inherit; font-size: 13.5px; resize: vertical; }
+.gw-in:focus, .pj-in:focus { border-color: #3FA37C; outline: none; }
+.gw-why { color: var(--muted, #8C99AB); font-size: 12px; line-height: 1.4; }
+.gw-acts { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.gw-acts .gd-go { margin-top: 0; }
+.gw-prev { padding: 8px 12px; border: 1px solid var(--line-2, rgba(255, 255, 255, .13)); border-radius: 10px; background: none; color: inherit; font: inherit; font-size: 13px; cursor: pointer; }
+.gw-prev:hover { background: var(--card-3, #263040); }
+.gw-teams { margin: 0; padding: 8px 10px; border: 1px solid var(--line-2, rgba(255, 255, 255, .13)); border-radius: 10px; display: grid; gap: 6px; }
+.gw-teams legend { padding: 0 4px; font-size: 12px; color: var(--muted, #8C99AB); }
+.gw-team { display: grid; grid-template-columns: auto 1fr; column-gap: 8px; align-items: center; font-size: 13.5px; cursor: pointer; }
+.gw-team small { grid-column: 2; color: var(--muted, #8C99AB); font-size: 12px; }
+.gw-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.gw-field { display: grid; gap: 3px; min-width: 0; }
+.gw-field small { color: var(--muted, #8C99AB); font-size: 11.5px; }
+.gw-field select { min-width: 0; padding: 7px 8px; border-radius: 8px; border: 1px solid var(--line-2, rgba(255, 255, 255, .13)); background: var(--card-2, #1E2734); color: inherit; font: inherit; font-size: 13px; }
+.pj-box { display: grid; gap: 8px; }
+.pj-list { display: grid; gap: 5px; max-height: 220px; overflow-y: auto; }
+.pj-row { display: flex; gap: 4px; align-items: stretch; }
+.pj-pick { flex: 1; min-width: 0; display: grid; gap: 1px; text-align: left; padding: 7px 10px; border-radius: 9px; border: 1px solid transparent; background: var(--card-2, #1E2734); color: inherit; font: inherit; cursor: pointer; }
+.pj-pick b { font-size: 13.5px; }
+.pj-pick small { color: var(--muted, #8C99AB); font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pj-pick[aria-checked="true"] { border-color: #3FA37C; background: color-mix(in srgb, #3FA37C 16%, var(--card-2, #1E2734)); }
+.pj-pick:disabled { opacity: .55; cursor: not-allowed; }
+.pj-del { flex: none; width: 34px; border: 0; border-radius: 9px; background: none; color: var(--muted, #8C99AB); font: inherit; cursor: pointer; }
+.pj-del:hover { background: color-mix(in srgb, #E5534B 22%, transparent); color: #F08A84; }
+.pj-add { display: flex; gap: 6px; }
+.pj-go { flex: none; padding: 8px 12px; border: 0; border-radius: 10px; background: var(--card-3, #263040); color: inherit; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pj-go:hover { background: #3FA37C; color: #fff; }
+.pj-hint, .pj-empty { margin: 0; color: var(--muted, #8C99AB); font-size: 12px; line-height: 1.4; }
+.pj-msg { margin: 0; color: #F08A84; font-size: 12.5px; }
+.pj-msg[hidden] { display: none; }
+/* 📋 Giao việc: your projects, added or taken off the list in the sheet (ui/task-sheet.js) */
+.zc-task-projects { display: grid; gap: 2px; }
+.zc-task-manage summary { padding: 6px 8px; font-size: 12.5px; cursor: pointer; color: var(--muted, #8C99AB); border-radius: 8px; }
+.zc-task-manage summary:hover { background: var(--card-3, #263040); }
+.zc-task-manage .pj-box { padding: 4px 6px 8px; }
+/* the team sheet: a member waiting for another task to end (ui/team-sheet.js) */
+.tm-job.is-held { background: #FFF4DE; color: #7A4B00; }
+.tm-held { font-size: 10px; }

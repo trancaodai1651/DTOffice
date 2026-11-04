@@ -4,7 +4,7 @@ import { $, el, fmtBytes, fmtClock, hhmm, nowMs } from '../core/env.js';
 import { STATUS_LABEL, verb } from './event-text.js';
 import { TYPE_ICON, TYPE_TONE, icon } from './icons.js';
 import { hoverRing, selRing } from '../interact/rings.js';
-import { AGENT_NAME, agentMark, agentOf, colorOf, dn, dnOf, sessions, workers } from '../people/workers.js';
+import { AGENT_NAME, agentMark, agentOf, colorOf, dn, dnOf, residents, sessions, workers, workerForSession } from '../people/workers.js';
 import { renderLite } from './lite.js';
 import { openSession, renderActivity, renderSessionHead, renderSubs, tab, toggleSession } from './session-drawer.js';
 import { macSnap } from './mac-drawer.js';
@@ -104,7 +104,7 @@ function ago(ts) {
 export function doingOf(s) {
   if (s.status === 'wait') return { ic: 'alert', text: tr('activity.doing.wait') };
   if (s.stuck && s.status !== 'rest') return { ic: 'alert', text: tr(`activity.doing.stuck.${s.stuck.kind}`, { label: s.stuck.label.length > 40 ? `${s.stuck.label.slice(0, 39)}…` : s.stuck.label }), stuck: true };
-  const where = whereabouts(workers.get(s.id));   // out of the office: at the shop, on the way home…
+  const where = whereabouts(workerForSession(s.id));   // out of the office: at the shop, on the way home…
   if (where) return where;
   if (s.status === 'rest' && s.bg?.length) return { ic: 'terminal', text: `${tr('activity.doing.bg', { desc: s.bg[0].desc })}${s.bg.length > 1 ? ` (+${s.bg.length - 1})` : ''}` };
   if (s.status === 'rest') return { ic: 'zzz', text: nowMs() - (s.lastAt || 0) < 90e3 ? tr('activity.doing.justDone') : tr('activity.doing.resting', { time: ago(s.lastAt) }) };
@@ -219,6 +219,7 @@ function renderRail() {
   }
   $('empty').hidden = all.length > 0 || !state.connectedOnce;
   for (const w of workers.values()) w.tagEl.classList.toggle('tag--on', w.id === state.selectedId);
+  for (const w of residents.values()) w.tagEl.classList.toggle('tag--on', workerForSession(state.selectedId) === w);
 }
 function onListClick(ev) {
   const g = ev.target.closest('.grp-btn');
@@ -246,7 +247,7 @@ export function renderHud() {
   document.title = yours ? tr('activity.docTitle', { n: yours }) : 'DT Office';
 }
 export function updateMarkers(t) {
-  const sel = state.selectedId ? workers.get(state.selectedId) : null;
+  const sel = state.selectedId ? workerForSession(state.selectedId) : null;
   selRing.visible = !!sel;
   if (sel) { selRing.position.set(sel.pos.x, 0.03 + sel.gy(), sel.pos.y); selRing.scale.setScalar(1 + Math.sin(t * 4) * 0.06); }
   hoverRing.visible = !!state.hovered && state.hovered !== sel && !!state.hovered.root.parent;

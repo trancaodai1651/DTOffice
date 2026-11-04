@@ -1,6 +1,6 @@
 // The page markup (src/components/office), one group per component. The office's code fills most of it in later.
 export default {
-  expand: {desks: "Văn phòng đã hết bàn. Mở rộng thành Trụ sở (52 bàn, 4 phòng ban) sau {n} giây…",team: "Đội AI 15 agent cần thêm chỗ. Mở rộng văn phòng thành Trụ sở (52 bàn, 4 phòng ban) sau {n} giây…",now: "Mở rộng ngay",cancel: "Để sau"},
+  expand: {desks: "Văn phòng đã hết bàn. Mở rộng thành Trụ sở (52 bàn, 4 phòng ban) sau {n} giây…",team: "Đội AI Agent Dev (15 agent) cần thêm chỗ. Mở rộng văn phòng thành Trụ sở (52 bàn, 4 phòng ban) sau {n} giây…",now: "Mở rộng ngay",cancel: "Để sau"},
   meta: {
     title: 'DT Office: văn phòng 3D cho các phiên Claude Code',
     description: 'Mỗi phiên Claude Code là một nhân vật ngồi bàn trong văn phòng 3D. Duyệt quyền, xem RAM và hạn mức gói, biết từng agent đang làm gì. Miễn phí, mã nguồn mở.',

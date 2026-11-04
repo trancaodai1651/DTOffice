@@ -14,6 +14,7 @@ import '@/styles/activity.css';
 import '@/styles/sessions.css';
 import '@/styles/streamer.css';
 import '@/styles/permissions.css';
+import '@/styles/exit-permission.css';
 import '@/styles/stage.css';
 import '@/styles/labels.css';
 import '@/styles/lite.css';

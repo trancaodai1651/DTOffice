@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { state } from '../core/state.js';
 import { STATIC, officeNow, replay } from '../core/env.js';
-import { dn, npcs, sessions, workers } from '../people/workers.js';
+import { dn, npcs, sessions, workerForSession } from '../people/workers.js';
 import { sfx } from '../audio/sfx.js';
 import { DEMO } from '../demo/demo.js';
 import { ringBell } from '../people/gatherings.js';
@@ -42,12 +42,12 @@ export function who(from) {
   const key = STAFF[from] || from;
   if (key?.startsWith('__')) { const n = npcs.find((x) => x.id === key), name = staffName(key); return name ? { key, name, look: lookOf(n?.cfg), staff: true } : null; }
   const s = sessions.get(key); if (!s) return null;
-  return { key, name: dn(s), look: lookOf(workers.get(key)?.cfg) };
+  return { key, name: dn(s), look: lookOf(workerForSession(key)?.cfg) };
 }
 /** The sessions' people in the office now (not out on the street), optionally only those resting. */
 export function people(resting = false) {
   // (the 2D list opened first: no 3D people yet, every session is in)
-  return [...sessions.values()].filter((s) => (!state.world || (workers.has(s.id) && !workers.get(s.id).offstage)) && (!resting || s.status === 'rest')).map((s) => s.id);
+  return [...sessions.values()].filter((s) => (!state.world || (workerForSession(s.id) && !workerForSession(s.id).offstage)) && (!resting || s.status === 'rest')).map((s) => s.id);
 }
 
 /* ---------- the conversation: the server's, or (the demo) this browser's own engine ---------- */

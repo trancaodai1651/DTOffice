@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROLES, STAGES, GROUPS, createTeam, membersOf, rolePrompt, rolesOf, verdictOf } from '../../server/team.mjs';
+import { ROLES, STAGES, GROUPS, TEAMS, createTeam, membersOf, rolePrompt, rolesOf, routeTeams, verdictOf } from '../../server/team.mjs';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'office-team-'));
 // a team whose sessions are stand-ins: at most `max` at once (the office's own limit), each ended by hand
@@ -113,10 +113,9 @@ test('members wait their turn when the office runs as many as it can; the CTO pl
   assert.deepEqual(h.atWork(), ['report:cto'], 'the CTO reports to the CEO');
 });
 
-test('the CEO stops it; one goal at a time per project; a member that fails ends the run', () => {
+test('the CEO stops it; a member that fails ends the run', () => {
   const h = harness();
   h.team.begin({ dir: h.dir, goal: 'x' });
-  assert.equal(h.team.begin({ dir: h.dir, goal: 'another' }).code, 'teamBusy');
   assert.equal(h.team.halt(h.team.list()[0].id), true);
   assert.deepEqual(h.events.filter((e) => e[0] === 'stop').length, 3, 'every member at work is stopped');
   assert.equal(h.team.list()[0].status, 'stopped');
@@ -161,4 +160,45 @@ test('a run stopped partway carries on where it was: the members who had finishe
   h.finish('ba');
   assert.deepEqual(h.atWork(), ['design:architect']);
   assert.equal(h.team.resume(id), false, 'a run at work is not resumed');
+});
+
+test('a member at work on one task is called for another only once done; code is changed by one task at a time', () => {
+  const h = harness({ max: 10 });
+  h.team.begin({ dir: h.dir, goal: 'first' });
+  assert.equal(h.team.begin({ dir: h.dir, goal: 'second' }).ok, true, 'a second task is taken, not refused');
+  assert.deepEqual(h.atWork(), ['plan:ba', 'plan:pm', 'plan:po'], 'the same three people: the second task waits for them');
+  const second = h.team.list()[0];
+  assert.deepEqual(second.stages[0].jobs.map((j) => j.held?.why), ['member', 'member', 'member']);
+  assert.ok(h.events.some((e) => e[0] === 'held'));
+  h.finish('pm', 'ROLES: frontend'); h.finish('po'); h.finish('ba');
+  assert.deepEqual(h.atWork(), ['design:architect', 'plan:ba', 'plan:pm', 'plan:po'], 'freed: the first task goes on, the second one starts its plan');
+  assert.equal(h.team.list()[0].stages[0].jobs[0].held, null);
+  h.finish('architect');
+  h.finish('pm', 'ROLES: frontend'); h.finish('po'); h.finish('ba');
+  assert.deepEqual(h.atWork(), ['build:frontend', 'design:architect'], 'the architect of the second task starts once the first one is free');
+  h.finish('architect');
+  assert.deepEqual(h.atWork(), ['build:frontend'], "the second task's frontend waits: the same person, and the same code");
+  h.finish('frontend');
+  assert.deepEqual(h.atWork(), ['build:frontend', 'verify:qa']);
+});
+
+test('the guide picks the team(s); a task for two teams goes from one to the next', () => {
+  assert.deepEqual(routeTeams('sửa lỗi trang đăng nhập').map((x) => x.id), ['dev']);
+  assert.deepEqual(routeTeams('???'), [{ id: 'dev', words: [] }], 'nothing matched: the dev team');
+  assert.equal(routeTeams('fix the api').find((x) => x.id === 'dev').words.includes('api'), true);
+  assert.equal(routeTeams('rapid').length, 1);
+  TEAMS.push({ id: 'other', roles: ROLES.map((r) => r.id), stages: () => STAGES, words: ['zzz'] });
+  try {
+    assert.deepEqual(routeTeams('zzz api code').map((x) => x.id), ['dev', 'other']);
+    const h = harness({ max: 10 });
+    h.team.begin({ dir: h.dir, goal: 'x', teams: ['dev', 'other', 'nope'] });
+    assert.deepEqual(h.team.list()[0].teams, ['dev', 'other']);
+    h.finish('pm', 'ROLES: frontend'); h.finish('po'); h.finish('ba'); h.finish('architect');
+    h.finish('frontend'); h.finish('qa', 'VERDICT: PASS'); h.finish('reviewer', 'VERDICT: PASS'); h.finish('devops'); h.finish('pm');
+    assert.ok(h.events.some((e) => e[0] === 'team'));
+    assert.deepEqual(h.atWork(), ['plan:ba', 'plan:pm', 'plan:po'], 'the second team plans, reading what the first one left');
+    const r = h.team.list()[0];
+    assert.equal(r.ti, 1); assert.equal(r.stages.at(-1).team, 'other');
+    assert.match(h.started.at(-1).prompt, /5-report-pm.md|report/);
+  } finally { TEAMS.pop(); }
 });

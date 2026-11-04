@@ -18,14 +18,17 @@ export function panTo(w) {
   focusTarget.set(w.pos.x, 0.9, w.pos.y);
   clearTimeout(panTimer); panTimer = setTimeout(() => { if (panBack && !state.selectedId) focusTarget.copy(panBack); panBack = null; }, 7000);
 }
-export function goView(v) { const V = VIEWS?.[v]; if (!V || !focusTarget) return; focusTarget.set(...V.t); state.zoomGoal = V.z * BASE_ZOOM; setView(v); }
+export function goView(v) {
+  const V = VIEWS?.[v]; if (!V || !focusTarget) return; focusTarget.set(...V.t); state.zoomGoal = V.z * BASE_ZOOM; setView(v);
+}
 
 export function setup() {
   /* ---------- camera toolbar ---------- */
   VIEWS = HQ ? { home: { t: [3, 0.3, 9], z: 1 }, desks: { t: [3, 0.6, 18.2], z: 1.6 }, team: { t: [9.2, 0.6, 22.2], z: 3.0 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.8 }, server: { t: [-5.6, 1.0, -0.6], z: 3.3 } }
     : PRO ? { home: { t: [3, 0.3, 0.7], z: 1 }, desks: { t: [2.3, 0.6, 3.6], z: 1.9 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.0 }, server: { t: [-5.6, 1.0, -0.6], z: 2.4 } }
     : { home: { t: [0, 0.3, 0.2], z: 1 }, desks: { t: [0, 0.6, 0.4], z: 1.75 }, meeting: { t: [5.2, 0.6, 2.4], z: 2.3 }, server: { t: [5.4, 1.0, -4.4], z: 2.2 } };
-  for (const b of document.querySelectorAll('.seg-btn[data-view]')) if (!VIEWS[b.dataset.view]) b.hidden = true; else b.hidden = false;   // (the AI team's room: headquarters only)
+  if (PRO) VIEWS.director = { t: [-5.4, 0.6, -5.6], z: 2.8 };
+  for (const b of document.querySelectorAll('.seg-btn[data-view]')) b.hidden = !VIEWS[b.dataset.view];
   // Camera glides to important moments (a permission request, a deploy, an incident) unless you moved it in the last
   // 30 seconds, then returns to where it was.
   state.camAuto = true;

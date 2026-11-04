@@ -1,5 +1,7 @@
 // Incidents, pushes, CI and reports (life/incidents.js), and "your turn" (life/your-turn.js).
 export default {
+  takeTask: 'To the boss for the task: “{task}”',
+  takeTaskHidden: 'To the boss for a new task',
   banner: 'Incident: 3 failures in 5 minutes',
   bubble: 'Incident!',
   pushed: '🚀 {name} just pushed to {branch}',

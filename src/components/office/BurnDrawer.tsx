@@ -10,6 +10,11 @@ export default async function BurnDrawer() {
         <div className="dr-title"><h2>{t('burn.title')}</h2><p id="burn-at">{t('burn.loading')}</p></div>
         <button className="icon-btn" type="button" data-close aria-label={t('common.close')}><span data-icon="x"></span></button>
       </header>
+      {/* Claude (its telemetry) or Codex (its own session files): src/office/ui/burn.js */}
+      <div className="tabs bn-agent" role="tablist" id="burn-agent" aria-label={t('burn.agent.label')}>
+        <button className="tab" type="button" role="tab" data-agent="claude" aria-selected="true">{t('burn.agent.claude')}</button>
+        <button className="tab" type="button" role="tab" data-agent="codex" aria-selected="false">{t('burn.agent.codex')}</button>
+      </div>
       <div className="tabs bn-range" role="tablist" id="burn-range">
         <button className="tab" type="button" role="tab" data-range="today" aria-selected="true">{t('burn.today')}</button>
         <button className="tab" type="button" role="tab" data-range="7d" aria-selected="false">{t('burn.week')}</button>

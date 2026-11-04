@@ -16,6 +16,7 @@ import { perms, renderPerms } from '../ui/permissions.js';
 import { DEMO, applyMsg, connect, dropSessionNow, liveES } from '../demo/demo.js';
 import { recAuto, recorder, stopRecording } from './timeline.js';
 import { t as tr } from '../../i18n/index.js';
+import { clearWorld, reconcileTeamPresence, resetTeamPresence } from '../people/ai-team.js';
 
 /* ---------- replay: the last hour (or day) of the office at ×10–×120, and recording the tab to a video ----------
    The server keeps what it streamed (data/replay); the page fast-forwards from the nearest snapshot, then plays the
@@ -51,6 +52,7 @@ export async function startReplay(range = replay.range) {
   }
   if (!replay.on) {
     replay.on = true; document.body.classList.add('is-replay');
+    clearWorld(); reconcileTeamPresence();
     perms.clear(); renderPerms(); closeMac(); if (state.selectedId) closeSession();
   }
   replay.items = items; replay.to = to;
@@ -135,8 +137,9 @@ function drawHeat() {
 function stopReplay() {
   if (!replay.on) { replay.loading = false; renderReplay(); return; }
   if (recorder) stopRecording();
-  replay.on = false; replay.playing = false; replay.items = []; document.body.classList.remove('is-replay');
   resetScene(); state.connectedOnce = false;
+  replay.on = false; replay.playing = false; replay.items = []; document.body.classList.remove('is-replay');
+  perms.clear(); renderPerms(); resetTeamPresence();
   try { liveES?.close(); } catch { /* closed */ }
   connect(); renderReplay(); $('clock').textContent = hhmm(officeNow().getTime());
 }

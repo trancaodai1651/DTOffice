@@ -38,11 +38,14 @@ let receptionist = null, cleaner = null, courier = null;
 
 /* ---------- in and out: the lift on the company floor, the door in the small office ---------- */
 function arrive(p, then) {
+  p.exitApproved = false;
   p.offstage = false; p.hush(); p.path = []; p.phase = 'idle'; p.anim = 'idle';
   if (PRO) { liftArrive(p); p.waitLift = then; return; }
   p.pos.set(DOOR_OUT.x, DOOR_OUT.z); p.face = p.faceTarget = Math.PI / 2; p.spot = DOOR_OUT; then();
 }
 function depart(p, then) {
+  if (state.sim < (p.exitDeniedUntil || 0)) return;
+  p.exitApproved = false;
   const gone = () => { p.offstage = true; p.spot = null; p.leavingNow = false; then?.(); };
   p.leavingNow = true;
   p.goTo(DOOR_IN, () => {

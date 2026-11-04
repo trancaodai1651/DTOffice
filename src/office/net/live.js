@@ -9,14 +9,15 @@ import { canvasTex } from '../scene/blocks.js';
 import { DEPTS } from '../world/layout.js';
 import { DEPT_SIGNS } from '../world/pro/wing.js';
 import { TEAM_SEATS } from '../../shared/team-roles.js';
-import { PALETTE, addWorker, dn, dropSub, hash, leaving, leavingIds, sessions, spawnSub, subs, trimLeaving, workers } from '../people/workers.js';
+import { PALETTE, addWorker, dn, dropSub, hash, leaving, leavingIds, sessions, spawnSub, subs, trimLeaving, workers, workerForSession } from '../people/workers.js';
+import { reconcileTeamPresence, teamConnection, teamDesk as residentDesk } from '../people/ai-team.js';
 import { queueUi } from '../ui/activity.js';
 import { expandOffice } from '../ui/expand.js';
 import { closeSession } from '../ui/session-drawer.js';
 import { t as tr } from '../../i18n/index.js';
 
 export let TOKEN;
-export function setConn(on) { const c = $('conn'); c.dataset.state = on ? 'on' : 'off'; c.lastElementChild.textContent = tr(on ? 'activity.live.on' : 'activity.live.off'); }
+export function setConn(on) { const c = $('conn'); c.dataset.state = on ? 'on' : 'off'; c.lastElementChild.textContent = tr(on ? 'activity.live.on' : 'activity.live.off'); teamConnection(on); }
 /* Teams: each project (its git repository, else its folder) has an area of its own: half a pod on the open floor, a
    department room on the headquarters' wing, a row in the small office. A session sits in its project's area (the
    server's desk number is ignored); a project with more people than desks there takes the other half of the pod, or
@@ -43,6 +44,7 @@ const near = (a, b) => { const A = UNITS[a], B = UNITS[b]; return A.pod != null 
 // the AI team's room: each member at the desk with its role's nameplate (TEAM_SEATS), whatever project it works on
 function teamDesk(s, used) {
   const room = UNITS.find((u) => u.team); if (!room) return -1;
+  if (!TEAM_SEATS.includes(s.role)) return -1;
   const k = TEAM_SEATS.indexOf(s.role), mine = k >= 0 ? room.desks[k] : -1;
   if (mine >= 0 && !used.has(mine)) return mine;
   return room.desks.slice(0, TEAM_SEATS.length).find((d) => !used.has(d)) ?? -1;   // (two of one role at once: a free member's desk)
@@ -63,7 +65,7 @@ function proDesk(s) {
   let d = -1;
   const room = mine.find((u) => free(u).length);   // 1. its area, a desk free
   if (room != null) d = free(room)[0];
-  if (d < 0) { const u = (homes[proj] || []).find((x) => x < UNITS.length && empty(x)); if (u != null) d = claim(u); }   // 2. where it sat before
+  if (d < 0) { const u = (homes[proj] || []).find((x) => all.includes(x) && empty(x)); if (u != null) d = claim(u); }   // 2. where it sat before
   if (d < 0) {   // 3. a free area: next to its own, else one nobody calls home
     const claimed = new Set(Object.entries(homes).filter(([p]) => p !== proj).flatMap(([, us]) => us));
     const pick = all.filter(empty).sort((a, b) => (mine.length ? Math.min(...mine.map((m) => near(a, m))) - Math.min(...mine.map((m) => near(b, m))) : 0) || (claimed.has(a) - claimed.has(b)) || a - b)[0];
@@ -103,35 +105,42 @@ export function updateTeamTags() {
     tg.o.element.title = projs.length > 1 ? tr('activity.live.teamShared', { name, others: projs.slice(1).join(', ') }) : tr('activity.live.teamTitle', { name });
   });
 }
-export function upsertSession(s, walkIn = true) {
+export function upsertSession(s, walkIn = true, batch = false) {
   // (no 3D yet, the 2D list opened first: no desk and nobody at it; core/world-boot.js seats everyone once it is built)
-  if (!state.world) { s.desk = -1; sessions.set(s.id, s); queueUi(); return; }
-  s.desk = proDesk(s);   // (every layout: the project's area)
+  if (!state.world) { s.desk = -1; sessions.set(s.id, s); if (!batch) reconcileTeamPresence(); queueUi(); return; }
+  const d = residentDesk(s.role), old = workers.get(s.id);
+  if (d >= 0 || sessions.get(s.id)?.role !== s.role) {
+    freeDesk(s.id);
+    if (old) { workers.delete(s.id); old.remove(); }
+  }
+  s.desk = d >= 0 ? d : proDesk(s);
   const had = sessions.has(s.id);
   sessions.set(s.id, s);
-  let w = workers.get(s.id);
-  if (!w && !leavingIds.has(s.id)) w = addWorker(s, walkIn && had === false && state.connectedOnce);
+  let w = workerForSession(s.id);
+  if (!w && d < 0 && !leavingIds.has(s.id)) w = addWorker(s, walkIn && had === false && state.connectedOnce);
   if (w) {
-    w.setName(short(dn(s), 26));
+    if (w.kind !== 'team-resident') w.setName(short(dn(s), 26));
     const live = new Set((s.subs || []).map((x) => x.id));
-    for (const [aid, sw] of subs) if (sw.parent === w && !live.has(aid)) dropSub(aid);
-    for (const x of s.subs || []) { if (!subs.has(x.id)) spawnSub(w, x.id, x.type); const sw = subs.get(x.id); if (sw && x.desc) sw.desc = x.desc; sw?.setModel(x.model); }
+    for (const [aid, sw] of subs) if (sw.parentSessionId === s.id && !live.has(aid)) dropSub(aid);
+    for (const x of s.subs || []) { if (!subs.has(x.id)) spawnSub(w, x.id, x.type, !walkIn, x, s.id); const sw = subs.get(x.id); if (sw) { sw.parent = w; sw.parentSessionId = s.id; if (x.desc) sw.desc = x.desc; sw.setModel(x.model); } }
     w.setTeam([...subs.values()].filter((x) => x.parent === w).length);
-    w.setAcct(s.acct);
-    w.setStuck(s.stuck);
+    if (w.kind !== 'team-resident') { w.setAcct(s.acct); w.setStuck(s.stuck); }
   }
+  if (!batch) reconcileTeamPresence();
   queueUi();
 }
-export function removeSession(id) {
+export function removeSession(id, batch = false) {
   const s = sessions.get(id); sessions.delete(id); freeDesk(id);
   const w = workers.get(id);
+  for (const [aid, sw] of subs) if (sw.parentSessionId === id) dropSub(aid, false);
   if (w) {
     workers.delete(id); leavingIds.add(id); leaving.add(w); trimLeaving();
     for (const [aid, sw] of subs) if (sw.parent === w) dropSub(aid, false);   // the boss is leaving: no report
     w.leave(() => leavingIds.delete(id));
   }
-  if (s && s.desk >= 0) chairs[s.desk].color.set(CHAIR_IDLE);
+  if (s && s.desk >= 0 && residentDesk(s.role) < 0) chairs[s.desk].color.set(CHAIR_IDLE);
   if (state.selectedId === id) closeSession();
+  if (!batch) reconcileTeamPresence();
   queueUi();
 }
 

@@ -27,7 +27,7 @@ function setLayout(l) {
   if (l === LAYOUT || !PLANS.includes(l)) return;
   try { localStorage.setItem('office-layout', l); } catch { /* storage blocked */ }
   toast(tr({ pro: 'settings.toPro', hq: 'settings.toHq', cozy: 'settings.toCozy' }[l]));
-  const u = new URL(location.href); u.searchParams.delete('layout'); setTimeout(() => location.replace(u), 250);
+  const u = new URL(location.href); u.searchParams.set('layout', l); setTimeout(() => location.replace(u), 250);
 }
 // the language belongs to the whole office (the server writes some of the words too): save it there, then every open page
 // reloads in it. Without a server to save it (the static demo) it goes in the address instead.
@@ -54,6 +54,7 @@ function showTab(k, focus = false) {
   if (k === 'people') requestAnimationFrame(drawPortraits);   // drawn once, the first time
 }
 export function togglePop(open = popLook.hidden) { popLook.hidden = !open; btnLook.setAttribute('aria-expanded', String(open)); if (open) { togglePlan(false); showTab(tabNow); } }
+export function openLayoutSettings() { togglePop(true); showTab('office'); popLook.querySelector('[data-layout="hq"]')?.focus(); }
 let popPlan;
 let btnPlan;
 export function togglePlan(open = popPlan.hidden) { popPlan.hidden = !open; btnPlan.setAttribute('aria-expanded', String(open)); if (open) { togglePop(false); renderLimits(); renderAi(); } }

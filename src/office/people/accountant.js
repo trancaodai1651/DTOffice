@@ -121,10 +121,13 @@ function drawSheet() {
 /* ---------- the accountant ---------- */
 let accountant = null, reportDay = '', warned = new Set(), checkAt = 0, sheetAt = 0;
 function arrive(p, then) {
+  p.exitApproved = false;
   p.offstage = false; p.hush(); p.path = []; p.phase = 'idle'; p.anim = 'idle';
   liftArrive(p); p.waitLift = then;
 }
 function depart(p, then) {
+  if (state.sim < (p.exitDeniedUntil || 0)) return;
+  p.exitApproved = false;
   const gone = () => { p.offstage = true; p.spot = null; p.leavingNow = false; then?.(); };
   p.leavingNow = true;
   p.goTo(DOOR_IN, () => liftDown(p, gone));

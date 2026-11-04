@@ -194,6 +194,7 @@ export default {
     title: 'Give work',
     conversations: 'Carry on a conversation (with its context)',
     newIn: 'A new conversation in the folder',
+    manageProjects: 'Add or remove projects',
     placeholder: 'What to do… (type, or 🎤 to speak)',
     mic: 'Speak',
     photo: 'Photo',

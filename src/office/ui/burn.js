@@ -1,4 +1,5 @@
-// What eats your plan: where Claude Code's usage goes, by model, MCP server, skill, plugin, subagent, project and session.
+// What eats your plan: where Claude Code's usage goes, by model, MCP server, skill, plugin, subagent, project and session;
+// and Codex's (its own session files, server/codex-burn.mjs): tokens by model, team member, project, session and day.
 // From Claude Code's own OpenTelemetry numbers (server/otel.mjs, summed by src/shared/burn.js), today or over the last 7
 // days, in USD at API prices and, when the plan's week is known, in % of the weekly limit. A drawer of its own (from the
 // plan card's line, the group chat's •••, or ?burn in the address), a full-screen sheet on a phone. Read when it opens,
@@ -12,7 +13,8 @@ import { togglePlan, togglePop } from './settings.js';
 import { t as tr, num, locale } from '../../i18n/index.js';
 
 export let drB;
-let range = 'today', last = null, lastAt = 0, timer = 0, drawn = '';
+let range = 'today', agent = 'claude', last = null, lastAt = 0, timer = 0, drawn = '';
+const isCodex = (d) => d?.agent === 'codex';
 
 /* ---------- numbers in words ---------- */
 const cents = (n, d) => Number(n).toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });   // ($0.30, not $0.3)
@@ -24,7 +26,10 @@ const toks = (n) => (n >= 1e6 ? tr('burn.tokM', { n: num(n / 1e6, 1) }) : n >= 1
 export const modelName = (m) => { const x = /^claude-(opus|sonnet|haiku|fable|mythos)-(\d+)(?:-(\d{1,2}))?(?!\d)/.exec(m || ''); return x ? `${x[1][0].toUpperCase()}${x[1].slice(1)} ${x[2]}${x[3] ? `.${x[3]}` : ''}` : m || '?'; };
 const hiddenName = (n) => n === 'custom' || n === 'third-party' || n === 'custom_skill';
 // what a share of the cost is in the plan's week (≈: the week's use so far over what was counted since it began)
-const ofPlan = (d, dollars) => (d.plan && dollars > 0 ? d.plan.perUsd * dollars : null);
+// (Codex: tokens, and its rate per token)
+const ofPlan = (d, dollars) => (d.plan && dollars > 0 ? (d.plan.perUsd ?? d.plan.perTok) * dollars : null);
+// Claude's numbers are dollars, Codex's are tokens
+const money = (n) => (agent === 'codex' ? toks(n) : usd(n));
 
 /* ---------- colours: each model keeps its family's colour (never its rank), the sources their own ---------- */
 const FAMILY = [[/opus/, 1], [/sonnet/, 2], [/haiku/, 3], [/fable|mythos/, 4]];
@@ -46,9 +51,9 @@ function stack(items, colorOf, nameOf, d) {
   if (rest.length) parts.push({ label: tr('burn.other'), c: 0, share: rest.reduce((a, x) => a + x.share, 0), usd: rest.reduce((a, x) => a + x.usd, 0) });
   const bar = el('div', 'bn-stack'), legend = el('ul', 'bn-legend');
   for (const p of parts.filter((x) => x.share > 0)) {
-    const seg = el('i', `bn-c${p.c}`); seg.style.flexGrow = String(p.share); seg.title = `${p.label} · ${pct(p.share)} · ${usd(p.usd)}`; bar.append(seg);
+    const seg = el('i', `bn-c${p.c}`); seg.style.flexGrow = String(p.share); seg.title = `${p.label} · ${pct(p.share)} · ${money(p.usd)}`; bar.append(seg);
     const li = el('li'), plan = ofPlan(d, p.usd);
-    li.append(el('i', `bn-sw bn-c${p.c}`), el('span', 'bn-ln', p.label), el('b', null, pct(p.share)), el('small', null, `${usd(p.usd)}${plan != null ? ` · ≈ ${points(plan)}` : ''}`));
+    li.append(el('i', `bn-sw bn-c${p.c}`), el('span', 'bn-ln', p.label), el('b', null, pct(p.share)), el('small', null, `${money(p.usd)}${plan != null ? ` · ≈ ${points(plan)}` : ''}`));
     legend.append(li);
   }
   bar.setAttribute('role', 'img'); bar.setAttribute('aria-label', parts.map((p) => `${p.label} ${pct(p.share)}`).join(', '));
@@ -63,8 +68,8 @@ function days(d, colors) {
     const models = Object.entries(x.models).filter(([, v]) => v > 0).sort((a, b) => (colors.get(a[0]) ?? 9) - (colors.get(b[0]) ?? 9));
     bars.style.height = `${max ? Math.round(Math.max(x.usd > 0 ? 3 : 0, (x.usd / max) * 96)) : 0}px`;
     for (const [m, v] of models) { const s = el('i', `bn-c${colors.get(m) ?? 0}`); s.style.flexGrow = String(v); bars.append(s); }
-    col.title = [tr('burn.dayTip', { day: label, usd: usd(x.usd) }), ...models.map(([m, v]) => `${modelName(m)} ${usd(v)}`)].join('\n');
-    const cap = el('span', 'bn-cap', x.usd === max && max > 0 ? usd(x.usd) : '');
+    col.title = [tr('burn.dayTip', { day: label, usd: money(x.usd) }), ...models.map(([m, v]) => `${modelName(m)} ${money(v)}`)].join('\n');
+    const cap = el('span', 'bn-cap', x.usd === max && max > 0 ? money(x.usd) : '');
     col.append(cap, bars);
     plot.append(col); labels.append(el('span', null, wd[date.getDay()] || x.day.slice(5)));
   }
@@ -91,15 +96,19 @@ function empty(d) {
 }
 
 // what the drawing shows: the same numbers again (every 20 s while nothing new came in) leave the drawing alone
-const sig = (d) => JSON.stringify([d.range, d.setup, d.total, d.ranked, d.by, d.roles, d.projects, d.perDay, d.plan?.perUsd, !!(d.lastMetricsAt || d.lastLogsAt),
+const sig = (d) => JSON.stringify([d.agent, d.windows, d.range, d.setup, d.total, d.ranked, d.by, d.roles, d.projects, d.perDay, d.plan?.perUsd, !!(d.lastMetricsAt || d.lastLogsAt),
   d.sessions?.map((x) => [x.sid, x.name, x.usd, x.req, x.open])]);
-const syncTabs = () => { for (const b of $('burn-range').querySelectorAll('[data-range]')) b.setAttribute('aria-selected', String(b.dataset.range === range)); };
+const syncTabs = () => {
+  for (const b of $('burn-range').querySelectorAll('[data-range]')) b.setAttribute('aria-selected', String(b.dataset.range === range));
+  for (const b of $('burn-agent')?.querySelectorAll('[data-agent]') || []) b.setAttribute('aria-selected', String(b.dataset.agent === agent));
+};
 function render() {
   const body = $('burn-body'), d = last;
   syncTabs();
   if (!d) return;
   if (!d.ok) { drawn = ''; body.replaceChildren(el('p', 'muted', tr('burn.unreachable'))); return; }
-  if (d.range !== range) return;   // (the other tab's: its own reading is on the way)
+  if (d.range !== range || isCodex(d) !== (agent === 'codex')) return;   // (the other tab's: its own reading is on the way)
+  if (isCodex(d)) { renderCodex(d); return; }
   const at = Math.max(d.lastMetricsAt || 0, d.lastLogsAt || 0);
   $('burn-at').textContent = at ? (Date.now() - at < 60e3 ? tr('burn.updatedNow') : tr('burn.updated', { ago: tr('time.ago', { time: fmtAgo((Date.now() - at) / 1000) }) })) : '';
   const now = sig(d);
@@ -158,14 +167,62 @@ function render() {
   body.scrollTop = top;
 }
 
+/* ---------- Codex: tokens (its plan is not charged per token), with what they are of its weekly limit ---------- */
+function renderCodex(d) {
+  const body = $('burn-body'), T = d.total;
+  $('burn-at').textContent = d.limitsAt ? (Date.now() - d.limitsAt < 60e3 ? tr('burn.updatedNow') : tr('burn.updated', { ago: tr('time.ago', { time: fmtAgo((Date.now() - d.limitsAt) / 1000) }) })) : '';
+  const now = sig(d);
+  if (now === drawn && body.firstElementChild) return;
+  drawn = now;
+  const out = [];
+  // the plan's own windows (5 h, week), as Codex last said them
+  if (d.windows?.length) {
+    const w = el('ol', 'bn-list');
+    for (const x of d.windows) w.append(row('', tr(`burn.codex.${x.key}`), x.pct / 100, points(x.pct), x.resetsAt ? tr('burn.codex.resets', { at: new Date(x.resetsAt).toLocaleString(locale(), { weekday: 'short', hour: '2-digit', minute: '2-digit' }) }) : ''));
+    out.push(sec(tr('burn.codex.windows'), w));
+  }
+  if (!(T.tokens > 0)) { const e = el('div', 'bn-empty'); e.append(el('p', null, tr('burn.codex.empty'))); body.replaceChildren(e, ...out); return; }
+  const hero = el('div', 'bn-hero'), plan = ofPlan(d, T.tokens);
+  hero.append(el('span', 'bn-hero-l', tr('burn.codex.hero')), el('strong', 'bn-total', toks(T.tokens)));
+  if (plan != null) { const p = el('span', 'bn-plan', tr('burn.codex.plan', { pct: points(plan) })); p.title = tr('burn.codex.planTitle', { used: points(d.plan.pct), tok: toks(d.plan.pct / d.plan.perTok), rate: points(d.plan.perTok * 1e6) }); hero.append(p); }
+  const sub = [tr('burn.codex.sub.req', { n: num(T.req) }), tr('burn.codex.sub.out', { n: toks(T.output) }), tr('burn.codex.sub.sessions', { n: d.sessions.length + (d.rest?.n || 0) })];
+  if (T.input) sub.push(tr('burn.codex.sub.cached', { pct: pct(T.cached / T.input) }));
+  out.unshift(hero, el('p', 'bn-sub', sub.join(' · ')));
+  // (as Claude's: a share and its "dollars", here tokens)
+  const asMoney = (x) => ({ ...x, usd: x.tokens });
+  const colors = modelColors(d.by.model.map((m) => m.name));
+  out.push(sec(tr('burn.byModel'), stack(d.by.model.map(asMoney), (n) => colors.get(n) ?? 0, modelName, d)));
+  if (d.roles?.length) {
+    const roles = el('ol', 'bn-list');
+    for (const r of d.roles.slice(0, 15)) { const p = ofPlan(d, r.tokens); roles.append(row('', tr(`team.roles.${r.name}.name`), r.share, `${toks(r.tokens)}${p != null ? ` · ≈ ${points(p)}` : ''}`)); }
+    out.push(sec(tr('burn.codex.roles'), roles, el('p', 'bn-note', tr('burn.codex.rolesNote'))));
+  }
+  if (d.range === '7d') out.push(sec(tr('burn.perDay'), days({ ...d, perDay: d.perDay.map((x) => ({ ...x, usd: x.tokens })) }, colors)));
+  const projects = el('ol', 'bn-list');
+  for (const p of d.projects.slice(0, 12)) projects.append(row('', p.name || tr('burn.noProject'), p.share, toks(p.tokens), tr('burn.sub.sessions', { n: p.sessions }), p.dir || ''));
+  out.push(sec(tr('burn.projects'), projects));
+  const sessions = el('ol', 'bn-list');
+  for (const x of d.sessions.slice(0, 15)) {
+    const name = x.name || `${x.project || tr('burn.noProject')} · ${x.sid.slice(0, 6)}`, p = ofPlan(d, x.tokens);
+    const meta = [x.project, x.models.map(modelName).join(', '), tr('burn.codex.sub.req', { n: num(x.req) }), x.exec ? tr('burn.codex.exec') : ''].filter(Boolean).join(' · ');
+    sessions.append(row(x.open ? 'is-open' : '', name, x.share, `${toks(x.tokens)}${p != null ? ` · ≈ ${points(p)}` : ''}`, meta, x.dir || '', x.open ? [el('i', 'bn-live')] : []));
+  }
+  if (d.rest?.n) sessions.append(row('is-plain', tr('burn.rest', { n: d.rest.n, usd: toks(d.rest.tokens) }), d.rest.share, toks(d.rest.tokens)));
+  out.push(sec(tr('burn.sessions'), sessions), el('p', 'bn-note', tr('burn.codex.foot')));
+  const top = body.scrollTop;
+  body.replaceChildren(...out);
+  body.scrollTop = top;
+}
+
 /* ---------- reading ---------- */
-async function fetchBurn(r) {
-  if (DEMO) return demoBurn(r);
-  try { return await (await fetch(`/api/burn?range=${r}${TOKEN ? `&k=${encodeURIComponent(TOKEN)}` : ''}`)).json(); } catch { return { ok: false }; }
+async function fetchBurn(r, a = 'claude') {
+  if (DEMO) return a === 'codex' ? { ok: true, agent: 'codex', range: r, total: { tokens: 0 }, windows: [], sessions: [], projects: [], by: { model: [] }, perDay: [] } : demoBurn(r);
+  try { return await (await fetch(`/api/burn?range=${r}${a === 'codex' ? '&agent=codex' : ''}${TOKEN ? `&k=${encodeURIComponent(TOKEN)}` : ''}`)).json(); } catch { return { ok: false }; }
 }
 async function load() {
-  const r = range, d = await fetchBurn(r);
-  if (r !== range) return;   // (the other tab was picked meanwhile)
+  const r = range, a = agent, d = await fetchBurn(r, a);
+  if (r !== range || a !== agent) return;   // (the other tab was picked meanwhile)
+  if (a === 'codex') { last = d; lastAt = Date.now(); if (!drB.hidden) render(); codexPeek(d); return; }
   last = d; lastAt = Date.now();
   if (!drB.hidden) render();
   peekText(d);
@@ -180,17 +237,27 @@ function peekText(d) {
   if (!top.length && d.by.model[0]) top.push(`${modelName(d.by.model[0].name)} ${pct(d.by.model[0].share)}`);
   b.append(el('span', null, tr('burn.peek', { usd: usd(d.total.usd), who: top.length ? ` · ${top.join(' · ')}` : '' })), el('i', 'bn-chev', '›'));
 }
+// the Codex pane's line in the plan card (ui/ai-accounts.js draws the button): today's tokens and the model eating most
+let codexToday = null;
+function codexPeek(d) {
+  if (d?.ok && d.range === 'today') codexToday = d;
+  const b = document.querySelector('.plan-burn[data-agent="codex"]'); if (!b || !d?.ok || d.range !== 'today') return;
+  const top = d.by?.model?.[0], label = d.total?.tokens > 0 ? tr('burn.codex.peek', { tok: toks(d.total.tokens), who: top ? ` · ${modelName(top.name)} ${pct(top.share)}` : '' }) : tr('burn.peekEmpty');
+  if (b.firstElementChild?.textContent === label) return;
+  b.replaceChildren(el('span', null, label), el('i', 'bn-chev', '›'));
+}
 function loading() { drawn = ''; $('burn-body').replaceChildren(el('p', 'muted', tr('burn.loading'))); }
 const tick = () => { if (!drB.hidden && document.visibilityState === 'visible') load(); };
 
-export function openBurn(r) {
+export function openBurn(r, a) {
   if (r === 'today' || r === '7d') range = r;
+  if (a === 'claude' || a === 'codex') agent = a;
   if (!drS.hidden) closeSession();
   if (!drM.hidden) closeMac();
   togglePlan(false); togglePop(false);
   if ($('zchat') && !$('zchat').hidden) $('btn-chat')?.click();   // (the chat window closes: on a phone it covers the sheet)
   drB.hidden = false;
-  if (last && last.range === range && Date.now() - lastAt < 20e3) render(); else { loading(); load(); }
+  if (last && last.range === range && isCodex(last) === (agent === 'codex') && Date.now() - lastAt < 20e3) render(); else { loading(); load(); }
   clearInterval(timer); timer = setInterval(tick, 20_000);
 }
 export function closeBurn() { if (!drB || drB.hidden) return; drB.hidden = true; clearInterval(timer); timer = 0; }
@@ -202,17 +269,25 @@ export function setup() {
     const b = e.target.closest('[data-range]'); if (!b || b.dataset.range === range) return;
     range = b.dataset.range; loading(); syncTabs(); load();
   });
-  $('plan-burn').addEventListener('click', () => openBurn('today'));
+  $('plan-burn').addEventListener('click', () => openBurn('today', 'claude'));
+  $('burn-agent')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-agent]'); if (!b || b.dataset.agent === agent) return;
+    agent = b.dataset.agent; loading(); syncTabs(); load();
+  });
+  // the Codex pane's line (ui/ai-accounts.js) opens it on Codex
+  document.addEventListener('office:burn', (e) => openBurn('today', e.detail?.agent));
+  document.addEventListener('office:burn-peek', () => { if (codexToday) codexPeek(codexToday); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !drB.hidden) closeBurn(); });
   document.addEventListener('visibilitychange', tick);
   // one drawer at a time: the Mac's or a session's opening closes this one; the plan card opening reads today's line
   const watch = new MutationObserver((recs) => {
     if (!drM.hidden || !drS.hidden) closeBurn();
     if (!recs.some((r) => r.target.id === 'pop-plan') || $('pop-plan').hidden) return;
-    if (last?.range === 'today' && Date.now() - lastAt < 20e3) peekText(last); else fetchBurn('today').then(peekText);
+    if (last?.range === 'today' && !isCodex(last) && Date.now() - lastAt < 20e3) peekText(last); else fetchBurn('today').then(peekText);
+    if (document.querySelector('.plan-burn[data-agent="codex"]')) fetchBurn('today', 'codex').then(codexPeek);
   });
   for (const n of [drM, drS, $('pop-plan')]) watch.observe(n, { attributes: true, attributeFilter: ['hidden'] });
   // ?burn (or ?burn=7d): open at once, for a link from a phone
   const q = new URLSearchParams(location.search);
-  if (q.has('burn')) setTimeout(() => openBurn(q.get('burn') === '7d' ? '7d' : 'today'), 300);
+  if (q.has('burn')) setTimeout(() => openBurn(q.get('burn') === '7d' ? '7d' : 'today', q.get('agent') === 'codex' ? 'codex' : 'claude'), 300);
 }

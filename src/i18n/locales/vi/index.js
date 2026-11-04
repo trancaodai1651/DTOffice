@@ -34,5 +34,6 @@ import panel from './panel.js';
 import setup from './setup.js';
 import guide from './guide.js';
 import team from './team.js';
+import projects from './projects.js';
 
-export default { common, time, ui, topbar, settings, wrapped, lite, fp, drawer, activity, perm, board, incident, events, people, timeline, replay, demo, places, props, world, life, mac, trophies, server, cli, tips, chat, burn, vault, ai, panel, setup, guide, team };
+export default { common, time, ui, topbar, settings, wrapped, lite, fp, drawer, activity, perm, board, incident, events, people, timeline, replay, demo, places, props, world, life, mac, trophies, server, cli, tips, chat, burn, vault, ai, panel, setup, guide, team, projects };

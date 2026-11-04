@@ -1,4 +1,5 @@
 export default {
+  projects: { badDir: 'Hãy nhập đường dẫn đầy đủ của thư mục (ví dụ D:\\Code\\shop).', noFolder: 'Không thấy thư mục này trên máy.', badOp: 'Yêu cầu không hợp lệ.' },
   tunnel: {
     noPlatform: 'Máy này chưa có cloudflared cho hệ điều hành của nó.',
     downloadFailed: 'Không tải được cloudflared (mã {status}). Kiểm tra mạng rồi bật lại.',
@@ -140,7 +141,7 @@ export default {
     someone: "một phiên AI",
     via: "Giao bởi",
     viaOffice: "CEO, giao từ app DT Office",
-    viaTeam: "Đội AI (quy trình CEO → PM/CTO)",
+    viaTeam: "Đội AI Agent Dev (quy trình CEO → PM/CTO)",
     viaUser: "người dùng, trực tiếp trong Claude Code / Codex",
     asked: "Được yêu cầu",
     changed: "Đã sửa",

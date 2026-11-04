@@ -20,7 +20,7 @@ import { nightHooks } from './props/trinkets.js';
 import { PRO_FX } from './pro/pieces.js';
 import { STATIONS } from '../people/navigation.js';
 import { updateCoffeeQueue } from '../people/breaks.js';
-import { colorOf, leaving, npcs, sessions, subs, workers } from '../people/workers.js';
+import { colorOf, leaving, npcs, residents, sessions, subs, workers } from '../people/workers.js';
 import { updateSeason } from '../life/rain.js';
 import { updateLiftService } from '../life/lift-service.js';
 import { applyWeather } from '../life/weather.js';
@@ -45,7 +45,7 @@ function updateRoomLights(dt) {
   if (!ROOM_LAMPS.length) return;
   if (state.sim > roomCheckAt) {   // who is where, four times a second
     roomCheckAt = state.sim + 0.25;
-    const people = [...workers.values(), ...subs.values(), ...leaving, ...npcs];
+    const people = [...workers.values(), ...residents.values(), ...subs.values(), ...leaving, ...npcs];
     for (const r of ROOM_LAMPS) r.busy = people.some((w) => w.root.parent && !w.away && w.pos.x > r.x0 && w.pos.x < r.x1 && w.pos.y > r.z0 && w.pos.y < r.z1);
   }
   for (const r of ROOM_LAMPS) { const goal = night && !r.off ? (r.busy ? 4.5 : r.low) : 0;   // (r.off: the switch by the door)
@@ -63,7 +63,8 @@ export function updateRoom(dt, t) {
   for (const m of leds) if (Math.random() < (ledRate * dt) / 3) m.emissiveIntensity = m.emissiveIntensity > 0.5 ? 0.12 : 1.6;
   syncLeds();
   screens.forEach((scr, i) => {
-    const s = [...sessions.values()].find((x) => x.desk === i), w = s && workers.get(s.id);
+    const resident = [...residents.values()].find(w => w.personnelDesk === i);
+    const s = resident ? sessions.get(resident.primarySessionId) : [...sessions.values()].find(x => x.desk === i), w = resident || (s && workers.get(s.id));
     updateBedding(DESKS[i], s, w, dt); syncKit(i); syncMess(i, w && s ? s.git?.dirty : 0);
     { const g = DESKS[i].g, hit = w && w.anim === 'slam' && w.slamUntil > t && w.station === 'desk';   // the desk jumps under the fists
       g.position.y = hit ? Math.max(0, Math.sin(t * 44)) * 0.018 : 0; g.position.x = DESKS[i].x + (hit ? Math.sin(t * 61) * 0.008 : 0); }

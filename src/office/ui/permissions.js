@@ -3,7 +3,7 @@ import { state } from '../core/state.js';
 import { dangerKey } from '../../shared/danger.js';
 import { $, STATIC, el } from '../core/env.js';
 import { icon } from './icons.js';
-import { colorOf, dn, sessions, workers } from '../people/workers.js';
+import { colorOf, dn, sessions, workerForSession } from '../people/workers.js';
 import { toast } from './activity.js';
 import { mdBlocks, openWindowOf } from './session-drawer.js';
 import { autoCam, panTo } from './camera-bar.js';
@@ -106,7 +106,7 @@ export function renderPerms() {
 }
 export function onPerm(p) {
   perms.set(p.id, p); renderPerms(); sfx.play('perm');
-  const w = workers.get(p.sess); if (w) { w.anim = 'hand'; if (!state.selectedId && autoCam()) panTo(w); }
+  const w = workerForSession(p.sess); if (w) { w.anim = 'hand'; if (!state.selectedId && autoCam()) panTo(w); }
 }
 
 export function setup() {

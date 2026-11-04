@@ -54,7 +54,7 @@ function sync() {
   badge('sessions', Number($('st-wait')?.textContent) || 0, 'amber');
   const cb = $('chat-badge'); badge('chat', cb && !cb.hidden ? Number(cb.textContent.replace(/\D/g, '')) || 1 : 0, 'red');
   emptyEl.hidden = !(tab === 'approve' && !waiting);
-  state.covered = tab === 'sessions' || tab === 'activity' || tab === 'chat';   // (the office under a full-screen sheet: loop.js barely draws it)
+  state.covered = isPhone() && (tab === 'sessions' || tab === 'activity' || chatOpen());   // (including a roster opened directly from the office)
   document.documentElement.classList.toggle('ph-has-perms', waiting > 0);
 }
 // a close button at the top of a sheet that has none of its own
@@ -67,7 +67,7 @@ function closer(host) {
 function apply() {
   const on = mq.matches, was = document.documentElement.classList.contains('is-phone');
   document.documentElement.classList.toggle('is-phone', on);
-  if (was && !on) { closeSheets(); tab = 'office'; }   // (a window grown past a phone's size: the desktop's own layout)
+  if (was && !on) { closeSheets(document.querySelector('.tm-sheet') ? 'chat' : ''); tab = 'office'; }   // keep the active personnel dialog and its focus across responsive layouts
   sync();
 }
 

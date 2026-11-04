@@ -105,6 +105,12 @@ function codexSection(c) {
   }
   if (state.isLocal && c.cli) s.append(codexAdd(c.login));
   if (c.list.length > 1 || c.auto) s.append(autoSwitch('codex', c.auto, tr(c.auto ? 'ai.codex.autoOn' : 'ai.codex.autoOff')));
+  // "Cái gì đang ăn gói" for Codex too (ui/burn.js fills its line and opens the drawer on Codex)
+  const burn = el('button', 'plan-burn'); burn.type = 'button'; burn.dataset.agent = 'codex';
+  burn.append(el('span', null, tr('burn.peekEmpty')), el('i', 'bn-chev', '›'));
+  burn.addEventListener('click', () => document.dispatchEvent(new CustomEvent('office:burn', { detail: { agent: 'codex' } })));
+  s.append(burn);
+  queueMicrotask(() => document.dispatchEvent(new CustomEvent('office:burn-peek')));
   return s;
 }
 let codexAdding = false;

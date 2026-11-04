@@ -17,6 +17,9 @@ import { closePlace } from '../interact/place-cards.js';
 import { exitFp, fp } from '../interact/first-person.js';
 import { t as tr } from '../../i18n/index.js';
 import { modelFamily } from '../../shared/model-name.js';
+import { positionTeamEntry } from './team-roster.js';
+import { liveTeamEnabled } from '../people/ai-team.js';
+import { TEAM_SEATS } from '../../shared/team-roles.js';
 
 export let lite = false;
 let filter = 'all', query = '', head = null, tabs = null, permHost = null, listEl = null, emptyEl = null;
@@ -111,6 +114,7 @@ export function setLite(on) {
   const stack = $('perm-stack');
   if (on) { build(); if (stack && permHost && stack.parentNode !== permHost) permHost.append(stack); if (fp.on) exitFp(); closePlace(); renderLite(); }
   else if (stack && stack.parentNode === permHost) $('lite').after(stack);
+  positionTeamEntry(on);
 }
 export function renderLite() {
   if (!lite || !listEl) return;
@@ -130,7 +134,7 @@ export function renderLite() {
   }
   listEl.replaceChildren(frag);
   emptyEl.hidden = !!list.length;
-  emptyEl.textContent = all.length ? tr('lite.none', { q: query }) : tr('lite.empty');
+  emptyEl.textContent = all.length ? tr('lite.none', { q: query }) : liveTeamEnabled() ? tr('team.presence.empty', { n: TEAM_SEATS.length }) : tr('lite.empty');
   if (focused) listEl.querySelector(`.v2-row[data-sid="${CSS.escape(focused)}"]`)?.focus({ preventScroll: true });
   $('lite').scrollTop = top;
 }

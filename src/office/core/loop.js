@@ -4,8 +4,10 @@ import { state } from './state.js';
 import { reduceMotion, replay } from './env.js';
 import { HOME, SOFTWARE_GL, camera, controls, fpCam, labels, renderer, resize, scene } from '../scene/renderer.js';
 import { updateExtras } from '../world/props/update.js';
-import { leaving, npcs, subs, updateZs, workers } from '../people/workers.js';
+import { leaving, residents, npcs, subs, updateZs, workers, workerForSession } from '../people/workers.js';
 import { updateTeam } from '../people/team-lines.js';
+import { updateExitRequests } from '../people/exit-permission.js';
+import { updateBriefs } from '../people/team-brief.js';
 import { flights, updateFlights } from '../people/director.js';
 import { updateWeather } from '../life/weather.js';
 import { updateNap } from '../life/nap.js';
@@ -146,7 +148,10 @@ export function loop(now = 0) {
   const dt = dt0 * (replay.on && replay.playing ? REPLAY_MOTION : 1) * (state.speed || 1);   // (state.speed: a timelapse clip)
   state.sim += dt;
   if (PERF) tLast = performance.now();
+  updateExitRequests();
   for (const w of workers.values()) w.update(dt, state.sim);
+  updateBriefs();
+  for (const w of residents.values()) if (w.roaming) w.update(dt, state.sim); else w.animate(dt, state.sim);
   for (const w of subs.values()) w.update(dt, state.sim);
   for (const w of leaving) { w.update(dt, state.sim); if (!w.root.parent) leaving.delete(w); }
   for (const w of npcs) w.update(dt, state.sim);
@@ -197,7 +202,7 @@ export function loop(now = 0) {
     labels.render(scene, fpCam); placePlc(); if (PERF) lap('labels');
     return;
   }
-  const sel = state.selectedId && workers.get(state.selectedId);
+  const sel = state.selectedId && workerForSession(state.selectedId);
   if (sel) focusTarget.set(sel.pos.x, 0.9, sel.pos.y);
   const delta = _camDelta.copy(focusTarget).sub(controls.target).multiplyScalar(Math.min(1, dt0 * 4));
   controls.target.add(delta); camera.position.add(delta);

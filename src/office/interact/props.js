@@ -36,10 +36,12 @@ import { SOFA, cat, catGo, petCat } from '../world/props/cat.js';
 import { vac } from '../world/props/vacuum.js';
 import { bins } from '../world/props/bins.js';
 import { devPool } from '../world/props/dev-servers.js';
-import { dn, npcs, sessions, subs, workers } from '../people/workers.js';
+import { dn, residents, npcs, sessions, subs, workers } from '../people/workers.js';
 import { SEASON_SPOT, seasonName, seasonProp } from '../life/seasons.js';
 import { confetti, night, particles, puffGeo } from '../world/room-update.js';
 import { toast } from '../ui/activity.js';
+import { residentForDesk } from '../people/ai-team.js';
+import { showRole } from '../ui/team-roster.js';
 import { openSession } from '../ui/session-drawer.js';
 import { openMac } from '../ui/mac-drawer.js';
 import { PLACES, placeMeshes } from './place-chips.js';
@@ -137,7 +139,7 @@ const TIME_NEXT = { auto: 'day', day: 'night', night: 'auto' };
 function cycleTime() { const m = TIME_NEXT[state.nightManual ? (night ? 'night' : 'day') : 'auto']; setTimeMode(m); toast(tr('props.clock.toast', { mode: tr('props.clock.' + m) })); sfx.play('click'); }
 /* the things themselves */
 function deskSession(i) { return [...sessions.values()].find((s) => s.desk === i); }
-function openDesk(i) { const s = deskSession(i); if (s) openSession(s.id); else openPlace('desks', PROPS.get('desk' + i)); }
+function openDesk(i) { const resident = residentForDesk(i); if (resident) { showRole(resident.roleId); return; } const s = deskSession(i); if (s) openSession(s.id); else openPlace('desks', PROPS.get('desk' + i)); }
 export function buildProps() {
   scene.updateMatrixWorld(true);
   const R = ROCKET_HOME;
@@ -258,7 +260,7 @@ export function pickProp(r = ray.ray) {
 }
 export function pickPerson(r = ray.ray) {
   let best = null, bd = Infinity;
-  for (const w of [...workers.values(), ...subs.values(), ...npcs]) {
+  for (const w of [...workers.values(), ...residents.values(), ...subs.values(), ...npcs]) {
     if (!w.root.parent || !w.root.visible) continue;
     const k = w.scale || 1, h = (w.pose === 'sit' ? 1.6 : 1.95) * k, rr = 0.34 * k;
     _pb.min.set(w.pos.x - rr, 0, w.pos.y - rr); _pb.max.set(w.pos.x + rr, h, w.pos.y + rr);

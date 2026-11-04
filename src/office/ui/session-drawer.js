@@ -4,7 +4,7 @@ import { $, el, fmtBytes, fmtClock, hhmm, nowMs, pad2, reduceMotion, short, smal
 import { STATUS_LABEL, verb } from './event-text.js';
 import { TYPE_ICON, icon } from './icons.js';
 import { BASE_ZOOM } from '../scene/renderer.js';
-import { colorOf, dn, sessions, workers } from '../people/workers.js';
+import { colorOf, dn, sessions, workerForSession } from '../people/workers.js';
 import { cap, feedRow, fmtTok, fmtUsd, openFromRow, queueUi, toast } from './activity.js';
 import { goView, setView } from './camera-bar.js';
 import { closeMac, doAction, loadMac, macSnap } from './mac-drawer.js';
@@ -31,7 +31,7 @@ export function openSession(id, opts = {}) {
   closeMac();
   const same = state.selectedId === id && !drS.hidden;
   state.selectedId = id; drS.hidden = false; setView(null);
-  const waver = workers.get(id); if (waver && !same) waver.waveUntil = state.sim + 1.8;
+  const waver = workerForSession(id); if (waver && !same) waver.waveUntil = state.sim + 1.8;
   if (small.matches) $('feed').classList.remove('feed--open');
   state.zoomGoal = (small.matches ? 2.1 : 1.6) * BASE_ZOOM;
   if (!same) { logItems = []; subItems = []; }

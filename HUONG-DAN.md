@@ -54,12 +54,20 @@ Nguồn số liệu:
   - Đăng nhập xong, hạn mức tự hiện sau vài giây, không cần tải lại trang.
 - **Codex**: đọc qua `codex app-server` với tài khoản ChatGPT đang đăng nhập trong Codex. Hạn mức primary là 5 giờ, secondary là tuần.
 
+**Cái gì đang ăn gói** có cho cả hai CLI. Bấm dòng "Cái gì đang ăn gói?" ở tab Claude hoặc tab Codex trong bảng hạn mức; ngăn mở ra có tab **Claude | Codex** và **Hôm nay | 7 ngày**.
+- **Claude**: chi phí theo giá API từ telemetry của Claude Code, theo MCP, skill, subagent, model, dự án, phiên.
+- **Codex**: văn phòng đọc thẳng file phiên của Codex (`~/.codex/sessions`), chỉ lấy số token, không đọc nội dung. Ngăn hiện:
+  - hạn mức 5 giờ và tuần Codex báo gần nhất;
+  - tổng token, số lượt gọi, phần đọc lại từ cache;
+  - token theo model, theo nhân sự Đội AI Agent Dev, theo dự án, theo phiên, và theo từng ngày (tab 7 ngày).
+  - Gói ChatGPT không tính tiền theo token, nên mỗi dòng ghi thêm **≈ % hạn mức tuần**: tỉ lệ token tuần này đếm được so với % tuần đã dùng.
+
 ### Giao việc ngay trong app
 
 Mở **nhóm chat** rồi bấm **📋 Giao việc**. Việc giao gồm hai bước:
 
 **Bước 1: việc gì, giao cho ai**
-1. Chọn một cuộc trò chuyện đang có (làm tiếp đúng hội thoại đó), hoặc một **thư mục dự án** (mở phiên mới).
+1. Chọn một cuộc trò chuyện đang có (làm tiếp đúng hội thoại đó), hoặc một **thư mục dự án** (mở phiên mới). Mở **📁 Thêm hoặc bỏ dự án** để quản lý danh sách dự án của bạn (xem mục Dự án của bạn).
 2. Gõ hoặc nói (🎤) yêu cầu, đính ảnh nếu cần.
 3. Dòng **🧠 Bộ nhớ** cho biết dự án đó đang nhớ bao nhiêu mục. Bấm **Xem** để mở bộ nhớ.
 4. Bấm **Tiếp tục →**.
@@ -120,9 +128,28 @@ Văn phòng chỉ ghi lại đúng khối của mình. Ghi chú trong MEMORY và
 
 File được tạo hoặc cập nhật khi có việc giao từ app, khi đội AI bắt đầu một bước, và khi một phiên kết thúc. Bật/tắt ở **📋 Giao việc → 🧠 Bộ nhớ → Xem → "Ghi file bộ nhớ vào dự án"**. Chính repo DT Office cũng đã có file này.
 
-### Đội AI 15 agent (bạn là CEO)
+### Dự án của bạn
 
-Mở **Nhóm chat → 👥 Đội AI**. Đội có 15 agent, chia 5 nhóm:
+Danh sách dự án là của bạn, không cố định là dự án DT Office:
+- **Thêm:** dán đường dẫn đầy đủ của thư mục (copy từ thanh địa chỉ File Explorer, ví dụ `D:\Code\shop`) rồi bấm **Thêm**. Thư mục phải có thật trên máy.
+- **Bỏ:** bấm **✕** cạnh dự án. Chỉ bỏ khỏi danh sách, thư mục trên máy giữ nguyên. Phiên Claude/Codex chạy ở thư mục đó cũng không tự thêm lại, chỉ khi bạn thêm.
+- Có ở hướng dẫn viên (bước "Dự án nào?") và ở **📋 Giao việc → Thêm hoặc bỏ dự án**. Việc thêm/bỏ chỉ làm được trên chính máy này, không làm từ điện thoại.
+- Phiên làm việc ở thư mục mới vẫn tự vào danh sách như trước (tối đa 60 dự án).
+
+### Giao việc qua hướng dẫn viên (cách khuyên dùng)
+
+Bạn chỉ cần nói việc với **chị Mai**:
+1. Bấm chị Mai ở góc phải dưới → **Giao việc cho đội AI Agent**.
+2. Gõ việc cần làm, bấm **Tiếp tục**.
+3. Chị hỏi **"Việc này cho dự án nào?"**: chọn dự án, hoặc thêm thư mục dự án mới ngay đó.
+4. Chị tìm **đội AI Agent phù hợp** theo nội dung việc và nói lý do ("vì việc có nhắc tới: api, giao diện…"). Hiện có **Đội AI Agent Dev**; khi có thêm đội khác, một việc cần nhiều mảng sẽ được giao cho **nhiều đội phối hợp, làm lần lượt**: đội sau đọc báo cáo của đội trước. Bạn có thể tick/bỏ đội.
+5. Chọn giao cho PM hay CTO, CLI, model, effort, rồi bấm **Giao việc**.
+
+Sau đó từng nhân sự được gọi sẽ **tới gặp bạn để nhận phần việc** rồi về bàn làm. Nhóm chat báo "PM gọi … nhận việc".
+
+### Đội AI Agent Dev (bạn là CEO)
+
+Mở **Nhóm chat → 👥 Đội AI Agent Dev**, hoặc giao việc qua hướng dẫn viên. Đội có 15 agent, chia 5 nhóm:
 
 | Nhóm | Agent |
 | --- | --- |
@@ -148,18 +175,23 @@ Mở **Nhóm chat → 👥 Đội AI**. Đội có 15 agent, chia 5 nhóm:
   - Lập trình, sửa lỗi, kiểm thử và triển khai chạy **lần lượt từng người**, để không ai sửa đè code của người khác. Người sau đọc báo cáo của người trước; ví dụ Reviewer đọc những gì QA tìm thấy.
 - **Kiểm thử:** QA, Reviewer và Security mỗi người tự kết luận PASS hoặc FAIL. **Chỉ cần một FAIL** là đội lập trình phải sửa, mỗi kỹ sư sửa phần thuộc mảng của mình.
 - **Báo cáo:** mỗi người một file `.ai-office/team/<mã lượt>/<số>-<bước>-<vai trò>.md`, ví dụ `1-plan-pm.md`, `3-build-backend.md`, `4-verify-qa.md`.
-- **Theo dõi:** bảng Đội AI hiện từng bước và từng thành viên (chờ lượt / đang làm / xong / lỗi, kèm kết luận kiểm thử). Rê chuột lên một người để xem câu trả lời cuối của họ. Mỗi agent ngồi đúng bàn có tên mình trong Phòng AI, và câu trả lời của họ hiện trong nhóm chat.
+- **Theo dõi:** bảng Đội AI Agent Dev hiện từng bước và từng thành viên (chờ lượt / ⏳ chờ xong việc khác / đang làm / xong / lỗi, kèm kết luận kiểm thử). Rê chuột lên một người để xem câu trả lời cuối của họ. Mỗi agent ngồi đúng bàn có tên mình trong Phòng AI, và câu trả lời của họ hiện trong nhóm chat.
 - Mọi phiên đều đọc và ghi bộ nhớ dự án.
-- **Dừng và tiếp tục:** nút **Dừng đội** dừng mọi người đang làm. Nếu đội bị dừng (do bạn, do tắt app hay server) hoặc bị lỗi, bấm **Tiếp tục**: đội làm tiếp đúng chỗ dở, ai đã xong thì giữ nguyên kết quả. Mỗi dự án chỉ chạy một mục tiêu một lúc.
+- **Dừng và tiếp tục:** nút **Dừng đội** dừng mọi người đang làm. Nếu đội bị dừng (do bạn, do tắt app hay server) hoặc bị lỗi, bấm **Tiếp tục**: đội làm tiếp đúng chỗ dở, ai đã xong thì giữ nguyên kết quả.
+- **Nhiều việc cùng lúc:** bạn có thể giao việc mới khi đội đang làm việc khác, kể cả cùng dự án. Mỗi nhân sự chỉ làm một việc một lúc: nếu việc mới cần người đang bận, người đó **làm xong việc đang dở rồi mới nhận việc mới** (bảng đội ghi "chờ xong việc khác"; nhóm chat báo ai đang chờ ai). Hai việc cùng dự án không sửa code cùng lúc: bước lập trình/sửa lỗi của việc sau chờ việc trước xong bước đó. Người rảnh được trao cho việc giao sớm hơn trước.
 
 Kết quả chạy thật (Codex, GPT-5.6-Luna, effort Thấp, mục tiêu "module notes.js có test"):
 - Chín phiên riêng: PM, PO, BA song song; rồi Architect; Backend; QA rồi Reviewer; DevOps; PM báo cáo.
 - PM chỉ phân công Backend, QA, Reviewer, DevOps; UI/UX, Frontend, Database không bị gọi vì không có việc.
 - Lượt chạy bị tắt giữa chừng ở bước kiểm thử, bấm Tiếp tục thì làm nốt. Kiểm thử ĐẠT, `npm test` 6/6.
 
-### Phòng AI 15 Agent DEV
+### Phòng AI Agent DEV
 
-Ở **Trụ sở**, phòng ban góc phải phía trước là phòng riêng của Đội AI: **PHÒNG AI 15 AGENT DEV**.
+Ở **Trụ sở**, phòng ban góc phải phía trước là phòng riêng của Đội AI Agent Dev: **PHÒNG AI 15 AGENT DEV**.
+- **15 nhân sự luôn có mặt** ở bàn của mình, kể cả khi chưa có việc (nhãn "Chờ việc"). Họ không biến mất khi phiên kết thúc và không tự ra khỏi tòa nhà.
+- **Rảnh** một lúc thì có thể ra **phòng nghỉ** (sofa, pantry, thư viện) rồi quay lại; có việc hay được gọi là về bàn ngay.
+- **Nhận việc:** khi PM/CTO gọi một nhân sự, người đó **đi tới bàn giám đốc (bạn)**, đợi nếu giám đốc đang đi một vòng, nhận tờ giao việc rồi về bàn làm. Nhân viên thường (phiên Claude/Codex) cũng vậy: có lời nhắn mới thì lên gặp sếp nhận việc rồi về bàn; chỉ khi chỗ trước bàn sếp đã kín hoặc bật giảm chuyển động thì giám đốc mới mang việc tới.
+- **Ra ngoài phải xin phép:** nhân viên muốn ra ngoài (về nhà, đi mua đồ, lái xe dạo) phải tới gặp giám đốc; bảng "Xin phép ra ngoài" hiện để bạn bấm **Cho phép** hoặc **Ở lại**. Chờ lâu hay ẩn tab cũng không tự được phép.
 - Phòng có 4 cụm bàn xếp thành 2 hàng, tổng **16 bàn**: một bàn cho mỗi vai trò trong 15 agent, cộng một bàn **CEO (bạn)**.
 - Mỗi bàn có biển tên vai trò.
 - Mỗi agent luôn ngồi đúng bàn có tên mình, dù đang làm cho dự án nào. Phiên thường không ngồi vào phòng này.
@@ -168,9 +200,9 @@ Kết quả chạy thật (Codex, GPT-5.6-Luna, effort Thấp, mục tiêu "modu
 
 ### Người rảnh không ngủ
 
-Khi một phiên đang rảnh, nhân viên **không ngủ gục ở bàn** nữa, mà làm một trong hai việc:
+Khi một phiên đang rảnh, nhân viên **không ngủ gục ở bàn** nữa, mà làm một trong hai việc (nhân sự Đội AI Agent Dev chỉ ra phòng nghỉ, không ra ngoài):
 - **Ra phòng nghỉ:** sofa ở lounge, bàn ăn pantry, quầy cà phê hoặc thư viện, rồi lướt điện thoại hay đọc sách. Vài phút lại đổi chỗ.
-- **Ra ngoài lái xe máy dạo một vòng**, vài phút rồi quay về. Việc này chỉ xảy ra khi văn phòng đang hiện cảnh thành phố, và chỉ với người có xe máy riêng.
+- **Ra ngoài lái xe máy dạo một vòng**, vài phút rồi quay về, **sau khi được bạn cho phép**. Việc này chỉ xảy ra khi văn phòng đang hiện cảnh thành phố, và chỉ với người có xe máy riêng.
 
 Có việc là họ quay về bàn ngay. Giờ nghỉ trưa 12:30–13:30 vẫn kéo rèm, nhưng mọi người thư giãn chứ không ngủ.
 
@@ -201,6 +233,7 @@ Văn phòng Nhỏ có 9 bàn, Công ty có 12 bàn. Khi **hết bàn**, hoặc k
 ### Hướng dẫn viên: chị Mai
 
 Ở góc phải dưới có **chị Mai**, nhân viên hướng dẫn sử dụng app (chân dung chibi, nhãn "Hướng dẫn"). Lần đầu mở app, chị chào một câu. Bấm vào chị để mở bảng hướng dẫn:
+- Mục đầu tiên **Giao việc cho đội AI Agent**: xem mục "Giao việc qua hướng dẫn viên".
 - **Hỏi bằng lời của bạn**, ví dụ "giao việc cho codex" hoặc "hạn mức tuần". Gõ có dấu hay không dấu đều được; chủ đề khớp nhất hiện lên đầu.
 - **16 chủ đề:** bắt đầu nhanh, Đội AI, giao việc, chọn CLI/model/effort, bộ nhớ phiên, file bộ nhớ, hạn mức, duyệt lệnh, nhóm chat, xem phiên, kết nối CLI, ngôn ngữ, xem lại, điện thoại, tham quan văn phòng, khi có sự cố.
 - Mỗi chủ đề có các bước làm và nút **Làm giúp tôi**, mở đúng chỗ cần dùng (màn hình giao việc, bảng hạn mức, chọn CLI, cài đặt ngôn ngữ, tour…).

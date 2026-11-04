@@ -1,6 +1,15 @@
 // What the characters say and are called (people/*.js): subagents arriving and reporting, the director handing out work,
 // lunch and coffee, and the sleepy lines when you click someone who is resting. Speech bubbles: keep them short.
 export default {
+  brief: { take: 'Taking the task: {task}', onIt: 'Back to my desk to do it' },
+  exit: {
+    title: 'Permission to leave', request: '{name} would like to {reason}.',
+    reason: { home: 'go home', ride: 'go for a ride', errand: 'go outside on an errand', finished: 'leave after finishing work' },
+    queued: 'Waiting for a turn to visit your office.', visiting: 'Coming to your office. A decision is available after you meet.',
+    ready: 'At your office, waiting for your decision. They will stay until you allow them to leave.',
+    allow: 'Allow departure', deny: 'Stay in the office', view: 'View the meeting', queue: '{n} departure request(s)',
+    say: 'May I go outside, boss?', denied: 'Understood. I will stay in the office.',
+  },
   director: 'Director',
   subagent: 'subagent',
   // the small badge on a boss's name tag

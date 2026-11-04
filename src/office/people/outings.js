@@ -60,6 +60,8 @@ export const here = (w) => ({ x: w.pos.x, z: w.pos.y });
 // down to the street: the lift (wait for it, step in, the doors shut, down; the stairs while it is serviced) or out of
 // the door, then unseen a moment
 export function goDown(w, R, cb) {
+  w.exitApproved = false;
+  if (state.sim < (w.exitDeniedUntil || 0)) { R.drop?.(w); return; }
   const stage = R.stage, gone = () => { if (!live(R, stage)) return; w.offstage = true; later(lift ? 3 : 1, () => live(R, stage) && cb()); };
   w.goTo(DOOR_IN, () => {
     if (!live(R, stage)) return;
@@ -88,6 +90,7 @@ function done(R) {
 // back at the desk: on with whatever came in, or (still resting) what they brought back, eaten or drunk at the desk (the
 // shopping goes under it), then a nap
 export function resume(w, item) {
+  w.exitApproved = false;
   const s = sessions.get(w.id);
   w.station = 'desk';
   if (s?.status === 'wait') { w.anim = 'hand'; w.say('wait', tr('people.needsApproval'), 'wait'); }

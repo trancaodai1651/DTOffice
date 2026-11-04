@@ -501,7 +501,30 @@
   .zc .zc-coach-ai { padding: 2px 6px 2px 0; }
 }
 /* "Đội AI" (team-sheet.js): the 15 agents in five groups, the flow from the CEO, the goal, each run's stages */
-.tm-sheet { max-height: 92%; }
+.tm-sheet { max-height: 100%; font-family: var(--font-be-vietnam), 'Be Vietnam Pro', sans-serif; }
+.tm-sheet > .zc-task-head { position: sticky; top: -10px; background: #fff; z-index: 2; min-height: 44px; flex-shrink: 0; }
+.tm-sheet .zc-task-head .zc-ib { width: 44px; height: 44px; }
+.tm-task-info, .tm-roster { display: grid; gap: 8px; min-width: 0; }
+.tm-presence-summary, .tm-presence-notice { margin: 0; font-size: 13px; }
+.tm-presence-notice { color: #795000; background: #FFF4D6; padding: 8px; border-radius: 8px; }
+.tm-roster-groups { display: grid; gap: 8px; }
+.tm-roster .tm-group { min-width: 0; }
+.tm-roster h3 { margin: 0 0 4px; font-size: 13px; color: #42516A; }
+.zc .tm-person-button { all: unset; box-sizing: border-box; width: 100%; min-height: 44px; display: grid; gap: 3px; padding: 8px 10px; background: #fff; border: 1px solid #D6DBE3; border-radius: 8px; cursor: pointer; font-size: 13px; overflow-wrap: anywhere; }
+.tm-person-button[aria-expanded="true"] { border-color: #0068FF; }
+.tm-person-name { font-weight: 600; }
+.tm-person-status { color: #526077; }
+.tm-person-status.is-work { color: #16633A; } .tm-person-status.is-wait { color: #795000; }
+.tm-person-status.is-wait::before { content: '⚠ '; }
+.tm-person-detail { padding: 8px 4px; font-size: 13px; overflow-wrap: anywhere; }
+.tm-person-detail p { margin: 0 0 8px; }
+.tm-session { display: grid; gap: 5px; padding: 8px 0; border-bottom: 1px solid #D6DBE3; margin-bottom: 8px; }
+.tm-session > b { color: var(--zc-ink); text-transform: none; letter-spacing: 0; font-size: 13px; }
+.tm-sheet .zc-task-tool, .tm-session summary { min-height: 44px; box-sizing: border-box; padding: 10px; white-space: normal; }
+.tm-sheet :is(button, textarea, select, summary):focus-visible { outline: 2px solid #0058D6; outline-offset: 2px; }
+.tm-sheet .tm-field select { min-height: 44px; }
+.tm-room p { margin: 0 0 6px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { .tm-sheet { animation: none; } }
 .tm-about summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--zc-blue); padding: 4px 0; }
 .tm-org { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; margin: 6px 0; }
 .tm-group { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 10px; background: #F5F7FA; }

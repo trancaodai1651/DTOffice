@@ -1,6 +1,7 @@
 // Words the server writes: event and tool labels, chat notes, API errors, the phone PIN page, plan-limit labels, replies
 // to Claude's hooks, and the Mac drawer's cleanup tips (server/system.mjs). The server translates when it makes them.
 export default {
+  projects: { badDir: "Enter the folder's full path (e.g. D:\\Code\\shop).", noFolder: 'No such folder on this computer.', badOp: 'Not a valid request.' },
   tunnel: {
     noPlatform: 'There is no cloudflared for this system yet.',
     downloadFailed: "Couldn't download cloudflared (status {status}). Check the network and turn it on again.",
@@ -148,7 +149,7 @@ export default {
     someone: "an AI session",
     via: "Given by",
     viaOffice: "the CEO, from the DT Office app",
-    viaTeam: "the AI team (CEO → PM/CTO workflow)",
+    viaTeam: "the AI Agent Dev team (CEO → PM/CTO workflow)",
     viaUser: "the user, directly in Claude Code / Codex",
     asked: "Asked",
     changed: "Changed",

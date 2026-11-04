@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { t, num } from '../../i18n/index.js';
 import { TET } from '../../shared/workdays.js';
+import { officeLayout } from '../../shared/office-layout.js';
 
 export const $ = (id) => document.getElementById(id);
 // The online demo: a static export with no server behind it (next.config.mjs, OFFICE_STATIC=1). It always runs demo mode.
@@ -44,10 +45,15 @@ export const fmtClock = (s) => { s = Math.max(0, Math.floor(s)); return s >= 360
 export function setup() {
   stage = $('stage');
   reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Floor plan, each viewer's own choice: 'pro' (a company floor, the default), 'cozy' (one open room)
+  // Floor plan, each viewer's own choice: 'pro' (a company floor), 'cozy' (one open room)
   // or 'hq' (headquarters: the company floor plus a wing of department rooms). Switching reloads the page;
   // ?layout=cozy|pro|hq overrides it for one visit.
-  LAYOUT = (() => { const q = new URLSearchParams(location.search).get('layout'); if (PLANS.includes(q)) return q; const def = 'pro'; try { const v = localStorage.getItem('office-layout'); return PLANS.includes(v) ? v : def; } catch { return def; } })();
+  LAYOUT = (() => {
+    const q = new URLSearchParams(location.search).get('layout');
+    try {
+      return officeLayout(q, localStorage.getItem('office-layout'));
+    } catch { return officeLayout(q); }
+  })();
   // the company floor's rooms, people and habits; headquarters is the company floor plus a wing of departments
   PRO = LAYOUT === 'pro' || LAYOUT === 'hq';
   HQ = LAYOUT === 'hq';

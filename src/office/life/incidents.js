@@ -6,7 +6,7 @@ import { ACT, bubbleText } from '../ui/event-text.js';
 import { scene } from '../scene/renderer.js';
 import { printPage } from '../world/props/printer.js';
 import { STATIONS } from '../people/navigation.js';
-import { dn, dropSub, sessions, spawnSub, subAct, subs, workers } from '../people/workers.js';
+import { dn, dropSub, sessions, spawnSub, subAct, subs, workers, workerForSession } from '../people/workers.js';
 import { director } from '../people/director.js';
 import { launchRocket } from '../world/room-update.js';
 import { addFeed, toast } from '../ui/activity.js';
@@ -56,28 +56,40 @@ export function onEvent(e) {
     if (e.type === 'fail') { const now = nowMs(); fails.push(now); while (fails.length && now - fails[0] > 300e3) fails.shift(); if (fails.length >= 3 && state.sim >= state.incidentUntil) { fails.length = 0; startIncident(s0); } }
     if (state.selectedId === e.sess) unseenDone.delete(e.sess); }
   if (!e.quiet && e.type !== 'start') addFeed(e);
-  const s = sessions.get(e.sess), w = workers.get(e.sess);
+  const s = sessions.get(e.sess), w = workerForSession(e.sess);
   if (state.selectedId === e.sess) scheduleLog();
   if (s && !e.agent && e.type === 'deploy') toast(tr('incident.deployed', { name: dn(s), label: e.label }));
   if (s && !e.agent && (e.type === 'wait' || e.type === 'ask')) notifyWait(s, e);   // (both before the person: the 2D list has none)
   if (!w || !s) return;
-  if (e.type === 'substart') { spawnSub(w, e.agent, e.label); return; }
+  if (e.type === 'substart') { spawnSub(w, e.agent, e.label, false, null, e.sess); return; }
   if (e.type === 'substop') { const sw = subs.get(e.agent); if (sw && e.desc) sw.desc = e.desc; dropSub(e.agent); return; }
   if (e.agent) {
-    const sw = subs.get(e.agent) || spawnSub(w, e.agent, e.agentType || 'agent');
+    const sw = subs.get(e.agent) || spawnSub(w, e.agent, e.agentType || 'agent', false, null, e.sess);
     if (e.desc) sw.desc = e.desc;
     sw.push(subAct(e));
     if (sw.phase === 'walk' || sw.station === (ACT[e.type]?.station || 'desk')) { sw.say(e.type, bubbleText(e), e.type === 'fail' ? 'fail' : ''); sw.lastSay.e = e; }
     return;
   }
   if (e.type === 'start' || e.type === 'end') return;
+  if (w.kind === 'team-resident') {
+    if (w.primarySessionId === e.sess && w.tagEl.dataset.devState === 'session') w.say(e.type, bubbleText(e), e.type === 'fail' ? 'fail' : '');
+    return;
+  }
   let a = { ...(ACT[e.type] || ACT.other), type: ACT[e.type] ? e.type : 'other', text: bubbleText(e), e };
   if (e.type === 'fail') {   // a second failure within two minutes: frustration, a fist on the desk
     w.fails = (w.fails || []).filter((t) => state.sim - t < 120); w.fails.push(state.sim);
     if (w.fails.length >= 2 && !reduceMotion) { a = { ...a, anim: 'slam', text: tr('incident.againFail', { text: bubbleText(e) }), dwell: 2.2 }; w.slamUntil = state.sim + 2.2; sfx.play('thud'); }
   }
   if (e.type === 'prompt') a.after = () => { state.boardPulse = { id: e.sess, until: state.sim + 2.6 }; state.boardDirty = true; };
-  if (director && e.type === 'prompt') director.deliver(e.sess, e.label || '');
+  // a new task: its person comes to the director to take it (pro plan), then works at their desk; the director carries
+  // it over only when they can't come (the director's place full, away from home, motion reduced)
+  if (director && e.type === 'prompt') {
+    if (director.station === 'home' && !reduceMotion && STATIONS.director.some((x) => !x.by)) {
+      const work = a, task = e.label || '';
+      a = { station: 'director', anim: 'idle', type: 'prompt', text: !task || state.streamer ? tr('incident.takeTaskHidden') : tr('incident.takeTask', { task: short(task, 40) }), e, dwell: 2.2,
+        after: () => { director.handTo(w, task); w.push(work); } };
+    } else director.deliver(e.sess, e.label || '');
+  }
   if (director && e.type === 'stop' && director.station === 'home' && STATIONS.director.some((x) => !x.by)) {   // pro plan: report to the director first, then the pantry
     const rest = a, done = s.lastPrompt || e.label || '';
     a = { station: 'director', anim: 'think', type: 'stop', text: !done ? tr('incident.reportNoTask') : state.streamer ? tr('incident.reportHidden') : tr('incident.report', { task: short(done, 40) }), e, dwell: 2.4,

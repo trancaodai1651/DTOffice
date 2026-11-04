@@ -11,6 +11,7 @@ import { colorOf, dn, leaving, sessions, subs } from '../people/workers.js';
 import { director } from '../people/director.js';
 import { applyWeather, wx } from '../life/weather.js';
 import { toast } from './activity.js';
+import { showRole } from '../ui/team-roster.js';
 import { openSession, toggleSession } from './session-drawer.js';
 import { openMac } from './mac-drawer.js';
 import { PROPS, activateProp, buildProps, floorLamps, pickPerson, pickProp, propMeshes, setHoverProp } from '../interact/props.js';
@@ -263,7 +264,8 @@ export function setup() {
     if (per.devBox) { openMac(); return; }
     const w = per.worker;
     if (w && w === director) { openPlace('director'); return; }
-    if (w?.sub) { if (w.parent) openSession(w.parent.id, { tab: 'subs', agent: w.id }); return; }
+    if (w?.kind === 'team-resident') { showRole(w.roleId); return; }
+    if (w?.sub) { if (w.parent) openSession(w.parentSessionId, { tab: 'subs', agent: w.id }); return; }
     if (w && w.anim === 'sleep' && w.phase !== 'walk') w.poke();
     else if (w && state.selectedId !== w.id) errands.lookUp(w);
     if (w) toggleSession(w.id);

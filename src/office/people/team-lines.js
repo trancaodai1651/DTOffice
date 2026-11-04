@@ -2,13 +2,13 @@
 import * as THREE from 'three';
 import { state } from '../core/state.js';
 import { scene } from '../scene/renderer.js';
-import { leaving, subs, workers } from './workers.js';
+import { leaving, subs, workerForSession } from './workers.js';
 import { fp } from '../interact/first-person.js';
 
 let teamGeo;
 let teamLines;
 export function updateTeam() {
-  const boss = (state.selectedId && workers.get(state.selectedId)) || (state.hovered ? (state.hovered.sub ? state.hovered.parent : state.hovered) : null);
+  const boss = (state.selectedId && workerForSession(state.selectedId)) || (state.hovered ? (state.hovered.sub ? state.hovered.parent : state.hovered) : null);
   const team = boss ? [...subs.values(), ...leaving].filter((x) => x.sub && x.parent === boss && x.root.parent).slice(0, 32) : [];
   if (!team.length || fp.on) { teamLines.visible = false; return; }
   const a = teamGeo.attributes.position; let n = 0;

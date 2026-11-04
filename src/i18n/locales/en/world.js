@@ -40,7 +40,7 @@ export default {
   stairs: { exit: 'EMERGENCY EXIT', exitSub: 'STAIRS', floor: 'FLOOR', plate: 'STAIRS', plateSub: 'Floor {n}' },
   dept: {
     team: 'AI 15-AGENT DEV ROOM',
-    teamSub: 'The AI team · 15 agents and the CEO',
+    teamSub: 'AI Agent Dev team · 15 agents and the CEO',
     free: 'DEPARTMENT {n}',
     freeSub: 'free for the next project',
     name: '{name}',

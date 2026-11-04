@@ -1,4 +1,13 @@
 export default {
+  brief: { take: 'Em nhận việc: {task}', onIt: 'Em về bàn làm ngay ạ' },
+  exit: {
+    title: 'Xin phép ra ngoài', request: '{name} xin phép {reason}.',
+    reason: { home: 'về nhà', ride: 'đi dạo bằng xe', errand: 'ra ngoài có việc', finished: 'ra về sau khi xong việc' },
+    queued: 'Đang chờ đến lượt vào gặp bạn.', visiting: 'Đang đến phòng bạn. Chỉ duyệt sau khi đã gặp.',
+    ready: 'Đã đến phòng bạn, đang chờ quyết định. Chưa được phép thì vẫn ở lại.',
+    allow: 'Cho phép ra ngoài', deny: 'Ở lại văn phòng', view: 'Xem tại phòng', queue: '{n} yêu cầu xin ra ngoài',
+    say: 'Sếp cho em xin phép ra ngoài nhé?', denied: 'Dạ, em ở lại văn phòng.',
+  },
   director: 'Giám đốc',
   subagent: 'trợ lý',
   team: '{n} trợ lý',

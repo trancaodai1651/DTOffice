@@ -27,6 +27,7 @@ const ACCS = ['headphones', 'glasses', 'beanie', 'cap', null, null, null];
 // set by outings.js (with the city outside): home(w, gone) takes someone leaving out by the street (true if it does),
 // arrive(w) brings someone back the same way
 export const streetHooks = {};
+export const exitHooks = {};
 // the attendance terminal by the lift (people/hr.js): in(w, then) on the way in from the lift, out(w, then) on the way out,
 // newcomer(w) for a session's first walk in; each calls then() when done (straight away when there is nothing to do)
 export const clockHooks = {};
@@ -69,6 +70,8 @@ export function updateZs(dt) {
 }
 function lookOf(s) { const h = hash(s.name); return { shirt: colorOf(s), hair: HAIRS[h % HAIRS.length], style: STYLES[(h >>> 3) % STYLES.length], acc: ACCS[(h >>> 7) % ACCS.length], coat: COATS[(h >>> 11) % COATS.length], bag: BAGS[(h >>> 15) % BAGS.length] }; }
 export const workers = new Map();   // session id -> Worker
+export const residents = new Map(); // role id -> stable live HQ character (never a session/npc)
+export function workerForSession(id) { return residents.get(sessions.get(id)?.role) || workers.get(id); }
 export const npcs = [];             // people who aren't sessions: the director on the company floor
 export const subs = new Map();      // subagent id -> Worker
 export const sessions = new Map();  // session id -> latest session object from the server
@@ -81,7 +84,7 @@ export function addWorker(s, walkIn) {
     w.pos.set(DOOR_OUT.x, DOOR_OUT.z); w.face = w.faceTarget = Math.PI / 2; w.spot = DOOR_OUT;
     w.dress(true); liftArrive(w); clockHooks.newcomer?.(w);
     viaClock('in', w, () => w.goTo(home, () => { w.station = 'desk'; w.anim = 'type'; if (home === DESK_SPOTS[s.desk]) w.unpack(s.desk); else w.dress(false); }));
-  } else if (w.lateRest(s)) {   // opened late at night: those who went home are not here
+  } else if (w.lateRest(s)) {
     w.away = true; w.station = 'away'; w.pos.set(DOOR_OUT.x, DOOR_OUT.z); w.spot = DOOR_OUT; w.dress(true); w.hush();
   } else {
     w.pos.set(home.x, home.z); w.spot = home; w.face = w.faceTarget = home.face; w.pose = home.sit ? 'sit' : 'stand'; w.station = 'desk';
@@ -94,13 +97,14 @@ export function addWorker(s, walkIn) {
   for (const sub of s.subs || []) spawnSub(w, sub.id, sub.type, !walkIn, sub);
   return w;
 }
-export function spawnSub(parent, agentId, type, instant = false, info = null) {
+export function spawnSub(parent, agentId, type, instant = false, info = null, parentSessionId = parent.id) {
   if (!agentId || subs.has(agentId)) return subs.get(agentId);
   const h = hash(agentId);
   const w = new Worker({ name: type || 'agent', shirt: tint(parent.cfg.shirt, 0.3), hair: HAIRS[h % HAIRS.length], style: STYLES[(h >>> 3) % STYLES.length], acc: (h >>> 6) % 3 === 0 ? 'glasses' : null, pants: '#4C566A' }, { sub: true, scale: 0.78, parent, id: agentId });
   subs.set(agentId, w);
+  w.parentSessionId = parentSessionId;
   if (info?.model) w.setModel(info.model);
-  const x = () => info || sessions.get(parent.id)?.subs?.find((y) => y.id === agentId);
+  const x = () => sessions.get(w.parentSessionId)?.subs?.find((y) => y.id === agentId) || info;
   const seated = () => {
     w.station = 'meeting'; w.anim = 'think';
     const i = x();
@@ -115,10 +119,10 @@ export function spawnSub(parent, agentId, type, instant = false, info = null) {
   }
   // new on the team: in through the door (up in the lift), to the boss for the brief, then off to work
   w.pos.set(DOOR_OUT.x, DOOR_OUT.z); w.face = w.faceTarget = Math.PI / 2; w.spot = DOOR_OUT; liftArrive(w);
-  w.goTo(DOOR_IN, () => w.goTo(nearBoss(parent, w), () => {
-    w.faceTarget = Math.atan2(parent.pos.x - w.pos.x, parent.pos.y - w.pos.y);
+  w.goTo(DOOR_IN, () => w.goTo(nearBoss(w.parent, w), () => {
+    w.faceTarget = Math.atan2(w.parent.pos.x - w.pos.x, w.parent.pos.y - w.pos.y);
     w.anim = 'idle'; w.say('agent', tr('people.subOnIt', { task: short(x()?.desc || type || tr('people.subagent'), 48) })); w.dwellUntil = state.sim + 1.6;
-    if (!parent.leaving && parent.phase !== 'walk') parent.faceTarget = Math.atan2(w.pos.x - parent.pos.x, w.pos.y - parent.pos.y);
+    if (!w.parent.leaving && w.parent.phase !== 'walk') w.parent.faceTarget = Math.atan2(w.pos.x - w.parent.pos.x, w.pos.y - w.parent.pos.y);
     if (!w.want) w.push({ station: 'desk', anim: 'think', type: 'agent', text: x()?.desc || tr('people.subThinking'), dwell: 1.2 });
   }));
   return w;
@@ -131,7 +135,7 @@ export function subAct(e) {
 }
 // A free place to stand next to the boss (behind or beside, never inside their desk), clear of other people.
 export function nearBoss(boss, me) {
-  const f = boss.face, others = [...workers.values(), ...subs.values(), ...leaving, ...npcs].filter((o) => o !== me && o !== boss).map((o) => (o.spot ? [o.spot.x, o.spot.z] : [o.pos.x, o.pos.y]));
+  const f = boss.face, others = [...workers.values(), ...residents.values(), ...subs.values(), ...leaving, ...npcs].filter((o) => o !== me && o !== boss).map((o) => (o.spot ? [o.spot.x, o.spot.z] : [o.pos.x, o.pos.y]));
   for (const r of [0.95, 1.4, 1.9]) for (const da of [Math.PI, Math.PI / 2, -Math.PI / 2, (3 * Math.PI) / 4, -(3 * Math.PI) / 4, Math.PI / 4, -Math.PI / 4, 0]) {
     const a = f + da, x = boss.pos.x + Math.sin(a) * r, z = boss.pos.y + Math.cos(a) * r;
     if (!inside(x, z) || (fp.grid && blocked(x, z, 0.28))) continue;
@@ -147,13 +151,13 @@ export const leavingIds = new Set();
    started leaving first just go, so the crowd stays small. */
 const LEAVING_MAX = 8;
 export function trimLeaving() {
-  for (const w of leaving) { if (leaving.size <= LEAVING_MAX) return; w.leaving = true; w.remove(); leavingIds.delete(w.id); }   // (its id free again: a session that left may come back)
+  for (const w of leaving) { if (leaving.size <= LEAVING_MAX) return; if (!w.exitApproved || w.exitRequest) continue; w.leaving = true; w.remove(); leavingIds.delete(w.id); }   // never discard someone still awaiting the director's permission
 }
 export function dropSub(agentId, report = true) {
   const w = subs.get(agentId); if (!w) return;
   subs.delete(agentId); leaving.add(w); trimLeaving();
   const boss = w.parent;
-  if (!report || reduceMotion || document.hidden || !boss || workers.get(boss.id) !== boss || boss.leaving || replay.on) { w.leave(); return; }
+  if (!report || reduceMotion || document.hidden || !boss || workerForSession(w.parentSessionId) !== boss || boss.leaving || replay.on) { w.leave(); return; }
   const desc = w.desc || '';
   w.want = null; w.hush();
   w.goTo(nearBoss(boss, w), () => {
@@ -178,6 +182,7 @@ export function setup() {
   Worker = class Worker {
     constructor(cfg, opt = {}) {
       this.cfg = cfg; this.sub = !!opt.sub; this.parent = opt.parent || null; this.id = opt.id;
+      this.kind = opt.kind; this.roleId = opt.roleId; this.personnelDesk = opt.personnelDesk;
       this.scale = opt.scale || 1;
       const { root, P } = makeChibi({ ...cfg, look: state.LOOK }, this.scale);
       this.root = root; this.P = P;
@@ -262,8 +267,14 @@ export function setup() {
       this.bubbleObj.visible = true;
     }
     hush() { this.bubbleObj.visible = false; }
-    homeSpot() { const d = sessions.get(this.id)?.desk ?? -1; return d >= 0 ? DESK_SPOTS[d] : allocate('meeting', this); }
+    homeSpot() { const d = sessions.get(this.id)?.desk ?? this.personnelDesk ?? -1; return d >= 0 ? DESK_SPOTS[d] : allocate('meeting', this); }
     goTo(spot, cb) {
+      if (this.kind === 'team-resident' && !this.roaming) return;   // (a member of the team room walks only to the director or a break: people/team-brief.js)
+      // Every voluntary departure funnels through the indoor exit, including staff and short street trips.
+      if (spot === DOOR_IN && !this.street && (this.leaving || this.homeBound || this.leavingNow || this.outing) && this.id !== '__courier' && !replay.on && exitHooks.request && !this.exitApproved) {
+        exitHooks.request(this, () => { this.exitApproved = true; this.goTo(spot, cb); });
+        return;
+      }
       if (this.mealBox) hideMeal(this);
       if (this.queued && !COFFEE_Q.includes(spot)) leaveCoffee(this);
       const prev = this.spot;
@@ -474,7 +485,6 @@ export function setup() {
       const gone = () => { this.remove(); onGone && onGone(); };
       if (this.outing) this.outing.drop(this);
       if (this.liftHold || this.away || this.street || this.offstage || this.stairs) { this.liftHold = false; gone(); return; }   // still in the lift that brought them (or on the stairs), gone home, or out (they don't come back)
-      if (document.hidden) { gone(); return; }   // (nobody watching: a tab in the background draws nothing, so nobody would get out until it is shown)
       this.walkOut(gone);
     }
     // packing up at the desk (coat on, bag on the back), then out: the lift (press the button, wait, step in, ride
@@ -507,10 +517,13 @@ export function setup() {
       return true;
     }
     goHomeNow() {
+      if (state.sim < (this.exitDeniedUntil || 0)) { this.joyride = false; return; }
+      this.exitApproved = false;
       this.homeBound = true; this.hush(); this.restAt = Infinity; this.station = 'out';
       this.walkOut(() => { this.homeBound = false; this.away = true; this.station = 'away'; this.hush(); if (this.spot?.by === this) this.spot.by = null; });
     }
     comeBack() {
+      this.exitApproved = false;
       this.away = false; this.station = 'arriving';
       if (streetHooks.arrive?.(this)) return;   // (by the street, with the city outside)
       this.pos.set(DOOR_OUT.x, DOOR_OUT.z); this.face = this.faceTarget = Math.PI / 2; this.spot = DOOR_OUT;
@@ -519,6 +532,7 @@ export function setup() {
       viaClock('in', this, () => this.goTo(home, () => { this.station = 'desk'; this.anim = 'type'; if (home === DESK_SPOTS[d]) this.unpack(d); else this.dress(false); }));
     }
     remove() {
+      exitHooks.cancel?.(this);
       { const k = deskKit.indexOf(this); if (k >= 0) deskKit[k] = null; }
       this.liftHold = false; this.liftWait = this.liftRide = null; this.stairs = null;
       if (this.queued) leaveCoffee(this);
@@ -548,7 +562,7 @@ export function setup() {
           }
         } else { this.pos.x += (dx / d) * step; this.pos.y += (dz / d) * step; this.faceTarget = Math.atan2(dx, dz); }
       }
-      if (!this.chore) this.tick();
+      if (!this.chore && !this.exitRequest) this.tick();
       this.animate(dt, t);
     }
     animate(dt, t) {

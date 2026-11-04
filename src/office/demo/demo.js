@@ -3,6 +3,7 @@ import { state } from '../core/state.js';
 import { $, STATIC, officeNow, rand, replay } from '../core/env.js';
 import { CHAIR_IDLE, chairs } from '../world/desks.js';
 import { sessions, subs, workers } from '../people/workers.js';
+import { reconcileTeamPresence, syncTeamPresence, teamConnection, teamDesk } from '../people/ai-team.js';
 import { chatAct, chatApply, chatLeft, chatLoad } from '../ui/group-chat.js';
 import { setTrophies } from '../life/trophies.js';
 import { setLiftService } from '../life/lift-service.js';
@@ -12,6 +13,7 @@ import { acctLogin, acctMoved, acctSwitched, limitWarned, liveWindows, loadMac, 
 import { renderAi, setAi } from '../ui/ai-accounts.js';
 import { setSetup } from '../ui/setup.js';
 import { setTeamRuns } from '../ui/team-sheet.js';
+import { briefFromRuns } from '../people/team-brief.js';
 import { DEMO_TODOS, onTodos } from '../ui/whiteboard.js';
 import { TOKEN, freeDesk, removeSession, setConn, upsertSession } from '../net/live.js';
 import { onEvent } from '../life/incidents.js';
@@ -234,8 +236,8 @@ export function applyMsg(d, quiet = false) {
   }
   if (d.k === 'snap') {
     const ids = new Set(d.sessions.map((s) => s.id));
-    for (const id of [...sessions.keys()]) if (!ids.has(id)) (quiet ? dropSessionNow : removeSession)(id);
-    for (const s of d.sessions) upsertSession(s, false);
+    for (const id of [...sessions.keys()]) if (!ids.has(id)) (quiet ? dropSessionNow : removeSession)(id, true);
+    for (const s of d.sessions) upsertSession(s, false, true);
     state.feed = d.feed || []; state.stats = d.stats || {}; renderFeed();
     if ('local' in d) {   // only the live snapshot carries these
       perms.clear(); for (const p of d.perms || []) perms.set(p.id, p); renderPerms(); reportPresence();
@@ -271,12 +273,13 @@ export function applyMsg(d, quiet = false) {
   else if (d.k === 'limits') { state.limits = d.limits || null; state.limitsNote = d.note || ''; renderLimits(); renderAi(); if (!drM.hidden) renderMac(); }
   else if (d.k === 'ai') setAi(d.ai);
   else if (d.k === 'setup') setSetup(d.setup);
-  else if (d.k === 'team') setTeamRuns(d.runs);   // (the AI team's runs: ui/team-sheet.js)
+  else if (d.k === 'team') { setTeamRuns(d.runs); briefFromRuns(d.runs); }   // (the AI team's runs: ui/team-sheet.js; members called come for the task: people/team-brief.js)
   else if (d.k === 'agents') { state.agents = d.agents || null; renderLimits(); renderAi(); }
   else if (d.k === 'sysauto') { if (!quiet) { toast(d.message, 8000); loadMac(); } }   // (idle sessions closed on the drawer's timer)
   else if (d.k === 'trophies') setTrophies(d.t, quiet ? [] : d.earned || []);
   else if (d.k === 'tenure') setTenure(d);   // (the projects' working lives: a farewell due, one back; people/farewell.js)
   else if (d.k === 'vi') relabel(d.from, d.to);
+  syncTeamPresence(perms.values(), d.k === 'snap' && !replay.on && !DEMO);
 }
 // a translation that arrived after its event: swap the words in bubbles, the feed and the session list
 function relabel(from, to) {
@@ -302,7 +305,7 @@ function ask() {
         if (r.status === 401) { location.reload(); return; }   // (signed out: back to the PIN)
         const j = await r.json();
         fails = 0; setConn(true); since = j.seq;
-        if (!replay.on) for (const d of j.msgs) applyMsg(d);
+        if (!replay.on) { for (const d of j.msgs) applyMsg(d); teamConnection(true, true); }
       } catch {
         if (stop.signal.aborted) return;
         setConn(false); await new Promise((ok) => setTimeout(ok, Math.min(15_000, 1000 * 2 ** fails++)));
@@ -322,12 +325,14 @@ export function connect() {
     applyMsg(d);
   };
 }
-export function dropSessionNow(id) {
+export function dropSessionNow(id, batch = false) {
   const s = sessions.get(id); sessions.delete(id); freeDesk(id);
   const w = workers.get(id);
-  if (w) { workers.delete(id); for (const [aid, sw] of subs) if (sw.parent === w) { subs.delete(aid); sw.remove(); } w.remove(); }
-  if (s && s.desk >= 0) chairs[s.desk].color.set(CHAIR_IDLE);
+  for (const [aid, sw] of subs) if (sw.parentSessionId === id) { subs.delete(aid); sw.remove(); }
+  if (w) { workers.delete(id); w.remove(); }
+  if (s && s.desk >= 0 && teamDesk(s.role) < 0) chairs[s.desk].color.set(CHAIR_IDLE);
   if (state.selectedId === id) closeSession();
+  if (!batch) reconcileTeamPresence();
 }
 
 export function setup() {

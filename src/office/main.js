@@ -54,6 +54,10 @@ import * as peopleLook from './people/look.js';
 import * as peopleWorkers from './people/workers.js';
 import * as peopleTeamLines from './people/team-lines.js';
 import * as peopleDirector from './people/director.js';
+import * as peopleAiTeam from './people/ai-team.js';
+import * as peopleExitPermission from './people/exit-permission.js';
+import * as peopleTeamBrief from './people/team-brief.js';
+import * as uiTeamRoster from './ui/team-roster.js';
 import * as peopleErrands from './people/errands.js';
 import * as peopleGatherings from './people/gatherings.js';
 import * as peopleOutings from './people/outings.js';
@@ -176,6 +180,10 @@ const MODULES = [
   peopleWorkers,
   peopleTeamLines,
   peopleDirector,
+  peopleAiTeam,
+  { setup: peopleAiTeam.setupWorld },
+  peopleExitPermission,
+  peopleTeamBrief,
   peopleErrands,
   peopleGatherings,
   peopleOutings,
@@ -226,6 +234,7 @@ const MODULES = [
   uiTimelapse,
   uiGroupChat,
   uiGroupChatView,
+  uiTeamRoster,
   uiStuck,
   uiModels,
   uiCacheWords,
@@ -250,9 +259,9 @@ const MODULES = [
 ];
 
 // what the 2D list needs (its rows, the top bar and drawers, the group chat, the live connection or the demo)
-const LIST = new Set([coreEnv, uiEventText, uiIcons, peopleWorkers, uiLite, uiActivity, uiSessionDrawer, uiMacDrawer, uiBurn, uiVault, uiTopbar,
+const LIST = new Set([coreEnv, uiEventText, uiIcons, peopleWorkers, peopleAiTeam, uiLite, uiActivity, uiSessionDrawer, uiMacDrawer, uiBurn, uiVault, uiTopbar,
   interactPlaceCards, uiSettings, uiGroupChat, uiGroupChatView, uiStuck, uiModels, uiCacheWords, netLive, lifeYourTurn, audioSfx, uiPermissions,
-  uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiGuide]);
+  uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiGuide, uiTeamRoster]);
 const done = new Set();
 let started = false;
 export function startOffice() {

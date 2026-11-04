@@ -2,6 +2,7 @@
 // corner (her chibi face, from the same portraits as everyone here); a word of welcome on a first visit. Her desk is a
 // panel of topics, each a few steps in the office's language and a "show me" that opens the very thing (📋 Giao việc,
 // the limits, the CLIs, the tour…). Ask her in your own words: the topics whose words match come first.
+// She also takes work: tell her the task, she asks which project and finds the AI Agent team(s) for it (ui/guide-work.js).
 import { state } from '../core/state.js';
 import { $, STATIC, el } from '../core/env.js';
 import { avatar } from './chat-avatars.js';
@@ -9,6 +10,7 @@ import { openTask, openTeam, toggle as toggleChat } from './group-chat-view.js';
 import { togglePlan, togglePop } from './settings.js';
 import { startTips } from './tips.js';
 import { openSetup } from './setup.js';
+import { workFlow } from './guide-work.js';
 import { t as tr } from '../../i18n/index.js';
 
 const LOOK = { shirt: '#3FA37C', hair: '#3A2418', style: 'bun', acc: null, outfit: 'shirt', skin: null };
@@ -73,11 +75,20 @@ function home() {
   };
   ask.addEventListener('input', filter);
   ask.addEventListener('keydown', (e) => { if (e.key === 'Enter') { const first = list.querySelector('.gd-item'); if (first) first.click(); } });
-  const homeParts = [el('p', 'gd-hello', tr('guide.hello')), ask, none, list];
+  // the first thing she offers: giving her a task for the AI Agent teams
+  const work = el('button', 'gd-work'); work.type = 'button';
+  work.append(el('b', null, tr('guide.work.title')), el('small', null, tr('guide.work.lead')));
+  work.addEventListener('click', () => { body.replaceChildren(workFlow({ back: () => { body.replaceChildren(...homeParts); ask.focus({ preventScroll: true }); }, openTeam: () => { close(); openTeam(); } })); });
+  const homeParts = [el('p', 'gd-hello', tr('guide.hello')), work, ask, none, list];
   filter(); body.replaceChildren(...homeParts);
   return body;
 }
 function close() { if (panel) panel.hidden = true; btn?.setAttribute('aria-expanded', 'false'); }
+/** Open her panel; work: straight to giving her a task. */
+export function openGuide(work = false) {
+  open();
+  if (work) panel.querySelector('.gd-work')?.click();
+}
 function open() {
   hideBubble();
   if (!panel) {

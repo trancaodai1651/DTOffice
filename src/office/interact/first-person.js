@@ -14,8 +14,9 @@ import { drivable } from '../world/backdrops/street-life.js';
 import { vmat } from '../world/terrace.js';
 import { toast } from '../ui/activity.js';
 import { sfx } from '../audio/sfx.js';
-import { sessions, subs, workers } from '../people/workers.js';
+import { sessions, residents, subs, workers } from '../people/workers.js';
 import { floorBlocks } from '../life/seasons.js';
+import { showRole } from '../ui/team-roster.js';
 import { closeSession, openSession } from '../ui/session-drawer.js';
 import { PROPS, activateProp, propHint } from './props.js';
 import { t as tr } from '../../i18n/index.js';
@@ -218,7 +219,8 @@ function interact() {
   if (w === cat) { petCat(); return; }
   if (w.meshes) { activateProp(w); return; }
   if (!w.sub && w.anim === 'sleep' && w.rouse()) { fp.nearAsleep = null; return; }   // asleep: wake them (the session opens by clicking)
-  if (w.sub) { if (w.parent) openSession(w.parent.id, { tab: 'subs', agent: w.id }); } else openSession(w.id);
+  if (w.kind === 'team-resident') { showRole(w.roleId); return; }
+  if (w.sub) { if (w.parent) openSession(w.parentSessionId, { tab: 'subs', agent: w.id }); } else openSession(w.id);
 }
 const typing = (e) => e.target.closest?.('input, textarea, select, [contenteditable="true"]');
 export function fpUpdate(dt) {
@@ -270,7 +272,7 @@ export function fpUpdate(dt) {
   }
   // the agent in front of you, within reach (out on the street: someone from the office out there, else what is at hand)
   let best = null, bd = 2.6;
-  for (const w of [...workers.values(), ...subs.values()]) {
+  for (const w of [...workers.values(), ...residents.values(), ...subs.values()]) {
     if (!!w.street !== !!S || !w.root.visible) continue;
     const dx = w.pos.x - fp.pos.x, dz = w.pos.y - fp.pos.y, d = Math.hypot(dx, dz);
     if (d > bd || (dx * fx + dz * fz) / (d || 1) < 0.5) continue;

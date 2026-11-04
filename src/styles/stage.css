@@ -58,6 +58,13 @@
 @media (max-width: 720px) { .tb-fp span:last-child, .seg-btn > span:last-child { display: none !important; } .tb-fp { padding: 0 11px; } .seg-btn, .seg-btn:hover, .seg-btn[aria-pressed="true"] { padding: 0 10px; } .fp-help { top: 56px; max-width: calc(100% - 24px); } }
 .chips { display: none; position: absolute; top: 10px; left: 0; right: 0; gap: 8px; overflow-x: auto; padding: 0 12px 6px; z-index: 2; scrollbar-width: none; }
 .chips::-webkit-scrollbar { display: none; }
+.team-presence-entry { position: absolute; top: 8px; left: 12px; right: 12px; z-index: 3; pointer-events: none; }
+.team-presence-entry button { pointer-events: auto; min-height: 44px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--side); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.team-presence-entry button:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+.has-live-team .chips, .is-phone .has-live-team .chips { top: 60px; }
+.v2-h1 .team-presence-entry { position: static; margin-top: 8px; }
+:root:not(.is-phone) .has-live-team:not(.is-lite) .perm-stack { top: 66px; }
+.has-live-team.is-lite #empty { display: none; }
 .chip { all: unset; display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px; background: rgba(17, 23, 32, .86); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--line-2); border-radius: 999px; font-size: .76rem; font-weight: 600; cursor: pointer; white-space: nowrap; flex: none; }
 .chip i { width: 8px; height: 8px; border-radius: 50%; }
 .chip[data-status="work"] small { color: var(--green-ink); }

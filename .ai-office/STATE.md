@@ -56,8 +56,17 @@
 
 ## Nhiều nhiệm vụ đồng thời
 
+- Codex: [DEV AI và xin phép ra ngoài](state/dev-team-exit-permission.md) — chờ lượt đội AI `2026-11-04-2a506d` xong theo yêu cầu người dùng, rồi kiểm tra/đóng gói.
+
+- [Nhân sự AI hiện diện mặc định · UIUX, stage 2](state/2026-11-04-2a506d-uiux.md) — lượt `2026-11-04-2a506d`; đã thiết kế màn hình/luồng/trạng thái, vi/en và khả năng truy cập tại [báo cáo UIUX](team/2026-11-04-2a506d/2-design-uiux.md); chưa sửa code sản phẩm.
+- [Nhân sự AI hiện diện mặc định · Architect, stage 2](state/2026-11-04-2a506d-architect.md) — đã thiết kế thành phần, dữ liệu/API nội bộ, vòng đời đa phiên và danh sách file tại [báo cáo Architect](team/2026-11-04-2a506d/2-design-architect.md); baseline team 9/9, chưa sửa code sản phẩm; cần tích hợp cùng UIUX và thay đổi đồng thời.
+- [Nhân sự AI hiện diện mặc định · PO, stage 1](state/2026-11-04-2a506d-po.md) — lượt `2026-11-04-2a506d`; đã đọc code và lập giá trị, phạm vi P0/P1, tiêu chí nghiệm thu tại [báo cáo PO](team/2026-11-04-2a506d/1-plan-po.md); chưa sửa sản phẩm.
+- [Nhân sự AI hiện diện mặc định · PM, stage 1](state/2026-11-04-2a506d-pm.md) — lượt `2026-11-04-2a506d`; đã lập kế hoạch, baseline team 9/9; chờ PO/BA và design, chưa sửa code sản phẩm.
 - Nhiệm vụ hiện hành: [Làm sạch nguồn và phát hành DT Office 0.4.5](state/dtoffice-clean-release.md) (Codex).
 
 - Nhiệm vụ song song: [Đội AI làm việc thật theo từng vai trò](state/ai-team-roles.md) (Claude Code, đã commit và đẩy).
+- Claude Code: [Đội AI Agent Dev, giao việc qua hướng dẫn viên, dự án người dùng, gói Codex](state/agent-teams-guide.md) — đã xong và kiểm tra (lint/typecheck/unit/build, Edge headless), chưa commit. Lượt `2026-11-04-2a506d` đã dừng ở build; code của nó được giữ và tích hợp.
 - Nhiệm vụ trên (bộ nhớ ba lớp) là của Codex. Khi thêm việc song song, tạo `state/<mã-nhiệm-vụ>.md` với mục tiêu,
   tiến độ, file, test, việc dở, bước tiếp và commit; thêm liên kết tại đây, không ghi đè trạng thái phiên khác.
+
+- Nhiệm vụ song song (BA, stage 1): [Nhân sự AI Agent hiện diện mặc định](state/ai-agent-presence-2026-11-04-2a506d-ba.md) — đã có báo cáo phân tích, chưa sửa code sản phẩm.

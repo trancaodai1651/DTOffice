@@ -16,7 +16,8 @@ import { avatar } from './chat-avatars.js';
 import { photoOn } from './photo.js';
 import { dn, sessions } from '../people/workers.js';
 import { openTaskSheet, dictate, shrink } from './task-sheet.js';
-import { openTeamSheet } from './team-sheet.js';
+import { closeTeamSheet, openTeamSheet } from './team-sheet.js';
+import { setTeamOpener } from './team-roster.js';
 import { openBurn } from './burn.js';
 import { openVault } from './vault.js';
 import { toast } from './activity.js';
@@ -854,7 +855,7 @@ function build() {
   const atBtn = () => { moreEl.hidden = true; input.focus(); input.setRangeText(input.value && !/\s$/.test(input.value) ? ' @' : '@', input.selectionStart, input.selectionEnd, 'end'); mentions(); };
   const toolbar = el('div', 'zc-toolbar zc-pc');
   toolbar.append(ib('smile', tr('chat.stickerTab'), () => openStickers('sticker')), photoBtn(''), ib('clip', ''), ib('card', ''), ib('chart', tr('chat.newPoll'), openMore), ib('at', tr('chat.mention'), atBtn),
-    ib('clipboard', tr('chat.task.title'), () => openTaskSheet(root), 'zc-task-btn'), ib('users', tr('team.title'), () => openTeamSheet(root), 'zc-team-btn'), ib('format', ''), ib('more', tr('chat.more'), openMore));
+    ib('clipboard', tr('chat.task.title'), () => openTaskSheet(root), 'zc-task-btn'), ib('users', tr('team.title'), () => openTeam(), 'zc-team-btn'), ib('format', ''), ib('more', tr('chat.more'), openMore));
   bar = el('form', 'zc-bar');
   input = el('textarea', 'zc-in'); input.rows = 1; input.maxLength = 600;
   input.placeholder = tr(matchMedia('(max-width: 640px)').matches ? 'chat.placeholder' : 'chat.placeholderPc', { group: tr('chat.group') });
@@ -888,9 +889,13 @@ function build() {
 /** The chat opened on 📋 Giao việc (the guide's "show me": ui/guide.js). */
 export function openTask(opts) { toggle(true); openTaskSheet(root, opts); }
 /** The chat opened on 👥 the AI team. */
-export function openTeam() { toggle(true); openTeamSheet(root); }
-export function toggle(on = !chat.open) {
+export function openTeam(options = {}) {
+  const fromChat = root?.contains(document.activeElement);
+  toggle(true, false); openTeamSheet(root, { ...options, onDismiss: () => toggle(false), onClose: fromChat ? null : () => toggle(false) });
+}
+export function toggle(on = !chat.open, focusInput = true) {
   if (!root) build();
+  if (!on) closeTeamSheet(false);
   if (!on) readTo = [...chat.msgs].reverse().find((m) => m.kind !== 'sys')?.id || null;   // (where to draw "Tin nhắn mới" next time)
   root.hidden = !on; setOpen(on); $('btn-chat')?.setAttribute('aria-pressed', String(on));
   state.covered = on && document.documentElement.classList.contains('is-phone');   // (full screen on a phone: the office under it barely draws)
@@ -898,7 +903,7 @@ export function toggle(on = !chat.open) {
     redraw(); drawTyping();
     const line = body.querySelector('.zc-newline');
     if (line) line.scrollIntoView({ block: 'center' }); else body.scrollTop = body.scrollHeight;
-    $('zc-peek')?.setAttribute('hidden', ''); fitKeyboard(); setTimeout(() => input.focus({ preventScroll: true }), 30);
+    $('zc-peek')?.setAttribute('hidden', ''); fitKeyboard(); if (focusInput) setTimeout(() => { if (!root.querySelector('.tm-sheet')) input.focus({ preventScroll: true }); }, 30);
     drawNotifyBar();
   }
   badge();
@@ -910,6 +915,7 @@ function fitKeyboard() {
   if (document.activeElement === input) body.scrollTop = body.scrollHeight;
 }
 export function setup() {
+  setTeamOpener(openTeam);
   window.visualViewport?.addEventListener('resize', fitKeyboard); window.visualViewport?.addEventListener('scroll', fitKeyboard);
   $('btn-chat')?.addEventListener('click', () => toggle());
   addEventListener('keydown', (e) => { if (e.key === 'Escape' && chat.open && !e.defaultPrevented) toggle(false); });

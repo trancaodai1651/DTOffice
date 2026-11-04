@@ -9,6 +9,7 @@ import { avatar } from './chat-avatars.js';
 import { who } from './group-chat.js';
 import { TOKEN } from '../net/live.js';
 import { openMemory } from './memory-view.js';
+import { projectPicker } from './projects.js';
 import { t as tr, locale } from '../../i18n/index.js';
 
 const q = () => (TOKEN ? `?k=${encodeURIComponent(TOKEN)}` : '');
@@ -69,8 +70,27 @@ export async function openTaskSheet(host, { to = null, text = '' } = {}) {
   };
   if (r.sessions.length) list.append(el('small', 'zc-task-h', tr('chat.task.conversations')));
   for (const s of r.sessions) list.append(option({ sid: s.sid }, s.name, `${s.agent === 'codex' ? 'Codex · ' : ''}📁 ${s.dir}`, avatar({ ...(who(s.id) || {}), key: s.id, name: s.name }, 30), pick?.sid === s.sid));
-  if (r.projects.length) list.append(el('small', 'zc-task-h', tr('chat.task.newIn')));
-  for (const p of r.projects) { const f = el('span', 'zc-task-folder', '📁'); list.append(option({ dir: p.dir }, p.name, p.dir, f, pick?.dir === p.dir && !pick.sid)); }
+  // "a new one in…" your projects; added or taken off the list right here (ui/projects.js)
+  const projBox = el('div', 'zc-task-projects');
+  const drawProjects = () => {
+    projBox.replaceChildren();
+    if (r.projects.length) projBox.append(el('small', 'zc-task-h', tr('chat.task.newIn')));
+    for (const p of r.projects) { const f = el('span', 'zc-task-folder', '📁'); projBox.append(option({ dir: p.dir }, p.name, p.dir, f, pick?.dir === p.dir && !pick.sid)); }
+  };
+  drawProjects();
+  const manage = el('details', 'zc-task-manage');
+  manage.append(el('summary', null, `📁 ${tr('chat.task.manageProjects')}`));
+  manage.addEventListener('toggle', () => {
+    if (!manage.open || manage.querySelector('.pj-box')) return;
+    let first = true;
+    manage.append(projectPicker({ value: pick?.dir || '', onPick: (p) => { if (p) { pick = { dir: p.dir }; drawProjects(); sync(); } }, onList: (l) => {
+      if (first) { first = false; return; }   // (its first reading: the list as it was)
+      r.projects = l.filter((p) => p.here).map((p) => ({ dir: p.dir, name: p.name, memory: r.projects.find((x) => x.dir === p.dir)?.memory || 0 }));
+      if (pick?.dir && !r.projects.some((p) => p.dir === pick.dir)) pick = null;
+      drawProjects(); sync();
+    } }));
+  });
+  list.append(projBox, manage);
   // what to do: typed or spoken, and photos
   const field = el('textarea', 'zc-task-in'); field.rows = 4; field.maxLength = 4000; field.placeholder = tr('chat.task.placeholder'); field.value = text;
   field.addEventListener('keydown', (e) => e.stopPropagation());

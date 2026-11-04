@@ -1,0 +1,9 @@
+/* Departures stay separate from CLI tool permissions. */
+.exit-permission { position: absolute; right: 16px; bottom: 84px; z-index: 12; width: min(360px, calc(100% - 32px)); padding: 16px; border: 1px solid var(--amber); border-radius: 14px; background: #151c27; color: #e8edf5; box-shadow: 0 12px 38px #0008; }
+.exit-permission[hidden] { display: none; }
+.exit-permission p { margin: 10px 0; font-size: 13px; line-height: 1.5; }
+.exit-permission .exit-status, .exit-permission small { color: #aab6c8; }
+.exit-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.exit-actions button:disabled { opacity: .45; cursor: wait; }
+.tag--resident::after { content: attr(data-resident-label); margin-left: 6px; color: #9fb0c6; font-size: 10px; }
+@media (max-width: 720px) { .exit-permission { right: 10px; bottom: 100px; max-height: 42vh; overflow: auto; } }
