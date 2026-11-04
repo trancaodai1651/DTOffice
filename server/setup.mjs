@@ -115,7 +115,10 @@ export function createSetup({ root, port, prefs, claude, codex, broadcast = () =
     const bin = agent === 'claude' ? claude() : agent === 'codex' ? codex() : null;
     if (!bin) return false;
     const file = typeof bin === 'string' ? bin : bin.file;
-    const line = [...(/\.(m?js)$/.test(file) ? [process.execPath] : []), file, ...(agent === 'codex' ? ['login'] : ['auth', 'login'])];   // (Claude Code: the CLI's own sign-in, in the browser)
+    return terminal([...(/\.(m?js)$/.test(file) ? [process.execPath] : []), file, ...(agent === 'codex' ? ['login'] : ['auth', 'login'])]);   // (Claude Code: the CLI's own sign-in, in the browser)
+  }
+  /** A terminal window running a command the user watches (and answers, when it asks): a sign-in, installing ffmpeg. */
+  function terminal(line) {
     try {
       if (WIN) spawn('cmd', ['/c', 'start', '""', 'cmd', '/k', ...line.map((x) => (/\s/.test(x) ? `"${x}"` : x))], { env: cliEnv(), detached: true, stdio: 'ignore', windowsHide: false, windowsVerbatimArguments: true }).unref();
       else if (process.platform === 'darwin') spawn('osascript', ['-e', `tell application "Terminal" to do script ${JSON.stringify(line.map((x) => `'${x.replace(/'/g, "'\\''")}'`).join(' '))}`, '-e', 'tell application "Terminal" to activate'], { detached: true, stdio: 'ignore' }).unref();
@@ -123,5 +126,5 @@ export function createSetup({ root, port, prefs, claude, codex, broadcast = () =
       return true;
     } catch { return false; }
   }
-  return { out, run, login, recheck: () => claudeAuth(true), agents: () => prefs.get('agents') || null };
+  return { out, run, login, terminal, recheck: () => claudeAuth(true), agents: () => prefs.get('agents') || null };
 }

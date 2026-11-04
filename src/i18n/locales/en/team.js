@@ -42,6 +42,8 @@ export default {
     security: { name: 'Security Agent', duty: 'Security: secrets, input, auth, dependencies' },
     devops: { name: 'DevOps Agent', duty: 'Build, packaging, CI, deploy, monitoring, rollback' },
     database: { name: 'Database Agent', duty: 'Schema, migrations, indexes, backups, data integrity' },
+    news: { name: 'News reader', duty: 'Reads Vietnamese and foreign news on a topic, sums it up in a PDF' },
+    video: { name: 'Video editor', duty: 'Writes the script and edits the video with the content skills' },
   },
   stages: { plan: 'Planning and requirements', design: 'System and UI design', build: 'Development', verify: 'Testing, review and security', fix: 'Fixing after testing', ship: 'Deploy, monitoring and upkeep', report: 'Report to the CEO' },
   goalPh: 'A goal for the team, e.g. add email sign-in to the app, with tests',

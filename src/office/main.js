@@ -57,6 +57,9 @@ import * as peopleDirector from './people/director.js';
 import * as peopleAiTeam from './people/ai-team.js';
 import * as peopleExitPermission from './people/exit-permission.js';
 import * as peopleTeamBrief from './people/team-brief.js';
+import * as peopleSpecialists from './people/specialists.js';
+import * as peopleCodexBot from './people/codex-bot.js';
+import * as uiSpecialists from './ui/specialists.js';
 import * as uiTeamRoster from './ui/team-roster.js';
 import * as peopleErrands from './people/errands.js';
 import * as peopleGatherings from './people/gatherings.js';
@@ -184,6 +187,8 @@ const MODULES = [
   { setup: peopleAiTeam.setupWorld },
   peopleExitPermission,
   peopleTeamBrief,
+  { setup: peopleSpecialists.setupWorld },
+  peopleCodexBot,
   peopleErrands,
   peopleGatherings,
   peopleOutings,
@@ -240,6 +245,7 @@ const MODULES = [
   uiCacheWords,
   uiTips,
   uiGuide,   // (the guide: her corner and her topics, ui/guide.js)
+  uiSpecialists,   // (the news reader and the video editor: ui/specialists.js)
   interactFirstPerson,
   netLive,
   { setup: netLive.setupTeams },   // (the teams' name chips over the pods: part of the world)
@@ -261,7 +267,7 @@ const MODULES = [
 // what the 2D list needs (its rows, the top bar and drawers, the group chat, the live connection or the demo)
 const LIST = new Set([coreEnv, uiEventText, uiIcons, peopleWorkers, peopleAiTeam, uiLite, uiActivity, uiSessionDrawer, uiMacDrawer, uiBurn, uiVault, uiTopbar,
   interactPlaceCards, uiSettings, uiGroupChat, uiGroupChatView, uiStuck, uiModels, uiCacheWords, netLive, lifeYourTurn, audioSfx, uiPermissions,
-  uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiGuide, uiTeamRoster]);
+  uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiGuide, uiTeamRoster, uiSpecialists]);
 const done = new Set();
 let started = false;
 export function startOffice() {

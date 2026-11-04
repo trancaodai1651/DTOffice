@@ -11,6 +11,7 @@ import { togglePlan, togglePop } from './settings.js';
 import { startTips } from './tips.js';
 import { openSetup } from './setup.js';
 import { workFlow } from './guide-work.js';
+import { openSpecialist } from './specialists.js';
 import { t as tr } from '../../i18n/index.js';
 
 const LOOK = { shirt: '#3FA37C', hair: '#3A2418', style: 'bun', acc: null, outfit: 'shirt', skin: null };
@@ -79,7 +80,15 @@ function home() {
   const work = el('button', 'gd-work'); work.type = 'button';
   work.append(el('b', null, tr('guide.work.title')), el('small', null, tr('guide.work.lead')));
   work.addEventListener('click', () => { body.replaceChildren(workFlow({ back: () => { body.replaceChildren(...homeParts); ask.focus({ preventScroll: true }); }, openTeam: () => { close(); openTeam(); } })); });
-  const homeParts = [el('p', 'gd-hello', tr('guide.hello')), work, ask, none, list];
+  // and the specialists: the news reader, the video editor (ui/specialists.js)
+  const spec = el('div', 'gd-specialists');
+  for (const k of ['news', 'video']) {
+    const b = el('button', 'gd-item'); b.type = 'button';
+    b.append(el('b', null, `${k === 'news' ? '📰' : '🎬'} ${tr(`specialists.${k}.name`)}`), el('small', null, tr(`team.roles.${k}.duty`)));
+    b.addEventListener('click', () => { close(); openSpecialist(k); });
+    spec.append(b);
+  }
+  const homeParts = [el('p', 'gd-hello', tr('guide.hello')), work, spec, ask, none, list];
   filter(); body.replaceChildren(...homeParts);
   return body;
 }

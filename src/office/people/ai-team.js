@@ -20,8 +20,7 @@ export const teamDesk = role => HQ && liveTeamEnabled() && TEAM_SEATS.includes(r
 export const residentForDesk = desk => [...residents.values()].find(w => w.personnelDesk === desk);
 
 export function clearWorld() {
-  for (const w of residents.values()) { if (state.hovered === w) state.hovered = null; w.remove(); }
-  residents.clear();
+  for (const [k, w] of residents) { if (!TEAM_SEATS.includes(k)) continue; if (state.hovered === w) state.hovered = null; w.remove(); residents.delete(k); }   // (the specialists are theirs: people/specialists.js)
 }
 export function reconcileTeamPresence() {
   if (!liveTeamEnabled()) { clearWorld(); projection = []; }

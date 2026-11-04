@@ -230,6 +230,32 @@ Văn phòng Nhỏ có 9 bàn, Công ty có 12 bàn. Khi **hết bàn**, hoặc k
 - Đổi tay ở Cài đặt → Văn phòng.
 - Thêm phòng mới sau này: mỗi phòng là một mục trong `DEPTS` (`src/office/world/layout.js`), với số cụm bàn tùy ý. Bàn, đường đi và nhãn phòng tự tính theo đó; phòng AI là ví dụ, với 4 cụm bàn và `team: true`.
 
+### Nhân sự đọc báo và nhân sự edit video
+
+Hai nhân sự chuyên trách ngồi ở **góc thư viện** (hai ghế bành đầu tiên), lúc nào cũng có mặt. Bấm vào người đó trong văn phòng, hoặc mở chị Mai → 📰 / 🎬.
+
+**📰 Nhân sự đọc báo**
+1. Nhân sự hỏi: "Sếp muốn em đọc báo về chủ đề gì?". Gõ chủ đề, chọn thư mục lưu nếu muốn (mặc định `Tài liệu/DT Office/Bao chi/<ngày>-<chủ đề>`), chọn CLI, model, effort, rồi bấm **Đọc báo**.
+2. Nhân sự tìm trên mạng cả **báo Việt Nam** (VnExpress, Tuổi Trẻ, Thanh Niên, VietnamNet, Dân Trí…) và **báo nước ngoài** (Reuters, AP, BBC, Bloomberg…). Mọi ý trong bản tin đều có nguồn đánh số `[1]`, `[2]`; nhân sự không được bịa bài, số liệu hay trích dẫn.
+3. Kết quả: `bao-cao.pdf` (văn phòng in từ `bao-cao.html` bằng Edge hoặc Chrome có sẵn trên máy) và `bao-cao.md`. Có tóm tắt, ý chính, "báo Việt Nam nói gì / báo nước ngoài nói gì", điều cần theo dõi, danh sách nguồn.
+4. Xong, bảng của nhân sự tự mở với nút **Mở PDF** và câu hỏi **"Sếp có muốn làm video từ bản tin này không?"**. Bấm **Có, làm video** để chuyển sang nhân sự edit video.
+- Claude Code chạy với WebSearch/WebFetch; Codex chạy với tìm kiếm web trực tiếp. Nhân sự đọc báo không chạy lệnh trên máy.
+
+**🎬 Nhân sự edit video**
+1. Nhân sự hỏi: video về gì (hoặc làm từ bản tin vừa đọc), **video đầu vào** và **nơi lưu**:
+   - **Tìm tư liệu trên mạng:** chỉ lấy tư liệu miễn phí bản quyền (Pexels, Pixabay, Mixkit, Wikimedia Commons…), ghi nguồn và giấy phép vào `nguon-tu-lieu.md`.
+   - **Chọn thư mục video của tôi:** dán đường dẫn thư mục. Nhân sự chỉ đọc, không sửa, chuyển hay xóa file gốc.
+   - **Nơi lưu:** mặc định `Video/DT Office/<ngày>-<chủ đề>`.
+2. Chọn kiểu video: **dọc 9:16** (Reels, TikTok, Shorts, 20–60 giây) hoặc **ngang 16:9** (1–3 phút), CLI, model, effort, rồi bấm **Dựng video**.
+3. Nhân sự học **9 skill** đi kèm app (`server/skills/video`): short-video-reels, storytelling-million-views, viral-content-concepts, facebook-content-safety, brand-trust-building, channel-planning-strategy, content-case-study-analysis, facebook-fanpage-growth, tiktok-channel-growth. Mỗi việc chép các skill vào `.claude/skills` của thư mục lưu.
+4. Kết quả trong thư mục lưu: `kich-ban.md` (hook, beat sheet, shot list, caption), `dung-video.ps1`/`.sh` (lệnh ffmpeg dựng lại được), `video-final.mp4`, `cover.jpg`; đã qua kiểm tra an toàn nội dung.
+- Cần **ffmpeg**. Máy chưa có thì bảng hiện nút **Cài ffmpeg**, mở cửa sổ `winget install --id Gyan.FFmpeg -e` (Windows) hoặc `brew install ffmpeg` (macOS). Khi chưa có ffmpeg, nhân sự vẫn viết kịch bản và lệnh dựng.
+- Nhân sự edit video được chạy lệnh (ffmpeg, tải tư liệu) không cần duyệt từng lệnh, chỉ trong thư mục lưu.
+
+### Codex Bot
+
+Khi Codex là một trong các CLI bạn chọn, văn phòng có **Codex Bot**: con robot xanh nhỏ, mặt là màn hình `>_`, bay lơ lửng. Bot hay tới cạnh bàn có phiên Codex đang làm, lúc rảnh thì dạo quanh phòng máy chủ, thư viện, lounge. Bấm vào bot để mở hạn mức Codex.
+
 ### Hướng dẫn viên: chị Mai
 
 Ở góc phải dưới có **chị Mai**, nhân viên hướng dẫn sử dụng app (chân dung chibi, nhãn "Hướng dẫn"). Lần đầu mở app, chị chào một câu. Bấm vào chị để mở bảng hướng dẫn:

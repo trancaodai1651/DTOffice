@@ -27,6 +27,7 @@ import { createMemory, wrap as wrapMemory } from './memory.mjs';
 import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS, TEAMS } from './team.mjs';
 import { createCodexSessions, readCodexLog } from './codex-sessions.mjs';
 import { createCodexBurn } from './codex-burn.mjs';
+import { createSpecialists, openPath, ffmpegInstall } from './specialists.mjs';
 import { createAntigravityAccounts, makeDb, windowsOf } from './antigravity-accounts.mjs';
 import { report as promptReport } from './prompt-report.mjs';
 import { testCounts, testRunner } from './testrun.mjs';
@@ -646,6 +647,7 @@ const tasks = createTasks({
     if (t.sid) { runsDone.set(t.sid, t); setTimeout(() => runsDone.delete(t.sid), 10 * 60e3).unref(); }
     // a member of the AI team: its stage goes on once its memory is kept; any other run: a free place for a member waiting its turn
     setTimeout(() => team.taskDone(t), t.team ? (t.agent === 'codex' ? 4500 : 1500) : 200);
+    if (t.perm === 'specialist' || ['news', 'video'].includes(t.role)) setTimeout(() => specialists.taskDone(t).catch(() => {}), 300);   // (the news reader's report printed to PDF)
     if (t.agent === 'codex') setTimeout(() => { const s = t.sid && bySid(t.sid); memory.finish({ key: s?.key, cwd: t.dir, agent: 'codex', name: s ? s.title || s.name : folder, prompt: t.text, reply: t.result || t.error, failed: !!t.error && !t.result, who: whoOfRun(t.sid) }); }, 4000);
   },
 });
@@ -1511,12 +1513,29 @@ const roleName = (id) => tr(`team.roles.${id}.name`);
 // that has no session yet. Its name and title are its role's (PM Agent, QA Tester Agent…), its team the AI team's room.
 function teamRole(s, sid, p) {
   const here = path.resolve(String(s.cwd || p?.cwd || ''));
-  const run = (sid && tasks.of(sid)) || tasks.list().find((x) => x.team && x.role && (!x.sid || x.sid === sid) && path.resolve(x.dir) === here);
-  if (!run?.role || !run.team) return;
-  s.roleSet = true; s.role = run.role; s.team = run.team;
+  const mine = (x) => x?.role && (x.team || SPECIALIST_ROLES.includes(x.role));   // (a member of the team, or one of the specialists)
+  const run = (sid && tasks.of(sid)) || tasks.list().find((x) => mine(x) && (!x.sid || x.sid === sid) && path.resolve(x.dir) === here);
+  if (!mine(run)) return;
+  s.roleSet = true; s.role = run.role; s.team = run.team || null;
   s.title = s.name = roleName(run.role);
   broadcast({ k: 'sess', s: pub(s) });
 }
+/* ---------- the specialists (server/specialists.mjs): the news reader and the video editor ---------- */
+const SPECIALIST_ROLES = ['news', 'video'];
+const specialists = createSpecialists({
+  dataDir: DATA_DIR, lang: () => prefs.lang(),
+  start: (o) => tasks.start(o), stop: (id) => tasks.stop(id),
+  onChange: (j, what) => {
+    const name = roleName(j.kind), about = clip(oneLine(j.topic || j.brief || ''), 120);
+    if (what === 'start') chat.system(tr(`specialists.chat.${j.kind}Start`, { name, about, folder: tilde(j.dir) }));
+    else if (what === 'done') chat.system(tr(j.kind === 'news' ? (j.pdf ? 'specialists.chat.newsDone' : 'specialists.chat.newsNoPdf') : j.video ? 'specialists.chat.videoDone' : 'specialists.chat.videoPlan', { name, about, folder: tilde(j.dir) }));
+    else if (what === 'fail') chat.system(tr('specialists.chat.fail', { name, why: j.summary ? clip(oneLine(j.summary), 160) : '' }));
+    else if (what === 'stopped') chat.system(tr('specialists.chat.stopped', { name }));
+    broadcast({ k: 'specialists', jobs: specialists.list() });
+  },
+});
+const specialistsOut = () => ({ ok: true, jobs: specialists.list(), tools: { ...specialists.tools(), skills: specialists.tools().skills }, defaults: specialists.defaults(),
+  claude: agentOn('claude') && !!findClaude(), codex: agentOn('codex') && !!findCodex(), models: agentModels(codexHome()) });
 const team = createTeam({
   dataDir: DATA_DIR, lang: () => prefs.lang(),
   start: (r, s, prompt, role) => {
@@ -2877,6 +2896,27 @@ const server = http.createServer((req, res) => {
     readJson(req, 8000).then((b) => { const r = editProjects(String(b?.op || ''), b?.dir); json(res, r.ok ? 200 : 400, r.ok ? { ...r, ...projectsOut() } : { ...r, message: tr(`server.projects.${r.code}`) }); });
     return;
   }
+  if (url.pathname.startsWith('/api/specialists/') && req.method === 'POST') {   // the news reader and the video editor
+    if (!authorized(req, url) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
+    const local = isLoopback(req), what = url.pathname.slice('/api/specialists/'.length);
+    if (!local && (!prefs.get('phoneTasks') || what === 'open' || what === 'ffmpeg')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
+    readJson(req, 20_000).then((b) => {
+      const agent = b?.agent === 'codex' ? 'codex' : 'claude';
+      const why = (r) => tr(['empty', 'badDir', 'noInput'].includes(r.code) ? `specialists.why.${r.code}` : `chat.task.why.${r.code}`);
+      if (what === 'news' || what === 'video') {
+        if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) { json(res, 409, { ok: false, code: agent === 'codex' ? 'noCodex' : 'noClaude', message: tr(`chat.task.why.${agent === 'codex' ? 'noCodex' : 'noClaude'}`) }); return; }
+        const run = pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome());
+        const r = what === 'news' ? specialists.news({ topic: b?.topic, dir: local ? b?.dir : '', agent, ...run })
+          : specialists.video({ brief: b?.brief, source: b?.source, input: local ? b?.input : '', from: b?.from, out: local ? b?.out : '', format: b?.format, agent, ...run });
+        json(res, r.ok ? 200 : 400, r.ok ? r : { ...r, message: why(r) }); return;
+      }
+      if (what === 'stop') { json(res, 200, { ok: specialists.halt(String(b?.id || '')) }); return; }
+      if (what === 'open') { const f = specialists.target(String(b?.id || ''), String(b?.what || '')); json(res, f ? 200 : 404, { ok: !!f && openPath(f) }); return; }
+      if (what === 'ffmpeg') { const ok = setup.terminal ? setup.terminal(ffmpegInstall()) : false; json(res, 200, { ok }); return; }
+      json(res, 404, { ok: false });
+    });
+    return;
+  }
   if (url.pathname.startsWith('/api/team') && req.method === 'POST') {   // a goal for the AI team (from a phone only when allowed), or stopping one
     if (!authorized(req, url) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
     if (!isLoopback(req) && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
@@ -3250,6 +3290,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/tasks') { json(res, 200, tasksOut(isLoopback(req))); return; }
   if (url.pathname === '/api/team') { json(res, 200, teamOut()); return; }
   if (url.pathname === '/api/projects') { json(res, 200, projectsOut()); return; }
+  if (url.pathname === '/api/specialists') { json(res, 200, specialistsOut()); return; }
   if (url.pathname === '/api/setup') { json(res, 200, isLoopback(req) ? { ok: true, ...setup.out() } : { ok: true, agents: setup.agents() }); return; }
   if (url.pathname === '/api/quick') { let list = null; try { list = JSON.parse(fs.readFileSync(QUICK_FILE, 'utf8')); } catch { /* the page's own until you change them */ } json(res, 200, { ok: true, list }); return; }
   if (url.pathname === '/api/claude-version') { json(res, 200, { ok: true, ...claudeVersion.get() }); return; }   // (a new one: someone goes to Thế Giới Di Động, outings.js)

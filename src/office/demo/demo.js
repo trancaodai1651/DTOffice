@@ -23,6 +23,8 @@ import { summarize } from '../../shared/burn.js';
 import { setTenure } from '../people/farewell.js';
 import { logLine } from './demo-log.js';
 import { t as tr } from '../../i18n/index.js';
+import { setSpecialistJobs } from '../people/specialists.js';
+import { setJobs } from '../ui/specialists.js';
 
 export let DEMO;
 // The fictional projects. Paths, search terms and commands are the same in every language; what people write (prompts,
@@ -273,6 +275,7 @@ export function applyMsg(d, quiet = false) {
   else if (d.k === 'limits') { state.limits = d.limits || null; state.limitsNote = d.note || ''; renderLimits(); renderAi(); if (!drM.hidden) renderMac(); }
   else if (d.k === 'ai') setAi(d.ai);
   else if (d.k === 'setup') setSetup(d.setup);
+  else if (d.k === 'specialists') { setSpecialistJobs(d.jobs); setJobs(d.jobs); }   // (the news reader and the video editor: people/specialists.js, ui/specialists.js)
   else if (d.k === 'team') { setTeamRuns(d.runs); briefFromRuns(d.runs); }   // (the AI team's runs: ui/team-sheet.js; members called come for the task: people/team-brief.js)
   else if (d.k === 'agents') { state.agents = d.agents || null; renderLimits(); renderAi(); }
   else if (d.k === 'sysauto') { if (!quiet) { toast(d.message, 8000); loadMac(); } }   // (idle sessions closed on the drawer's timer)

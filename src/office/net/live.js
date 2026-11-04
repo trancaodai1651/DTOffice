@@ -15,6 +15,7 @@ import { queueUi } from '../ui/activity.js';
 import { expandOffice } from '../ui/expand.js';
 import { closeSession } from '../ui/session-drawer.js';
 import { t as tr } from '../../i18n/index.js';
+import { SPECIALIST_ROLES } from '../people/specialists.js';
 
 export let TOKEN;
 export function setConn(on) { const c = $('conn'); c.dataset.state = on ? 'on' : 'off'; c.lastElementChild.textContent = tr(on ? 'activity.live.on' : 'activity.live.off'); teamConnection(on); }
@@ -113,7 +114,7 @@ export function upsertSession(s, walkIn = true, batch = false) {
     freeDesk(s.id);
     if (old) { workers.delete(s.id); old.remove(); }
   }
-  s.desk = d >= 0 ? d : proDesk(s);
+  s.desk = d >= 0 ? d : SPECIALIST_ROLES.includes(s.role) ? -1 : proDesk(s);   // (the specialists sit in the library: people/specialists.js)
   const had = sessions.has(s.id);
   sessions.set(s.id, s);
   let w = workerForSession(s.id);

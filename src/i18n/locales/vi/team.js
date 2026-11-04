@@ -41,6 +41,8 @@ export default {
     security: { name: 'Security Agent', duty: 'Kiểm tra bảo mật: bí mật, đầu vào, phân quyền, thư viện' },
     devops: { name: 'DevOps Agent', duty: 'Build, đóng gói, CI, cách triển khai, giám sát, rollback' },
     database: { name: 'Database Agent', duty: 'Lược đồ, migration, chỉ mục, sao lưu, toàn vẹn dữ liệu' },
+    news: { name: 'Nhân sự đọc báo', duty: 'Đọc báo Việt Nam và nước ngoài theo chủ đề, tóm tắt thành PDF' },
+    video: { name: 'Nhân sự edit video', duty: 'Viết kịch bản và dựng video theo các skill nội dung' },
   },
   stages: { plan: 'Lập kế hoạch, phân tích yêu cầu', design: 'Thiết kế hệ thống và giao diện', build: 'Phát triển mã nguồn', verify: 'Kiểm thử, rà soát và bảo mật', fix: 'Sửa lỗi sau kiểm thử', ship: 'Triển khai, giám sát và bảo trì', report: 'Báo cáo CEO' },
   goalPh: 'Mục tiêu cho đội, ví dụ: thêm trang đăng nhập bằng email cho ứng dụng, có kiểm thử',

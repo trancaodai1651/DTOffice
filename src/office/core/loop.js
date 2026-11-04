@@ -8,6 +8,7 @@ import { leaving, residents, npcs, subs, updateZs, workers, workerForSession } f
 import { updateTeam } from '../people/team-lines.js';
 import { updateExitRequests } from '../people/exit-permission.js';
 import { updateBriefs } from '../people/team-brief.js';
+import { updateCodexBot } from '../people/codex-bot.js';
 import { flights, updateFlights } from '../people/director.js';
 import { updateWeather } from '../life/weather.js';
 import { updateNap } from '../life/nap.js';
@@ -151,6 +152,7 @@ export function loop(now = 0) {
   updateExitRequests();
   for (const w of workers.values()) w.update(dt, state.sim);
   updateBriefs();
+  updateCodexBot(dt, state.sim);
   for (const w of residents.values()) if (w.roaming) w.update(dt, state.sim); else w.animate(dt, state.sim);
   for (const w of subs.values()) w.update(dt, state.sim);
   for (const w of leaving) { w.update(dt, state.sim); if (!w.root.parent) leaving.delete(w); }

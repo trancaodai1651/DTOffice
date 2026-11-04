@@ -90,3 +90,24 @@ body:has(#zchat:not([hidden])) .gd-bubble { right: calc(min(460px, 100vw - 28px)
 /* the team sheet: a member waiting for another task to end (ui/team-sheet.js) */
 .tm-job.is-held { background: #FFF4DE; color: #7A4B00; }
 .tm-held { font-size: 10px; }
+/* the specialists (ui/specialists.js): the news reader and the video editor, in a panel like the guide's */
+.sp-panel { z-index: 42; }
+.gd-specialists { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gd-specialists .gd-item { border-color: var(--line-2, rgba(255, 255, 255, .13)); }
+.gw-wide { grid-column: 1 / -1; }
+.gw-teams .gw-field { margin-top: 4px; }
+.sp-from { margin: 0; font-size: 12.5px; color: #8FD3B6; }
+.sp-ready { display: grid; gap: 8px; padding: 10px; border-radius: 12px; border: 1px solid #3FA37C; background: color-mix(in srgb, #3FA37C 12%, transparent); }
+.sp-warn { display: grid; gap: 6px; padding: 8px 10px; border-radius: 10px; background: color-mix(in srgb, #E2B04A 16%, transparent); font-size: 12.5px; }
+.sp-warn .gw-prev { justify-self: start; }
+.sp-recent { display: grid; gap: 6px; margin-top: 4px; }
+.sp-job { display: grid; gap: 6px; padding: 8px 10px; border-radius: 10px; background: var(--card-2, #1E2734); }
+.sp-job-head { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-size: 13px; }
+.sp-job-head b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-sum summary { cursor: pointer; color: var(--muted, #8C99AB); font-size: 12px; }
+.sp-sum p { margin: 4px 0 0; font-size: 12px; line-height: 1.45; white-space: pre-wrap; color: var(--muted, #8C99AB); }
+/* Codex's bot (people/codex-bot.js): its name in its own blue */
+.tag--bot { background: #4453D6; color: #fff; }
+.gd-body > * { flex: none; }
+.gw-in { min-height: 72px; }

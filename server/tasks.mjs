@@ -28,12 +28,12 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
   const imgDir = path.join(dataDir, 'task-images');
   const pub = (t) => ({ id: t.id, dir: t.dir, text: t.text.slice(0, 200), at: t.at, from: t.from || null, sid: t.sid || null, mode: t.mode, job: t.job || null, agent: t.agent || 'claude', model: t.run?.model || '', effort: t.run?.effort || '', role: t.role || '', team: t.team || null });
   /** { dir, text, images: [data URLs], from: { sid, name, fork } | null } -> { ok, task } or { ok: false, code } */
-  function start({ dir, text, images = [], from = null, env: extra = null, system = '', stopAfter = false, agent = 'claude', model = '', effort = '', role = '', team = null, ask = '' }) {
+  function start({ dir, text, images = [], from = null, env: extra = null, system = '', stopAfter = false, agent = 'claude', model = '', effort = '', role = '', team = null, ask = '', args = null, perm = null }) {   // (args: { claude: [], codex: [] } more flags for this one, e.g. web search; perm: 'specialist' for the staff who work alone)
     text = String(text || '').trim().slice(0, MAX_TEXT);
     if (!text) return { ok: false, code: 'empty' };
     if (running.size >= max) return { ok: false, code: 'busy' };
     const now = Date.now(); while (recent.length && now - recent[0] > 3600e3) recent.shift();
-    if (recent.length >= perHour && !team) return { ok: false, code: 'tooMany' };   // (a team's stages: one goal, many sessions)
+    if (recent.length >= perHour && !team && !perm) return { ok: false, code: 'tooMany' };   // (a team's stages: one goal, many sessions)
     const isCodex = agent === 'codex';
     const bin = isCodex ? (codex?.() ? { file: codex() } : null) : claude(); if (!bin) return { ok: false, code: isCodex ? 'noCodex' : 'noClaude' };
     if (!dir || !fs.existsSync(dir)) return { ok: false, code: 'noDir' };
@@ -49,7 +49,7 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
     const prompt = files.length ? `${text}\n\n${files.length > 1 ? 'Attached images' : 'Attached image'} (read ${files.length > 1 ? 'them' : 'it'}):\n${files.join('\n')}` : text;
     const e = { ...env(), ...extra }; for (const k of Object.keys(e)) if (e[k] == null) delete e[k];   // (extra: the conversation's own account; null unsets)
     // (stopAfter: a conversation taken from your editor, stopped once done so the editor takes it up again alone)
-    const t = { id, dir, text, at: now, from, sid: null, result: '', error: '', buf: '', bin, env: e, prompt, system, stopAfter, agent: isCodex ? 'codex' : 'claude', run: { model, effort }, role, team, ask, mode: isCodex ? 'codex' : bg?.want() ? 'bg' : 'print' };
+    const t = { id, dir, text, at: now, from, sid: null, result: '', error: '', buf: '', bin, env: e, prompt, system, stopAfter, agent: isCodex ? 'codex' : 'claude', run: { model, effort }, role, team, ask, args, perm, mode: isCodex ? 'codex' : bg?.want() && !args ? 'bg' : 'print' };
     if (t.mode === 'codex' && !runCodex(t)) return { ok: false, code: 'noCodex' };
     if (t.mode === 'print' && !runPrint(t)) return { ok: false, code: 'noClaude' };
     running.set(id, t); recent.push(now);
@@ -62,7 +62,7 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
     const { from, system } = t;
     // (from.fork false: carry on that very conversation, one this office started for you, instead of a branch of it)
     const set = printSettings?.(t);
-    const args = ['-p', t.prompt, '--output-format', 'stream-json', '--verbose', ...runArgs('claude', t.run), ...(from?.sid ? ['--resume', from.sid, ...(from.fork === false ? [] : ['--fork-session'])] : []), ...(system ? ['--append-system-prompt', system] : []), ...(set ? ['--settings', set] : [])];   // (system: a word from the office, outside the conversation)
+    const args = ['-p', t.prompt, '--output-format', 'stream-json', '--verbose', ...runArgs('claude', t.run), ...(from?.sid ? ['--resume', from.sid, ...(from.fork === false ? [] : ['--fork-session'])] : []), ...(system ? ['--append-system-prompt', system] : []), ...(set ? ['--settings', set] : []), ...(t.args?.claude || [])];   // (system: a word from the office, outside the conversation)
     let proc;
     try { proc = spawn(t.bin.file, args, { cwd: t.dir, env: t.env, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
     catch { return false; }
@@ -102,7 +102,7 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
   // thread's id, the commands and edits it makes, its last words. No approvals in exec mode: it runs with codexArgs
   // (--sandbox workspace-write by default: may write in its folder, asks nothing).
   function runCodex(t) {
-    const js = /\.m?js$/.test(t.bin.file), extra = codexArgs();
+    const js = /\.m?js$/.test(t.bin.file), extra = [...codexArgs(), ...(t.args?.codex || [])];
     const words = t.system ? `${t.prompt}\n\n${t.system}` : t.prompt;
     const args = [...(js ? [t.bin.file] : []), 'exec', '--json', '--skip-git-repo-check', ...extra, ...runArgs('codex', t.run), ...(t.from?.sid ? ['resume', t.from.sid] : []), '--', words];
     let proc;

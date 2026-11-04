@@ -120,12 +120,12 @@ engine switches to demo mode and talks to no API.
 | --- | ---: | --- |
 | `audio/sfx.js` | 75 | Sounds, synthesized in the browser. |
 | `core/env.js` | 79 | Page-wide basics: DOM helpers, the floor plan choice, replay clock, office clock, season, formatting. |
-| `core/loop.js` | 242 | The render loop and its frame budget. |
+| `core/loop.js` | 244 | The render loop and its frame budget. |
 | `core/optimize.js` | 141 | Merging static meshes into fewer draw calls, then starting. |
 | `core/state.js` | 3 | Values that more than one module assigns (the clock, the selection, mode switches…), on one shared object so any module can change them. |
 | `core/world-boot.js` | 8 | The 3D world is built when the page starts, or (the page opened in the 2D list) the first time something asks for it: the 3D view, a replay, a setting of the scene. |
 | `demo/demo-log.js` | 17 | The demo's conversation logs (a session's, shown in its drawer, and each subagent's steps), kept to what the drawer can show. |
-| `demo/demo.js` | 342 | Demo mode: fictional projects and a fictional Mac. |
+| `demo/demo.js` | 345 | Demo mode: fictional projects and a fictional Mac. |
 | `interact/first-person.js` | 336 | First person: walk the office as your own character, and (with the city outside) down the lift and out on the street: the pavements, the zebras (the traffic stops for you), the shops, the bánh mì cart. |
 | `interact/place-cards.js` | 201 | Place cards: what happens at each place. |
 | `interact/place-chips.js` | 182 | Place chips over the furniture and label decluttering. |
@@ -146,13 +146,14 @@ engine switches to demo mode and talks to no API.
 | `life/trophies.js` | 121 | The trophy cabinet and the opening plaque. |
 | `life/weather.js` | 90 | Real weather outside (Open-Meteo). |
 | `life/your-turn.js` | 37 | "Your turn": sessions that finished or wait for you. |
-| `net/live.js` | 181 | The live connection: sessions, desks, teams, events. |
+| `net/live.js` | 182 | The live connection: sessions, desks, teams, events. |
 | `people/accountant.js` | 258 | The accountant (company floor): her desk in the director's office, the day's API cost on her screen, the report to the director at 17:30, and a word with whoever spends the most when the plan's limit gets near. |
-| `people/ai-team.js` | 70 | … |
+| `people/ai-team.js` | 69 | … |
 | `people/bedding.js` | 64 | Nap bedding: blanket, pillow, folding it away. |
 | `people/billiards.js` | 484 | Pool in the lounge (company floor; the table: world/props/billiards.js). |
 | `people/breaks.js` | 87 | Lunch and the afternoon coffee queue. |
 | `people/chibi-rig.js` | 902 | Office characters, two looks on one rig:   toy   (A) designer-toy chibi, ~2 heads: big round head, low wide-set bean eyes, stubby legs, chunky sneakers, matte vinyl. |
+| `people/codex-bot.js` | 105 | Codex's bot: a small blue robot with a terminal ">_" for a face, floating about the office while Codex is one of your CLIs. |
 | `people/comnha.js` | 195 | Cơm nhà: lunch brought from home, warmed at the pantry's two microwaves at noon (company floor; the corner: world/props/microwave.js; who brought some today, and what: src/shared/comnha.js). |
 | `people/comtrua.js` | 172 | Lunch at the quán cơm bình dân across the street (world/backdrops/eat-com.js). |
 | `people/director.js` | 139 | The director: brings each prompt to its desk, receives reports. |
@@ -177,6 +178,7 @@ engine switches to demo mode and talks to no API.
 | `people/photobooth.js` | 223 | A strip from the photo booth for every release (world/backdrops/street-photo.js; the release: a new version tag in a session's repository or a GitHub release, server/git.mjs). |
 | `people/pickle.js` | 193 | Pickleball after work (world/backdrops/street-pickle.js). |
 | `people/rounds.js` | 130 | The director's rounds (company floor): twice a day out of the corner office and round the desks. |
+| `people/specialists.js` | 52 | The specialists in the office: the news reader and the video editor (server/specialists.mjs), each in an armchair of the library corner, always there. |
 | `people/staff.js` | 397 | People who work here but aren't sessions: the receptionist, the evening cleaner, a Shopee courier with a parcel. |
 | `people/team-brief.js` | 89 | The AI Agent Dev team's members (the residents of the team room, people/ai-team.js) are always in the office:  - called for a task (a member's job starting, server/team.mjs), they walk to the director (you) to take it, a sheet    of paper changes hands, and they go back to their own desk to work on it: you don't carry tasks to their desks;  - with nothing to do for a while, some go to the break room (a sofa, the pantry, the library) and come back the moment    they have work or are called. |
 | `people/team-lines.js` | 28 | Dashed lines from a boss to its subagents. |
@@ -202,7 +204,7 @@ engine switches to demo mode and talks to no API.
 | `ui/group-chat-view.js` | 923 | The group chat's window (the conversation: group-chat.js), drawn after the Vietnamese messenger's group chat on a phone (its own web CSS and string table, and a 2026 screenshot of the app, for the colours, sizes and words): the blue gradient bar with the back chevron, the group's name and "👥 N thành viên", call, video and ☰; the pinned message under it; the conversation on a lavender-grey ground, gathered at the bottom like the app's, the others' white bubbles on the left (the name at the top inside the first of a run, the face beside it, the time inside the last), yours pale blue on the right with who has seen it; dark pills for the time lines, white ones for what the group does; "Tin nhắn mới" where you stopped reading; replies quoting what they answer; a recalled message's "Tin nhắn đã được thu hồi"; the ♡ on a bubble's corner and a small pill once someone reacts (hover a bubble for the six, a reply and, on yours, recall); polls and reminders as cards in the middle; "… đang soạn tin"; the input bar: stickers and emoji, "Tin nhắn", ••• (a poll, @ someone), the mic and a photo, or send once you type; writing to Claude, a prompt helper over it. |
 | `ui/group-chat.js` | 214 | The company group chat, on the page (the window: group-chat-view.js; the people and what they say: src/shared/chat-engine.js). |
 | `ui/guide-work.js` | 118 | Giving work through the guide: you tell her the task; she asks which project (yours, ui/projects.js), finds the AI Agent team(s) it needs (/api/team/route: server/team.mjs routeTeams; a task may need more than one, worked one after the other), and hands it to the team's PM or CTO with the CLI, model and effort you pick. |
-| `ui/guide.js` | 128 | The guide ("Hướng dẫn viên"): a member of staff whose job is helping you use the office. |
+| `ui/guide.js` | 137 | The guide ("Hướng dẫn viên"): a member of staff whose job is helping you use the office. |
 | `ui/icons.js` | 85 | Stroke icons (24 px grid) and the icon helper. |
 | `ui/image-view.js` | 28 | Images in the feed: a session that read, wrote or edited an image gets a thumbnail on that line (activity.js), and a click opens it here, large, over the office (the server serves it by id: GET /api/image). |
 | `ui/lite.js` | 157 | The 2D view: every session as a row, no 3D (a page that opens in it builds no 3D world until asked, core/world-boot.js; switched to later, the office keeps a frame a second behind it). |
@@ -221,6 +223,7 @@ engine switches to demo mode and talks to no API.
 | `ui/session-drawer.js` | 398 | The session drawer: chat, steps, subagents. |
 | `ui/settings.js` | 127 | Settings popover: backdrop, floor plan, look, time, toggles. |
 | `ui/setup.js` | 103 | The first run (server/setup.mjs): which CLIs the office connects to, Claude Code, Codex or both. |
+| `ui/specialists.js` | 195 | Talking to the specialists (server/specialists.mjs): a panel like the guide's, with their face. |
 | `ui/stranded.js` | 159 | "Việc bỏ quên" in the Mac drawer: the worktrees and checkouts of the repositories the office knows that still hold work (files not committed, commits not pushed, stashes), and worktrees with nothing left in them that could go. |
 | `ui/stuck.js` | 97 | Stuck sessions ("Ngắt vòng lặp kẹt", server/loops.mjs): the card in the group chat (what repeats, Stop, a hint for Claude) and the row in Settings → More (on or off, after how many failures, after how many minutes of spending with nothing edited). |
 | `ui/task-sheet.js` | 186 | "Giao việc": giving Claude work from the group chat (server/tasks.mjs runs it on the Mac). |
@@ -232,7 +235,7 @@ engine switches to demo mode and talks to no API.
 | `ui/topbar.js` | 233 | Phone modal, notifications, the night switch. |
 | `ui/undo-view.js` | 55 | "Hoàn tác lượt cuối" (server/undo.mjs): in the session drawer, what undoing the last turn would do to each file, two clicks to do it, then what was done and "Tell Claude" (it doesn't know its files were put back otherwise). |
 | `ui/vault.js` | 165 | "Kho lịch sử" (server/vault.mjs): every conversation's words, kept after Claude Code deletes its transcript (30 days by default). |
-| `ui/whiteboard.js` | 286 | The whiteboard: agents' tasks and your own sticky notes. |
+| `ui/whiteboard.js` | 289 | The whiteboard: agents' tasks and your own sticky notes. |
 | `ui/wrapped.js` | 107 | The week in review: a 1080 × 1350 picture card (the office as it looks right now, then the week's numbers) to save as a PNG or copy, for sharing. |
 | `world/backdrops/beach.js` | 117 | Beach backdrop: sand, surf, palms, umbrellas and loungers. |
 | `world/backdrops/city.js` | 306 | The city backdrop: street grid, buildings, rooftops, lamps and traffic. |

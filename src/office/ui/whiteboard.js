@@ -35,6 +35,7 @@ import { onEvent } from '../life/incidents.js';
 import { runs } from '../life/tests.js';
 import { postState } from '../life/post.js';
 import { t as tr } from '../../i18n/index.js';
+import { openBot, pickBot } from '../people/codex-bot.js';
 
 let boardAt = 0;
 // the demo's to-dos: the text is a getter, so it is translated when the demo copies it, not at module load
@@ -258,12 +259,14 @@ export function setup() {
     const r = renderer.domElement.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, fp.on ? fpCam : camera);
-    const per = pickPerson(), pr = pickProp();
+    const per = pickPerson(), pr = pickProp(), bot = pickBot(ray);
+    if (bot && (!per || bot.d < per.d) && (!pr || bot.d < pr.d)) { openBot(); return; }   // (Codex's bot: people/codex-bot.js)
     if (pr && (!per || pr.d < per.d - 0.3)) { activateProp(pr.prop); return; }
     if (!per) { closePlace(); return; }
     if (per.devBox) { openMac(); return; }
     const w = per.worker;
     if (w && w === director) { openPlace('director'); return; }
+    if (w?.onPick) { w.onPick(); return; }   // (the specialists: people/specialists.js)
     if (w?.kind === 'team-resident') { showRole(w.roleId); return; }
     if (w?.sub) { if (w.parent) openSession(w.parentSessionId, { tab: 'subs', agent: w.id }); return; }
     if (w && w.anim === 'sleep' && w.phase !== 'walk') w.poke();
