@@ -23,4 +23,4 @@
 
 ## Phát hành / bước tiếp
 
-- Commit + tag `v0.4.7` → workflow Desktop release build Windows + macOS Universal và tạo GitHub Release. Người dùng cần cài bản mới để thấy phần Codex.
+- Đã phát hành [v0.4.7](https://github.com/trancaodai1651/DTOffice/releases/tag/v0.4.7) (commit `b232fc6`, workflow Desktop release #7 đạt): `DT.Office_0.4.7_x64-setup.exe`, `DT.Office_0.4.7_universal.dmg`, `DT-Office-macos-universal.app.tar.gz`, `SHA256SUMS.txt`. Người dùng cần cài bản mới để thấy phần Codex.
