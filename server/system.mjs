@@ -372,7 +372,8 @@ async function buildSnapshot(open = true) {
   // everything your own processes hold (footprints: compressed and swapped memory included), for "who holds the RAM"
   const held = [...P.procs.values()].reduce((s, p) => s + (mine(p) ? p.mem : 0), 0);
 
-  const totalCpu = [...P.procs.values()].reduce((s, p) => s + p.cpu, 0);
+  // (the idle process is not work: Windows books the time nobody uses to it, which read as 90 %+ busy)
+  const totalCpu = [...P.procs.values()].reduce((s, p) => s + (p.pid === 0 || /^System Idle/i.test(p.comm) ? 0 : p.cpu), 0);
   const tight = mem.pressure !== 'normal' || mem.swapUsed > 4 * GB;
   const diskTight = dsk.free / dsk.total < 0.15;
 

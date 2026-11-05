@@ -119,7 +119,7 @@ export async function openTaskSheet(host, { to = null, text = '' } = {}) {
     memLine.textContent = `🧠 ${n ? tr('chat.task.memory', { n }) : tr('chat.task.memoryNone')} · ${tr('chat.task.memoryOpen')}`;
   };
   field.addEventListener('input', sync);
-  next.addEventListener('click', () => { stopMic?.(); stopMic = null; step1.hidden = true; step2.hidden = false; drawRun(step2, r, pick, target(), () => { step2.hidden = true; step1.hidden = false; }, send); });
+  next.addEventListener('click', () => { stopMic?.(); stopMic = null; step1.hidden = true; step2.hidden = false; drawRun(step2, r, pick, target(), () => { step2.hidden = true; step1.hidden = false; }, send); offerTeam(step2, r, field.value, target()); });
   async function send(run, go) {
     go.disabled = true; go.textContent = tr('chat.task.sending');
     const res = await fetch(`/api/tasks${q()}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...pick, text: field.value, images: photos, fresh: !!pick.dir, ...run }) }).then((x) => x.json()).catch(() => null);
@@ -139,6 +139,28 @@ const RUN_KEY = 'office-task-run';
 const lastRun = () => { try { return JSON.parse(localStorage.getItem(RUN_KEY) || '{}') || {}; } catch { return {}; } };
 const keepRun = (agent, run) => { try { localStorage.setItem(RUN_KEY, JSON.stringify({ ...lastRun(), agent, [agent]: run })); } catch { /* private mode */ } };
 const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max', 'ultra'];
+/* ---------- a task for the AI Agent Dev team's work (routeTeams, server/team.mjs): the staff in those positions take it ----------
+   Offered, never done on its own: "give it to the team" starts the team's run in the same folder (its PM plans, each
+   position comes to the boss to take its part and then works at its own desk); "one session" keeps the plain task. */
+async function offerTeam(box, r, text, t) {
+  const dir = t?.dir; if (!dir || !String(text || '').trim()) return;
+  const route = await fetch(`/api/team/route${q()}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) }).then((x) => x.json()).catch(() => null);
+  const hit = route?.ok && route.teams.find((x) => x.words?.length);
+  if (!hit) return;
+  const box2 = el('div', 'zc-task-team');
+  const say = el('p', 'zc-task-note', tr('chat.task.teamOffer', { team: tr(`team.teams.${hit.id}`), words: hit.words.slice(0, 4).join(', ') }));
+  const give = el('button', 'zc-task-go', tr('chat.task.teamGive')); give.type = 'button';
+  const msg = el('p', 'zc-task-note');
+  give.addEventListener('click', async () => {
+    give.disabled = true; give.textContent = tr('team.sending');
+    const agent = r.claude !== false ? 'claude' : 'codex';
+    const res = await fetch(`/api/team${q()}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dir, goal: text, teams: [hit.id], lead: 'pm', agent }) }).then((x) => x.json()).catch(() => null);
+    if (res?.ok) { toast(tr('team.started'), 6000); sheet?.remove(); sheet = null; return; }
+    msg.textContent = res?.message || tr('drawer.unreachable'); give.disabled = false; give.textContent = tr('chat.task.teamGive');
+  });
+  box2.append(say, give, msg);
+  box.prepend(box2);
+}
 function drawRun(box, r, pick, t, back, send) {
   const models = r.models || { claude: [], codex: [] }, saved = lastRun();
   const fixed = pick?.sid ? (t?.agent === 'codex' ? 'codex' : 'claude') : null;   // (a conversation: its own CLI)
