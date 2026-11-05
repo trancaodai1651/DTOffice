@@ -68,6 +68,7 @@
 - Claude Code: [Đội AI Agent Dev, giao việc qua hướng dẫn viên, dự án người dùng, gói Codex](state/agent-teams-guide.md) — đã xong, kiểm tra, commit `6344f4e` và đẩy lên main. Lượt `2026-11-04-2a506d` đã dừng ở build; code của nó được giữ và tích hợp.
 - Claude Code: [Nhân sự đọc báo, edit video, Codex Bot, bản 0.4.6](state/specialists-0.4.6.md) — xong, kiểm tra, commit + tag v0.4.6 (workflow build Windows/macOS Universal).
 - Claude Code: [Họp trước khi làm, làm ở bàn, bản 0.4.7](state/meeting-0.4.7.md) — xong, đã phát hành v0.4.7 (Windows + macOS Universal).
+- Claude Code: [CPU máy tính, giao việc cho đội từ 📋 Giao việc](state/cpu-team-route.md) — đã commit b0070b0, đẩy main; chưa phát hành.
 - Nhiệm vụ trên (bộ nhớ ba lớp) là của Codex. Khi thêm việc song song, tạo `state/<mã-nhiệm-vụ>.md` với mục tiêu,
   tiến độ, file, test, việc dở, bước tiếp và commit; thêm liên kết tại đây, không ghi đè trạng thái phiên khác.
 
