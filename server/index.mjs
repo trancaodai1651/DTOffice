@@ -28,6 +28,7 @@ import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GRO
 import { createCodexSessions, readCodexLog } from './codex-sessions.mjs';
 import { createCodexBurn } from './codex-burn.mjs';
 import { desktopBotSnapshot } from '../src/shared/desktop-bot.js';
+import { updateReadiness } from '../src/shared/update-readiness.js';
 import { sessionName } from '../src/shared/session-name.js';
 import { createSpecialists, openPath, ffmpegInstall } from './specialists.mjs';
 import { createAntigravityAccounts, makeDb, windowsOf } from './antigravity-accounts.mjs';
@@ -2719,6 +2720,11 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/desktop-bot') {
     if (!isLoopback(req) || req.headers.origin || req.headers['x-forwarded-for']) { json(res, 403, { ok: false }); return; }
     json(res, 200, { ...desktopBotSnapshot(sessions.values(), codexOn() || agentOn('claude'), tr), lang: prefs.lang() });
+    return;
+  }
+  if (req.method === 'GET' && url.pathname === '/api/desktop-update-status') {
+    if (!isLoopback(req) || req.headers.origin || req.headers['x-forwarded-for']) { json(res, 403, { ok: false }); return; }
+    json(res, 200, updateReadiness(tasks.list(), team.list(), specialists.list()));
     return;
   }
   if (req.method === 'POST' && url.pathname === '/hook/question') {

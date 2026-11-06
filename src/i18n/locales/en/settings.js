@@ -1,4 +1,12 @@
 export default {
+  updates: {
+    title: 'App updates', auto: 'Check for updates automatically', check: 'Check for updates', checking: 'Checking…',
+    current: 'Installed version: {version}', upToDate: 'You have the latest version ({version}).', available: 'DT Office {version} is available',
+    note: 'With your approval, the app downloads the new release from GitHub, verifies it, installs it and reopens. If staff are still working, it waits for their work to finish before restarting.',
+    install: 'Update now', restart: 'Update and reopen', later: 'Later', cancelWait: 'Later, keep working',
+    downloading: 'Downloading: {percent}%', verifying: 'Verifying the update…', installing: 'Installing and reopening the app…',
+    waiting: 'Download complete. Waiting for staff to finish their work before updating.', error: 'Could not update. Check your connection and try again, or reopen the app.',
+  },
   language: 'Language',
   switchingLang: 'Switching language…',
   toPro: 'Building the company office…',

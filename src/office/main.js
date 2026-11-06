@@ -6,6 +6,7 @@ import { state } from './core/state.js';
 import { setWorldBuilder } from './core/world-boot.js';
 import * as coreEnv from './core/env.js';
 import * as uiEventText from './ui/event-text.js';
+import * as uiUpdates from './ui/updates.js';
 import * as uiIcons from './ui/icons.js';
 import * as sceneRenderer from './scene/renderer.js';
 import * as sceneLights from './scene/lights.js';
@@ -232,6 +233,7 @@ const MODULES = [
   uiWhiteboard,
   uiLookSwitch,
   uiSettings,
+  uiUpdates,
   uiWrapped,
   uiPhoto,
   uiTimelapse,
@@ -264,7 +266,7 @@ const MODULES = [
 
 // what the 2D list needs (its rows, the top bar and drawers, the group chat, the live connection or the demo)
 const LIST = new Set([coreEnv, uiEventText, uiIcons, peopleWorkers, peopleAiTeam, uiLite, uiActivity, uiSessionDrawer, uiMacDrawer, uiBurn, uiVault, uiTopbar,
-  interactPlaceCards, uiSettings, uiGroupChat, uiGroupChatView, uiStuck, uiModels, uiCacheWords, netLive, lifeYourTurn, audioSfx, uiPermissions,
+  interactPlaceCards, uiSettings, uiUpdates, uiGroupChat, uiGroupChatView, uiStuck, uiModels, uiCacheWords, netLive, lifeYourTurn, audioSfx, uiPermissions,
   uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiGuide, uiTeamRoster, uiSpecialists]);
 const done = new Set();
 let started = false;

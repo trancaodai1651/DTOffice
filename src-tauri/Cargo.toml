@@ -1,6 +1,6 @@
 [package]
 name = "my-office"
-version = "0.4.12"
+version = "0.4.13"
 description = "DT Office: a 3D workspace for Claude Code and Codex sessions"
 edition = "2021"
 
@@ -10,9 +10,14 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = ["macos-private-api"] }
 serde_json = "1"
+tauri-plugin-updater = "2.14.1"
 
 [profile.release]
 codegen-units = 1
 lto = true
 opt-level = "s"
 strip = true
+
+[dev-dependencies]
+base64 = "0.22"
+minisign-verify = "0.3"

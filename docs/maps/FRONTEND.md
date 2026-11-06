@@ -1,5 +1,7 @@
 # Giao diện và văn phòng
 
+Từ 0.4.13: `ui/updates.js` kiểm bản desktop sau mở app/6 giờ/online, dialog đồng ý/để sau/tiến độ/thử lại; Cài đặt → Khác. Chỉ native IPC được cài, web/phone không có nút. Test `e2e/updates`.
+
 [Chọn nhóm khác](../FEATURE-MAP.md). Đường dẫn tính từ root; `unit/X` = `tests/unit/X.test.mjs`,
 `e2e/X` = `tests/e2e/X.spec.ts`. Danh sách từng module nằm ở `docs/ARCHITECTURE.md` → Module map.
 

@@ -7,6 +7,7 @@ Từ 0.4.11: `scripts/bundle-ffmpeg.mjs` tải và kiểm SHA256 binary FFmpeg/f
 | Chức năng | Code/thư mục | Điểm vào | Kiểm tra liên quan |
 | --- | --- | --- | --- |
 | Desktop mở/đóng server | `src-tauri/src/main.rs`, `src-tauri/loading/index.html` | Tauri setup, `start_server`, resource Node/office | `scripts/verify-desktop.mjs`; mở/đóng app cần kiểm tra thực tế |
+| Tự cập nhật có chữ ký | `src-tauri/src/updates.rs`, `scripts/create-updater-manifest.mjs`, `src/office/ui/updates.js` | Tauri updater, GitHub Releases `latest.json`, NSIS/Universal archive + `.sig`; chỉ local main window, chờ owned work xong | `unit/updates`, `e2e/updates`, Rust tests chữ ký/IPC scope; workflow giữ nguyên bytes archive đã ký |
 | Codex Bot trên desktop | `src-tauri/loading/bot.html`, `src-tauri/src/main.rs`, `src-tauri/capabilities/`, `src/shared/desktop-bot.js`, `src/office/ui/settings.js` | Cửa sổ trong suốt, luôn nổi, kéo/ẩn/mở văn phòng; `/api/desktop-bot` chỉ loopback; Cài đặt → Khác → hiện lại | `unit/desktop-bot`; `e2e/personnel-graphics`; kiểm tra native trên Windows |
 | Cấu hình/build Rust | `src-tauri/tauri.conf.json`, `src-tauri/tauri.macos.conf.json`, `src-tauri/build.rs`, `src-tauri/Cargo.toml` | `npx tauri build` và cấu hình từng OS | desktop-release workflow |
 | Chuẩn bị server/Node desktop | `scripts/build-desktop.mjs`, `scripts/desktop-universal.mjs` | `npm run desktop:prepare`, `OFFICE_DIST_DIR` chọn build cách ly (đóng gói thành `.next`); Mac thêm `-- --universal` | `node scripts/verify-desktop.mjs`; Mac lipo/architecture checks |

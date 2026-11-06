@@ -66,6 +66,18 @@
 .wx-chips button:focus-visible { outline: 2px solid var(--accent); }
 
 /* Settings → More: the stuck-loop breaker */
+.st-update-auto { display: flex; align-items: center; gap: 8px; margin: 10px 0; font-size: .8rem; }
+.office-update { width: min(480px, calc(100vw - 32px)); max-height: calc(100dvh - 48px); overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); color: var(--ink); box-shadow: 0 24px 80px #0008; }
+.office-update::backdrop { background: #0008; }
+.office-update h2 { margin: 0 0 12px; font-size: 1.1rem; }
+.office-update p { font-size: .84rem; line-height: 1.6; }
+.office-update pre { max-height: 180px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; font-size: .76rem; padding: 12px; border-radius: 10px; background: var(--card-2); }
+.office-update progress { width: 100%; accent-color: var(--accent); }
+.office-update-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.office-update-actions button { border: 1px solid var(--line); background: var(--card-2); color: var(--ink); border-radius: 10px; padding: 10px 14px; cursor: pointer; font: inherit; font-size: .8rem; }
+.office-update-actions button:last-child { background: var(--accent); color: var(--on-accent); }
+.office-update-actions button:disabled { opacity: .5; cursor: default; }
+.office-update-actions button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .st-loop-row { display: grid; gap: 4px; margin-top: 8px; font-size: .72rem; color: var(--muted); }
 .st-loop-row .seg { margin: 0; padding: 3px; }
 .st-loop-row .seg button { height: 28px; font-size: .72rem; }

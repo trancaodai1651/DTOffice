@@ -113,6 +113,12 @@ export default async function SettingsPanel() {
         </section>
 
         <section className="st-panel" id="st-panel-more" role="tabpanel" aria-labelledby="st-tab-more" data-st-panel="more" hidden>
+          <div className="st-group" id="desktop-updates" hidden>
+            <h3>{t('settings.updates.title')}</h3>
+            <p className="pop-note" data-update-status="" role="status"></p>
+            <label className="st-update-auto"><input type="checkbox" data-update-auto="" defaultChecked /> {t('settings.updates.auto')}</label>
+            <button className="tb-btn" type="button" data-update-check="">{t('settings.updates.check')}</button>
+          </div>
           <div className="st-group">
           <h3>{t('settings.notify')}</h3>
           <div className="pop-acts">

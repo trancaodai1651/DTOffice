@@ -14,6 +14,7 @@ use std::thread;
 use std::time::Duration;
 
 use tauri::{Manager, RunEvent, Url, WindowEvent, PhysicalPosition};
+mod updates;
 
 fn office_port() -> u16 {
     std::env::var("OFFICE_PORT").ok().and_then(|p| p.parse::<u16>().ok()).filter(|p| *p > 0).unwrap_or(4310)
@@ -28,10 +29,13 @@ fn bot_preference(app: &tauri::AppHandle) -> Option<PathBuf> {
 
 /// Read a small, public status snapshot from our own server. No account/session logs enter the companion.
 fn bot_status() -> Result<serde_json::Value, String> {
+    local_status("/api/desktop-bot")
+}
+fn local_status(route: &str) -> Result<serde_json::Value, String> {
     let port = office_port();
     let mut stream = TcpStream::connect_timeout(&([127, 0, 0, 1], port).into(), Duration::from_millis(400)).map_err(|e| e.to_string())?;
     stream.set_read_timeout(Some(Duration::from_secs(2))).map_err(|e| e.to_string())?;
-    stream.write_all(format!("GET /api/desktop-bot HTTP/1.0\r\nHost: localhost:{port}\r\nConnection: close\r\n\r\n").as_bytes()).map_err(|e| e.to_string())?;
+    stream.write_all(format!("GET {route} HTTP/1.0\r\nHost: localhost:{port}\r\nConnection: close\r\n\r\n").as_bytes()).map_err(|e| e.to_string())?;
     let mut response = String::new();
     stream.take(65536).read_to_string(&mut response).map_err(|e| e.to_string())?;
     let (head, body) = response.split_once("\r\n\r\n").ok_or("invalid status response")?;
@@ -144,6 +148,13 @@ fn stop_server(child: &mut Child) {
     let _ = child.kill();
     let _ = child.wait();
 }
+fn stop_owned_server(app: &tauri::AppHandle) {
+    if let Some(state) = app.try_state::<Server>() {
+        if let Ok(mut g) = state.0.lock() {
+            if let Some(mut c) = g.take() { stop_server(&mut c); }
+        }
+    }
+}
 
 fn show_error(win: &tauri::WebviewWindow, msg: &str) {
     let _ = win.eval(&format!("window.officeFailed && window.officeFailed({})", serde_json_string(msg)));
@@ -165,7 +176,9 @@ fn serde_json_string(s: &str) -> String {
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![desktop_bot])
+        .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(updates::Updates::default())
+        .invoke_handler(tauri::generate_handler![desktop_bot, updates::desktop_update])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 if window.label() == "main" { window.app_handle().exit(0); }
@@ -239,11 +252,7 @@ fn main() {
         .expect("error while building DT Office")
         .run(|app, event| {
             if let RunEvent::Exit = event {
-                if let Some(state) = app.try_state::<Server>() {
-                    if let Ok(mut g) = state.0.lock() {
-                        if let Some(mut c) = g.take() { stop_server(&mut c); }
-                    }
-                }
+                stop_owned_server(app);
             }
         });
 }

@@ -1,4 +1,12 @@
 export default {
+  updates: {
+    title: 'Cập nhật ứng dụng', auto: 'Tự kiểm tra bản mới', check: 'Kiểm tra cập nhật', checking: 'Đang kiểm tra…',
+    current: 'Phiên bản đang dùng: {version}', upToDate: 'Bạn đang dùng bản mới nhất ({version}).', available: 'Có DT Office {version}',
+    note: 'Nếu đồng ý, app sẽ tải bản mới từ GitHub, kiểm tra và tự cập nhật rồi mở lại. Nếu nhân sự còn làm việc, app sẽ chờ hoàn thành trước khi khởi động lại.',
+    install: 'Đồng ý cập nhật', restart: 'Cập nhật và mở lại', later: 'Để sau', cancelWait: 'Để sau, tiếp tục làm việc',
+    downloading: 'Đang tải: {percent}%', verifying: 'Đang kiểm tra bản cập nhật…', installing: 'Đang cài đặt và mở lại app…',
+    waiting: 'Đã tải xong. Đang chờ nhân sự hoàn thành công việc để cập nhật.', error: 'Chưa cập nhật được. Kiểm tra kết nối và thử lại, hoặc mở lại ứng dụng.',
+  },
   language: 'Ngôn ngữ',
   switchingLang: 'Đang đổi ngôn ngữ…',
   toPro: 'Đang dựng văn phòng chuyên nghiệp…',

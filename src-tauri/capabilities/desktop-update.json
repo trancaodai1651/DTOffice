@@ -1,0 +1,8 @@
+{
+  "identifier": "desktop-update",
+  "description": "Only the local main desktop window can check and approve signed DT Office updates.",
+  "local": false,
+  "remote": { "urls": ["http://localhost:*/*", "http://127.0.0.1:*/*"] },
+  "windows": ["main"],
+  "permissions": ["allow-desktop-update"]
+}

@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "DT Office",
-  "version": "0.4.12",
+  "version": "0.4.13",
   "identifier": "com.myoffice.desktop",
   "build": {
     "frontendDist": "loading"
@@ -53,6 +53,19 @@
         "installMode": "currentUser",
         "languages": ["Vietnamese", "English"],
         "displayLanguageSelector": true
+      }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "requireSignedVersion": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEExOEIwOTUyNjcxQkVGNDgKUldSSTd4dG5VZ21Mb2NQY1JXSWxSVTd3SUtvL2xOZUhFaXVvSXdDZnRENjYvRHQvMXVVbG9mV1QK",
+      "endpoints": [
+        "https://github.com/trancaodai1651/DTOffice/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

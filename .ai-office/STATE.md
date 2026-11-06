@@ -1,5 +1,7 @@
 # Trạng thái bàn giao · 06/11/2026
 
+- Codex · 06/11: [Tự cập nhật desktop từ GitHub](state/desktop-auto-update.md) — đang kiểm tra 0.4.13; nhắc/đồng ý/tải/ký/cài, chờ công việc xong; cấu hình CI ký đã hoàn tất.
+
 - Codex · 06/11: [Video, FFmpeg kèm app, giao từng vị trí và phát hành](state/video-tools-role-release.md) — đã phát hành public/latest v0.4.12; FFmpeg offline, MP4 thật, giao từng nhân sự; CI/build/Mac Intel+ARM đạt, 3 bộ cài tải lại khớp SHA256, code đã commit/push.
 
 - Codex · 06/11: [Bida, bot Claude/Codex, USD/VND và skill theo vị trí](state/staff-skills-bot-costs.md) — hoàn thành 0.4.10, 232 unit + 12 E2E đạt; bản cài Windows local; đã commit/push main.

@@ -62,21 +62,30 @@ jobs:
       - run: node scripts/verify-desktop.mjs
       - if: runner.os == 'Windows'
         run: npx tauri build --bundles nsis
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
       - if: runner.os == 'macOS'
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: |
           npx tauri build --target universal-apple-darwin --bundles app,dmg
           APP='src-tauri/target/universal-apple-darwin/release/bundle/macos/DT Office.app'
           lipo "$APP/Contents/MacOS/my-office" -verify_arch x86_64 arm64
           lipo "$APP/Contents/Resources/node/node" -verify_arch x86_64 arm64
-          tar -czf DT-Office-macos-universal.app.tar.gz -C "$(dirname "$APP")" "DT Office.app"
+          cp "$APP.tar.gz" DT-Office-macos-universal.app.tar.gz
+          cp "$APP.tar.gz.sig" DT-Office-macos-universal.app.tar.gz.sig
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.name }}
           if-no-files-found: error
           path: |
             src-tauri/target/release/bundle/nsis/*-setup.exe
+            src-tauri/target/release/bundle/nsis/*-setup.exe.sig
             src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
             DT-Office-macos-universal.app.tar.gz
+            DT-Office-macos-universal.app.tar.gz.sig
 
   verify-macos:
     needs: build
@@ -116,7 +125,8 @@ jobs:
           while IFS= read -r -d '' file; do
             name="$(basename "$file")"
             cp "$file" "release/${name// /.}"
-          done < <(find artifacts -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.tar.gz' \) -print0)
+          done < <(find artifacts -type f \( -name '*.exe' -o -name '*.dmg' -o -name '*.tar.gz' -o -name '*.sig' \) -print0)
+          node scripts/create-updater-manifest.mjs release
           cd release
           sha256sum * > SHA256SUMS.txt
           TAG="v$(node -p "require('../package.json').version")"

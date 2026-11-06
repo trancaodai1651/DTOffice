@@ -26,7 +26,11 @@
 
 - Từ 0.4.11: bộ cài mang FFmpeg/ffprobe ở `office/vendor/ffmpeg/<platform-arch>`, Mac có hai CPU; verifier phải render clip thật. `video-tools.mjs` tải HTTPS bằng OS CA và render manifest/ffprobe, không tự động hóa Chrome. Video thiếu/hỏng không done. Từ 0.4.12 caption qua Sharp/Pango + overlay, không dựa vào drawtext (FFmpeg Intel upstream không có filter này). `/api/team` có `role` = giao riêng một người; không role = cả đội. Prompt nội bộ/skill dài gửi stdin, không cắt 4000 như văn bản người dùng.
 
+- Từ 0.4.13: desktop updater native `src-tauri/src/updates.rs`, IPC chỉ main/local; GitHub Releases `latest.json` + EXE/tar `.sig`, requireSignedVersion. Giữ nguyên updater public key trong config và private key ở `~/.dtoffice-release/updater.key`/GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` (không ghi nội dung vào repo). Mac phải dùng nguyên archive do Tauri ký, không tar lại. UI `ui/updates.js`; trước cài chờ owned tasks/team/specialists qua update-readiness, dừng Node do app sở hữu trong before-exit hook.
+
 ## Tra cứu theo nhu cầu
+
+
 
 - [Chỉ mục](INDEX.md) · [Trạng thái bàn giao](STATE.md) · [Bản đồ chức năng](../docs/FEATURE-MAP.md).
 - [Ghi chú cũ, giữ nguyên](history/AGENT-NOTES-2026-11-04.md): các phiên setup, phòng AI, kiểm tra memory và tư vấn.
