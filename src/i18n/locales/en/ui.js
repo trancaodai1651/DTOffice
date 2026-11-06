@@ -92,6 +92,7 @@ export default {
   },
   cameraToolbar: {
     team: 'AI room',
+    marketing: 'Marketing room',
     label: 'View',
     home: 'Overview',
     desks: 'Desks',

@@ -1,5 +1,11 @@
 # Trạng thái bàn giao · 04/11/2026
 
+- Codex · 06/11: [PC, đường phố và giao đúng nhân sự đọc báo](state/pc-streets-news.md) — hoàn thành 0.4.9 local; 226 unit + 12 E2E đạt, bundled server/native/NSIS đạt; chưa commit/publish.
+- Claude Code · 06/11: [Đội AI Agent Marketing 18 vị trí + phòng 3D Marketing ở HQ](state/marketing-team.md) — xong code, unit, xem tay; E2E lỗi môi trường Windows; chưa commit.
+
+
+- Codex · 05/11: [Claude/Codex, tên nhân sự, bot desktop, đồ họa di động và hết ván](state/personnel-desktop-mobile-games.md) — đã hoàn thành 0.4.8, bản cài Windows cục bộ; 209 unit + 12 E2E và QA bot native đạt; chưa commit/publish.
+
 ## Nhiệm vụ phát hành hiện hành
 
 - [DT Office 0.4.5 · làm sạch nguồn và lịch sử](state/dtoffice-clean-release.md) — Codex.

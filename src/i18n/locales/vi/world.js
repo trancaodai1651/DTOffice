@@ -35,6 +35,8 @@ export default {
   dept: {
     team: 'PHÒNG AI 15 AGENT DEV',
     teamSub: 'Đội AI Agent Dev · 15 agent và CEO',
+    marketing: 'PHÒNG MARKETING',
+    marketingSub: 'Đội AI Agent Marketing · 18 nhân sự',
     free: 'PHÒNG BAN {n}',
     freeSub: 'chờ dự án tiếp theo',
     name: '{name}',

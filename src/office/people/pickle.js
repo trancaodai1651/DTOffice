@@ -13,7 +13,8 @@ import { officeNow, rand, replay } from '../core/env.js';
 import { DEMO } from '../demo/demo.js';
 import { later } from './errands.js';
 import { dn, sessions, workers } from './workers.js';
-import { called, goDown, goUp, here, live, mainExit, outside, resume, street, walk } from './outings.js';
+import { goDown, goUp, here, live, mainExit, outside, resume, street, walk } from './outings.js';
+import { gameWorkPending, scheduledRoundFinished } from '../../shared/game-lifecycle.js';
 import { chatLife, chatPhoto } from '../ui/group-chat.js';
 import { queueUi } from '../ui/activity.js';
 import { t as tr } from '../../i18n/index.js';
@@ -164,7 +165,7 @@ export function updatePickle() {
 function stepGame(S, Q) {
   if (!S || !Q || replay.on) { for (const m of [...L.members]) drop(m); Q?.release(); last = debug.state(); L = null; return; }
   const live2 = L.members.filter((m) => !m.dead);
-  for (const m of live2) if (['in', 'play', 'film'].includes(m.stage) && called(m.w)) backToWork(m, S);
+  for (const m of live2) if (['in', 'play', 'film'].includes(m.stage) && gameWorkPending(sessions.get(m.w.id), m.w.want)) backToWork(m, S);
   // the court is theirs once everyone on their way is in (or a minute and a half after the first)
   if (!L.booked && L.firstIn && (L.members.every((m) => m.stage !== 'go' && m.stage !== 'walk') || state.sim - L.firstIn > 90)) book(Q);
   // the players where the game puts them: in place, facing the ball, the paddle's swing
@@ -174,7 +175,10 @@ function stepGame(S, Q) {
       const w = m.w, p = Q.player(m.slot, at);
       w.pos.set(p.x, p.z); w.faceTarget = p.face; w.ground = p.y; w.anim = 'paddle'; w.P.swing = p.swing; w.P.shuffle = p.moving; w.phase = 'idle';
     }
-    if (!L.members.some((m) => !m.dead && m.role === 'play' && m.stage === 'play') || state.sim > L.endAt) wrapUp(S, Q);
+    const games = Q.score().games || 0;
+    const finished = scheduledRoundFinished(state.sim > L.endAt, games, L.lastGames || 0);
+    L.lastGames = games;
+    if (!L.members.some((m) => !m.dead && m.role === 'play' && m.stage === 'play') || finished) wrapUp(S, Q);
   }
   // nobody set off (all busy when asked): ask whoever is free now
   if (L.stage === 'going' && !L.members.length && state.sim - L.since > 25 && state.sim > (L.retryAt || 0)) { L.retryAt = state.sim + 15; enlist(spare(), 'play'); }

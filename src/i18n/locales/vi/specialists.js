@@ -33,7 +33,7 @@ export default {
   status: { run: 'Đang làm', print: 'Đang in PDF', done: 'Xong', fail: 'Lỗi', stopped: 'Đã dừng' },
   stop: 'Dừng', sending: 'Đang giao…', close: 'Đóng', back: 'Quay lại',
   unreachable: 'Không liên lạc được với văn phòng.',
-  why: { empty: 'Hãy nhập nội dung trước.', badDir: 'Hãy nhập đường dẫn đầy đủ của thư mục.', noInput: 'Không thấy thư mục video đầu vào trên máy.' },
+  why: { empty: 'Hãy nhập nội dung trước.', badDir: 'Hãy nhập đường dẫn đầy đủ của thư mục.', noInput: 'Không thấy thư mục video đầu vào trên máy.', specialistBusy: 'Nhân sự này đang làm việc đã nhận. Hãy chờ xong hoặc dừng việc hiện tại trước.' },
   chat: {
     newsStart: '📰 {name} bắt đầu đọc báo: "{about}" (lưu ở {folder}).',
     newsDone: '📰 {name} đã tóm tắt xong "{about}": PDF ở {folder}. Muốn làm video thì bấm "Có, làm video".',
@@ -44,5 +44,5 @@ export default {
     fail: '⚠️ {name} không làm xong: {why}',
     stopped: '⏹️ {name} đã dừng.',
   },
-  bot: { name: 'Codex Bot', hi: 'Bíp! Em là bot của Codex.', working: 'Codex đang làm {n} việc', idle: 'Codex đang rảnh', limits: 'Xem hạn mức Codex' },
+  bot: { name: 'Codex Bot', hi: 'Bíp! Em là bot của Codex.', working: 'Codex đang làm {n} việc', waiting: 'Codex chờ duyệt {n} việc', idle: 'Codex đang rảnh', limits: 'Xem hạn mức Codex', show: 'Hiện Codex Bot trên desktop', hide: 'Ẩn bot', drag: 'Kéo bot để di chuyển · bấm trạng thái để mở Codex', offline: 'Đang kết nối văn phòng' },
 };

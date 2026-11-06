@@ -11,7 +11,7 @@
 import * as THREE from 'three';
 import { state } from '../core/state.js';
 import { STATIC, officeNow, replay } from '../core/env.js';
-import { dn, npcs, sessions, workerForSession } from '../people/workers.js';
+import { dn, npcs, residents, sessions, workerForSession } from '../people/workers.js';
 import { sfx } from '../audio/sfx.js';
 import { DEMO } from '../demo/demo.js';
 import { ringBell } from '../people/gatherings.js';
@@ -34,13 +34,13 @@ export const byId = (id) => chat.msgs.find((m) => m.id === id);
 const STAFF = { reception: '__reception', hr: '__hr', cleaner: '__cleaner', guard: '__guard', director: '__director', courier: '__courier', accountant: '__accountant' };
 const STAFF_NAME = { __reception: 'people.staff.receptionist', __hr: 'people.staff.hr', __cleaner: 'people.staff.cleaner', __guard: 'people.guard.name', __director: 'people.director', __courier: 'people.staff.shipper', __accountant: 'people.accountant.name' };
 // a staff member's name: from their person in the office, or (the 2D list opened first, no 3D people yet) the words
-const staffName = (key) => npcs.find((x) => x.id === key)?.cfg.name || (!state.world && STAFF_NAME[key] ? tr(STAFF_NAME[key]) : null);
+const staffName = (key) => ['__news', '__video'].includes(key) ? tr(`specialists.${key.slice(2)}.name`) : npcs.find((x) => x.id === key)?.cfg.name || (!state.world && STAFF_NAME[key] ? tr(STAFF_NAME[key]) : null);
 const lookOf = (cfg) => cfg && { shirt: cfg.shirt, hair: cfg.hair, style: cfg.style, acc: cfg.acc ?? null, outfit: cfg.outfit, skin: cfg.skin };
 /** { key, name, look } for a sender as the office knows them now (the face comes from their chibi), or null. */
 export function who(from) {
   if (from === 'me') return { key: 'me', name: tr('chat.boss'), look: null };
   const key = STAFF[from] || from;
-  if (key?.startsWith('__')) { const n = npcs.find((x) => x.id === key), name = staffName(key); return name ? { key, name, look: lookOf(n?.cfg), staff: true } : null; }
+  if (key?.startsWith('__')) { const n = residents.get(key.slice(2)) || npcs.find((x) => x.id === key), name = staffName(key); return name ? { key, name, look: lookOf(n?.cfg), staff: true } : null; }
   const s = sessions.get(key); if (!s) return null;
   return { key, name: dn(s), look: lookOf(workerForSession(key)?.cfg) };
 }

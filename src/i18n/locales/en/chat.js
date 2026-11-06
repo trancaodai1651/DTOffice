@@ -195,7 +195,7 @@ export default {
     conversations: 'Carry on a conversation (with its context)',
     newIn: 'A new conversation in the folder',
     manageProjects: 'Add or remove projects',
-    teamOffer: 'This fits the {team} ({words}). Give it to the team (the PM assigns each position) instead of one session?',
+    teamOffer: 'This fits the {team} ({words}). Give it to the team (its manager assigns each position) instead of one session?',
     teamGive: 'Give it to the team',
     placeholder: 'What to do… (type, or 🎤 to speak)',
     mic: 'Speak',

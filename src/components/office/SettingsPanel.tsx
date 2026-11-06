@@ -126,6 +126,7 @@ export default async function SettingsPanel() {
           <h3>{t('settings.behaviour')}</h3>
           <div className="pop-toggles">{toggle('sound', true)}{toggle('perm', true)}{toggle('drill', true)}</div>
           <div className="pop-acts"><button id="btn-tips" className="tb-btn" type="button"><span data-icon="sparkle"></span><span className="lbl">{t('tips.again')}</span></button></div>
+          <div className="pop-acts" id="desktop-bot-controls" hidden><button id="btn-desktop-bot" className="tb-btn" type="button">{t('specialists.bot.show')}</button></div>
           {/* the models of a session and its subagents (src/office/ui/models.js fills it in from the server; on the Mac only) */}
           <div className="st-loop" id="st-models" hidden>
             <h3>{t('settings.models.title')}</h3>

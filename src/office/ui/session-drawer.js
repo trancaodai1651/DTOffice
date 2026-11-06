@@ -46,7 +46,7 @@ export function renderSessionHead() {
   const s = sessions.get(state.selectedId); if (!s) return;
   $('ds-dot').style.background = colorOf(s);
   $('ds-name').textContent = dn(s);
-  $('ds-dir').textContent = s.origin ? `${s.dir} · ${s.origin}` : s.dir;
+  $('ds-dir').textContent = [s.title, s.dir, s.origin].filter(Boolean).join(' · ');
   drawDrawerCache();   // (its prompt cache: warm for how long, or cold)
   const st = $('ds-status'); st.textContent = STATUS_LABEL[s.status]; st.dataset.status = s.status;
   $('ds-read').textContent = s.counts?.read ?? 0; $('ds-edit').textContent = s.counts?.edit ?? 0; $('ds-cmd').textContent = s.counts?.cmd ?? 0;

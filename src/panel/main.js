@@ -24,7 +24,7 @@ function ago(t) {
   if (s < 60) return tr('panel.now');
   return tr('time.ago', { time: s < 3600 ? tr('time.min', { n: Math.round(s / 60) }) : s < 86400 ? tr('time.hour', { n: Math.round(s / 3600) }) : tr('time.day', { n: Math.round(s / 86400) }) });
 }
-const nameOf = (s) => s?.title || s?.name || '';
+const nameOf = (s) => s?.personnelName || s?.title || s?.name || '';
 
 /* ---------- what each tool has left (the account in use): Claude's tightest limit, Codex's, Antigravity's model ---------- */
 function quotas() {

@@ -14,7 +14,7 @@ import { drivable } from '../world/backdrops/street-life.js';
 import { vmat } from '../world/terrace.js';
 import { toast } from '../ui/activity.js';
 import { sfx } from '../audio/sfx.js';
-import { sessions, residents, subs, workers } from '../people/workers.js';
+import { dn, sessions, residents, subs, workers } from '../people/workers.js';
 import { floorBlocks } from '../life/seasons.js';
 import { showRole } from '../ui/team-roster.js';
 import { closeSession, openSession } from '../ui/session-drawer.js';
@@ -95,12 +95,19 @@ const rides = {};   // kind -> { mesh, x, z, yaw }, once made
 // (?debug: window.__office.rides, for trying the driving out)
 if (typeof location !== 'undefined' && new URLSearchParams(location.search).has('debug')) setTimeout(function hook() { if (!window.__office) { setTimeout(hook, 200); return; } window.__office.rides = rides; }, 0);
 function ride(kind, S) {
-  if (rides[kind]) return rides[kind];
+  if (rides[kind]) { S?.registerPlayerVehicle?.(rides[kind]); return rides[kind]; }
   const ex = wayOut(S); if (!ex) return null;
   const tx = -ex.n[1], tz = ex.n[0], [d, o] = kind === 'car' ? [-3.2, 2.2] : [2.2, 0.7];   // (the scooter on the pavement, the car at the kerb)
   const R = RIDES[kind], m = new THREE.Mesh(drivable(kind, R.color), vmat({ roughness: 0.55, metalness: 0.15 }));
-  m.castShadow = true; m.userData.dynamic = true; scene.add(m);
-  const v = rides[kind] = { kind, mesh: m, x: ex.x + tx * d + ex.n[0] * o, z: ex.z + tz * d + ex.n[1] * o, yaw: Math.atan2(tx, tz), speed: 0 };
+  m.castShadow = true; m.userData.dynamic = true;
+  const v = { kind, mesh: m, x: ex.x + tx * d + ex.n[0] * o, z: ex.z + tz * d + ex.n[1] * o, yaw: Math.atan2(tx, tz), speed: 0 };
+  let placed = false;
+  for (const offset of [0, 4, -4, 8, -8, 12, -12]) {
+    v.x = ex.x + tx * (d + offset) + ex.n[0] * o; v.z = ex.z + tz * (d + offset) + ex.n[1] * o;
+    if (!S?.blockedAt(v.x, v.z, R.r) && (!S?.registerPlayerVehicle || S.registerPlayerVehicle(v))) { placed = true; break; }
+  }
+  if (!placed) { m.geometry.dispose(); return null; }
+  rides[kind] = v; scene.add(m);
   placeRide(v, S);
   return v;
 }
@@ -129,10 +136,14 @@ function drive(dt, S) {
   if (f > 0) v.speed = Math.min(top, v.speed + R.accel * f * dt);
   else if (f < 0) v.speed = Math.max(-R.back, v.speed + R.accel * 1.6 * f * dt);   // (brake, then reverse)
   else v.speed -= Math.sign(v.speed) * Math.min(Math.abs(v.speed), 2.2 * dt);   // (rolling to a stop)
-  v.yaw -= s * R.turn * dt * THREE.MathUtils.clamp(v.speed / 4, -1, 1);   // (steering turns it only as it rolls)
-  const nx = v.x + Math.sin(v.yaw) * v.speed * dt, nz = v.z + Math.cos(v.yaw) * v.speed * dt;
+  const yaw = v.yaw - s * R.turn * dt * THREE.MathUtils.clamp(v.speed / 4, -1, 1);   // (steering turns it only as it rolls)
+  const nx = v.x + Math.sin(yaw) * v.speed * dt, nz = v.z + Math.cos(yaw) * v.speed * dt;
   if (S.blockedAt(nx, nz, R.r)) { if (Math.abs(v.speed) > 3) sfx.play('click'); v.speed *= -0.25; }   // (a bump: back off a little)
-  else { v.x = nx; v.z = nz; }
+  else {
+    const next = S.movePlayerVehicle?.(v, nx, nz, yaw) || { x: nx, z: nz, yaw, fraction: 1 };
+    v.x = next.x; v.z = next.z; v.yaw = next.yaw;
+    if (next.fraction < 1) v.speed *= next.fraction;
+  }
   placeRide(v, S);
   const ground = S.groundAt(v.x, v.z);
   fp.yaw = v.yaw;
@@ -207,7 +218,7 @@ function setNear(w) {
   if (w.meshes && w.id === 'door' && street()) { b.replaceChildren(el('kbd', '', 'E'), document.createTextNode(tr(!lift ? 'fp.outside' : lift.service ? 'fp.toStreetStairs' : 'fp.toStreet'))); b.hidden = false; return; }
   if (w === cat) { b.replaceChildren(el('kbd', '', 'E'), document.createTextNode(tr('fp.petCat'))); b.hidden = false; return; }
   if (w.meshes) { b.replaceChildren(el('kbd', '', 'E'), document.createTextNode(`${w.name}: ${propHint(w)}`)); b.hidden = false; return; }
-  const name = w.sub ? tr('fp.subOf', { name: w.cfg.name, parent: sessions.get(w.parent?.id)?.name || tr('common.session') }) : sessions.get(w.id)?.name || w.cfg.name;
+  const name = w.sub ? tr('fp.subOf', { name: w.cfg.name, parent: dn(sessions.get(w.parentSessionId || w.parent?.id)) || tr('common.session') }) : dn(sessions.get(w.id)) || w.cfg.name;
   b.replaceChildren(el('kbd', '', 'E'), document.createTextNode(tr(asleep ? 'fp.wake' : 'fp.watch', { name }))); b.hidden = false;
   if (!w.sub && !['type', 'console', 'read', 'sleep'].includes(w.anim)) w.waveUntil = state.sim + 1.6;
 }
@@ -247,7 +258,7 @@ export function fpUpdate(dt) {
   S?.shop?.feel([fp.pos.x, fp.pos.y]);
   // the ground: the office floor, or the street (the pavement, a step down onto the road); on the road the traffic stops
   const ground = riding ? riding.ground : S ? S.groundAt(fp.pos.x, fp.pos.y) : 0;
-  S?.setWalker(S && ground < S.pavement - 0.05 ? [fp.pos.x, fp.pos.y] : null);
+  S?.setWalker(S && !riding && ground < S.pavement - 0.05 ? [fp.pos.x, fp.pos.y] : null);
   if (fp.carry && fp.t > fp.carryUntil) fp.carry = null;   // (finished it)
   // own body
   const P = fp.P, D = P.D;

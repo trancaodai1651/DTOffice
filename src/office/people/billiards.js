@@ -1,8 +1,8 @@
 // Pool in the lounge (company floor; the table: world/props/billiards.js). Now and then two people who are
 // resting play a frame: each takes a cue from the rack, one breaks, then they take turns, walking round the table to
 // get behind the white, bending low over it and drawing the cue back and through. The balls run, kiss, come off the
-// cushions and drop; whoever pots goes again, the white in a pocket hands the table over, and the first to five (or the
-// one ahead when it runs long) wins and is pleased with themselves. Work coming in ends it where it stands. Click the
+// cushions and drop; whoever pots goes again, the white in a pocket hands the table over, and the first to five wins.
+// A cleared table also ends the frame. Work coming in ends it where it stands. Click the
 // table to call two people over. In first person, E at the table picks up a cue: aim with ←/→ (or by dragging), hold
 // Space for power and let go to shoot, against a colleague who comes over, or on your own.
 import * as THREE from 'three';
@@ -13,12 +13,13 @@ import { BALL_R, BIL, CLOTH_Y, POCKETS, PX, PZ, cueMesh } from '../world/props/b
 import { napOn } from '../life/nap.js';
 import { fp } from '../interact/first-person.js';
 import { faceTo } from './navigation.js';
-import { sessions, workers } from './workers.js';
+import { dn, sessions, workers } from './workers.js';
 import { asleep, free, quip } from './errands.js';
 import { chatSay } from '../ui/group-chat.js';
 import { toast } from '../ui/activity.js';
 import { sfx } from '../audio/sfx.js';
 import { t as tr } from '../../i18n/index.js';
+import { gameHasWinner, gameWorkPending } from '../../shared/game-lifecycle.js';
 
 const N = 16, H = 1 / 240, DECEL = 0.55, CUSHION_E = 0.74, BALL_E = 0.94, VMAX = 3.3, TARGET = 5, D2 = (2 * BALL_R) ** 2;
 // where the balls are, in the table's frame (x across, z along; the white is 0): on the cloth, dropping, or gone
@@ -29,12 +30,12 @@ let ME = null;             // first person at the table: { aim, power, charging,
 let nextAt = 0, hud = null, guide = null, ghost = null;
 let RX = 0, RZ = 0;        // the walk round the table (its half size, in the table's frame)
 const pick = (key) => { const l = tr(key, null, 'list'); return Array.isArray(l) ? l[Math.floor(Math.random() * l.length)] : l; };
-const nameOf = (w) => { const n = sessions.get(w.id)?.name || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
-const called = (w) => { const s = sessions.get(w.id); return !s || s.status !== 'rest' || !!s.bg?.length || !!w.want; };
+const nameOf = (w) => { const n = dn(sessions.get(w.id)) || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
+const called = (w) => gameWorkPending(sessions.get(w.id), w.want);
 // who could play: resting, nothing else on (not out, not on a break, not carrying anything, not at tea)
 function who() {
   return [...workers.values()].filter((w) => { const s = sessions.get(w.id);
-    return !w.sub && s?.status === 'rest' && !s.bg?.length && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
+    return !w.sub && !gameWorkPending(s, w.want) && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
 }
 const W = (x, z) => [BIL.x + x, BIL.z + z];   // the table's frame -> the floor
 
@@ -246,7 +247,7 @@ export function billiards(force = false) {
 function start(npc, ws) {
   rack();
   const was = G?.p || [];   // (another frame at once, first person: whoever is already at the table stays there)
-  G = { npc, p: ws.map((w, i) => player(w, i)), turn: 0, stage: 'gather', score: [0, 0], end: state.sim + rand(170, 300), shot: null, at: state.sim, shots: 0, broke: false };
+  G = { npc, p: ws.map((w, i) => player(w, i)), turn: 0, stage: 'gather', score: [0, 0], shot: null, at: state.sim, shots: 0, broke: false };
   G.p.forEach((p, i) => {
     takeCue(p, i);
     if (!p.w) return;
@@ -256,7 +257,7 @@ function start(npc, ws) {
     p.s = p.ws = ex.s;
     p.e = p.w.errand({ type: 'idle', spot: { x: ex.x, z: ex.z, face: ex.face, node: ex.node }, look: [BIL.x, BIL.z], anim: 'idle', wait: i ? 2.4 : 0.4, hold: 0.4, anim2: 'idle', linger: 0.8,
       line: i ? pick('people.billiards.join') : pick('people.billiards.invite') });
-    p.e.until = G.end + 600;
+    p.e.until = Infinity;
   });
 }
 // the end of it: both walk back round to where they came in, put the cues back, and go back to their places
@@ -297,7 +298,7 @@ function settle() {
   const other = G.p[1 - G.turn];
   if (other?.w && n && !sh.scratch && Math.random() < 0.35) quip(other.w, pick('people.billiards.nice'), 'idle');
   G.shot = null;
-  if (!left() || (G.p[1] && Math.max(...G.score) >= (G.npc ? TARGET : 8)) || (G.npc && state.sim > G.end && (G.score[0] !== G.score[1] || state.sim > G.end + 120))) { gameOver(); return; }
+  if (gameHasWinner(G.score, G.p[1] ? (G.npc ? TARGET : 8) : Infinity, left())) { gameOver(); return; }
   if (sh.scratch || !n) G.turn = G.p[1] ? 1 - G.turn : 0;
   G.stage = 'turn';
 }

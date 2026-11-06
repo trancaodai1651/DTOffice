@@ -87,7 +87,12 @@ test('a green-CI evening: "Pickleball tonight?" in the chat, four go down, a tes
   await expect.poll(() => chatHas(page, /Pickleball tonight|pickleball tonight|Pickleball at 5:30/), { timeout: 90_000 }).toBe(true);
   // four (and a fifth to film) go down and take the court from the neighbourhood
   await expect.poll(() => page.evaluate(() => (window as unknown as Win).__office!.pickle.go()), { timeout: 45_000 }).toBeGreaterThanOrEqual(2);
-  await expect.poll(() => page.evaluate(() => (window as unknown as Win).__office!.pickle.state()?.stage), { timeout: 300_000 }).toBe('on');
+  await expect.poll(async () => {
+    // The director's departure approval is required for the demo colleagues and finished subagents too.
+    const departure = page.locator('#exit-permission[data-stage="ready"]');
+    if (await departure.isVisible()) await departure.locator('[data-exit="allow"]').click();
+    return page.evaluate(() => (window as unknown as Win).__office!.pickle.state()?.stage);
+  }, { timeout: 300_000 }).toBe('on');
   await expect.poll(async () => (await court(page)).office, { timeout: 10_000 }).toBe(true);
   const st = await page.evaluate(() => (window as unknown as Win).__office!.pickle.state()!);
   expect(st.members.filter((m) => m.role === 'play').length).toBeGreaterThanOrEqual(2);
@@ -107,11 +112,11 @@ test('a green-CI evening: "Pickleball tonight?" in the chat, four go down, a tes
   await expect.poll(async () => (await court(page)).lastRun?.end, { timeout: 240_000 }).toBe('net');
   expect((await court(page)).lastRun).toMatchObject({ ok: false, pass: 7, fail: 1, shots: 8 });   // (7 over the net, the 8th into it)
   await expect(page.locator('.pickle-tally')).toHaveText(/1 failing · into the net after 7 shots/, { timeout: 5_000 });
-  // the hour is up: the clip and everyone's share in the chat, and back up
+  // The hour is up: finish the current match, then the clip/share in the chat and back up.
   await page.evaluate(() => (window as unknown as Win).__office!.speed(8));
   expect(await page.evaluate(() => (window as unknown as Win).__office!.pickle.end())).toBe(true);
   const done = /Here’s the clip|Court time’s up|if you haven’t paid/;
-  await expect.poll(() => chatHas(page, done), { timeout: 30_000 }).toBe(true);
+  await expect.poll(() => chatHas(page, done), { timeout: 240_000 }).toBe(true);
   expect(await page.evaluate((r) => (window as unknown as Win).__office!.chat.msgs.some((m) => new RegExp(r).test(m.text || '') && !!m.photo), done.source)).toBe(true);
   await expect.poll(() => page.evaluate(() => (window as unknown as Win).__office!.pickle.state()?.stage), { timeout: 240_000 }).toBe('end');
   expect(await page.evaluate(() => (window as unknown as Win).__office!.street!.pickle!.booked())).toBe(false);

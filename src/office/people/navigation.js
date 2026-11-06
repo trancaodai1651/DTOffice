@@ -75,7 +75,7 @@ function teamRoom(d, i, p0, nodes, edges) {
     [`D${i}m`, `P${l0}f1`], [`P${l0}f1`, `P${l0}f0`], [`D${i}m`, `P${r0}f0`], [`P${r0}f0`, `P${r0}f1`],
     [`D${i}m`, `P${l1}b1`], [`P${l1}b1`, `P${l1}b0`], [`D${i}m`, `P${r1}b0`], [`P${r1}b0`, `P${r1}b1`],
     [`D${i}cf`, `P${l1}f1`], [`P${l1}f1`, `P${l1}f0`], [`D${i}cf`, `P${r1}f0`], [`P${r1}f0`, `P${r1}f1`],
-    [`D${i}i`, `P${l0}f0`], [`D${i}i`, `P${l1}b0`]);   // (the door's side: straight to the left pods' lane ends)
+    ...(d.door.side === 'e' ? [[`D${i}i`, `P${r0}f1`], [`D${i}i`, `P${r1}b1`]] : [[`D${i}i`, `P${l0}f0`], [`D${i}i`, `P${l1}b0`]]));   // (the door's side: straight to the near pods' lane ends)
 }
 /* headquarters' wing: corridor A along the core (z 9.9), corridor B down the middle (x 3.3), and in each department
    room a door, a lane between its two pods and the aisles behind each row of chairs. Pod p's aisle nodes are P{p}b0…. */
@@ -85,7 +85,7 @@ function wingGraph() {
   let first = 3;   // (the company floor's three pods, then each room's own)
   DEPTS.forEach((d, i) => {
     const p0 = first; first += d.pods.length;
-    if (d.team) { teamRoom(d, i, p0, nodes, edges); return; }
+    if (d.team || d.big) { teamRoom(d, i, p0, nodes, edges); return; }
     const pl = p0, pr = pl + 1, zb = d.cz - 1.8, zf = d.cz + 1.8, lane = d.door.side === 'n' ? d.door.at : d.cx;
     nodes[`D${i}b`] = [lane, zb]; nodes[`D${i}f`] = [lane, zf];
     edges.push([`D${i}b`, `D${i}f`], [`D${i}b`, `P${pl}b1`], [`P${pl}b1`, `P${pl}b0`], [`D${i}b`, `P${pr}b0`], [`P${pr}b0`, `P${pr}b1`],
@@ -100,6 +100,9 @@ function wingGraph() {
       edges.push(['HB1', `D${i}i`], [`D${i}i`, `D${i}sb`], [`D${i}i`, `D${i}sf`], [`D${i}sb`, `P${near}b${k}`], [`D${i}sf`, `P${near}f${k}`]);
     }
   });
+  // the marketing department's two rooms: through the doorway in the half wall between them
+  const [a, b] = DEPTS.map((d, i) => (d.mk ? i : -1)).filter((i) => i >= 0);
+  if (b != null && nodes[`D${a}f`] && nodes[`D${b}cb`]) { nodes.MKg = [-2.7, DEPTS[b].z0]; edges.push([`D${a}f`, 'MKg'], ['MKg', `D${b}cb`]); }
   return { nodes, edges };
 }
 /* Places to stand within arm's reach of something (a lamp, the printer). The floor is searched in 10 cm cells kept 20 cm

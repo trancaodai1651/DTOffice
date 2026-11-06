@@ -11,14 +11,14 @@ import { makeSofa } from '../furniture/room-pieces.js';
 import { trinket } from '../props/trinkets.js';
 import { DEPTS, WING } from '../layout.js';
 import { DESKS, UNITS, dLocal } from '../desks.js';
-import { TEAM_SEATS } from '../../../shared/team-roles.js';
+import { MARKETING_SEATS, TEAM_SEATS } from '../../../shared/team-roles.js';
 import { floorZone, glassWall, gridTex, lowWall, plateTex, speckTex } from './pieces.js';
 import { t as tr } from '../../../i18n/index.js';
 
 /** DEPT_SIGNS[i](name) redraws room i's door plaque: the project's name, or '' for a free room. */
 export const DEPT_SIGNS = [];
-const ACCENTS = ['#3F7CC4', '#6A8042', '#D97757', '#8C4FA8'];
-const CARPETS = ['#5E6B7D', '#66735C', '#7B6A5E', '#655F7A'];
+const ACCENTS = ['#C2477A', '#6A8042', '#C2477A', '#8C4FA8'];   // (the marketing department's two rooms: one colour)
+const CARPETS = ['#7A5F6B', '#66735C', '#7A5F6B', '#655F7A'];
 const FONT = '"Be Vietnam Pro", system-ui, sans-serif';
 
 // a door plaque that can be redrawn: dark plate, the room's colour down its left edge
@@ -28,11 +28,12 @@ function plaque(i, x, y, z, ry) {
   const draw = (name) => {
     const g = c.getContext('2d'), n = i + 1;
     if (DEPTS[i].team) name = tr('world.dept.team');   // (the AI team's room keeps its own name)
+    if (DEPTS[i].mk) name = tr('world.dept.marketing');   // (and so does the marketing department)
     g.fillStyle = '#1E232B'; g.fillRect(0, 0, 512, 160); g.fillStyle = ACCENTS[i]; g.fillRect(0, 0, 14, 160);
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = name ? '#F3EFE8' : '#9AA3B0'; g.font = `800 ${name ? 56 : 46}px ${FONT}`;
     const title = name ? tr('world.dept.name', { name }) : tr('world.dept.free', { n }); fitText(g, title, 456); g.fillText(title, 263, 66);
-    g.fillStyle = '#A9B2C0'; g.font = `600 26px ${FONT}`; g.fillText(DEPTS[i].team ? tr('world.dept.teamSub') : name ? tr('world.dept.sub', { n }) : tr('world.dept.freeSub'), 263, 122);
+    g.fillStyle = '#A9B2C0'; g.font = `600 26px ${FONT}`; g.fillText(DEPTS[i].team ? tr('world.dept.teamSub') : DEPTS[i].mk ? tr('world.dept.marketingSub') : name ? tr('world.dept.sub', { n }) : tr('world.dept.freeSub'), 263, 122);
     tex.needsUpdate = true;
   };
   draw('');
@@ -49,6 +50,18 @@ function teamPlates() {
     const d = DESKS[di], role = TEAM_SEATS[k], text = role ? tr(`team.roles.${role}.name`) : tr('team.ceo');
     // a tent-card on the desk by the screen, its name on both faces (read from either side of the pod)
     const face = new THREE.MeshBasicMaterial({ map: plateTex(text, '', { bg: role ? '#1E232B' : '#7A3B12', fg: '#F3EFE8', sub: '#A9B2C0' }) });
+    const [x, z] = dLocal(d, 0.42, 0.18), g = new THREE.Group(); g.position.set(x, 0.835, z); g.rotation.y = d.ry; scene.add(g);
+    for (const s of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.125), face); m.position.z = s * 0.004; m.rotation.y = s > 0 ? 0 : Math.PI; m.userData.noMerge = true; g.add(m); }
+  });
+}
+
+// the marketing department's desks: each one's nameplate (MARKETING_SEATS, back room then front room), the CEO's by the manager
+function marketingPlates() {
+  const desks = UNITS.filter((u) => u.mk).flatMap((u) => u.desks);
+  MARKETING_SEATS.forEach((role, k) => {
+    const d = DESKS[desks[k]]; if (!d) return;
+    const text = role ? tr(`team.roles.${role}.name`) : tr('team.ceo');
+    const face = new THREE.MeshBasicMaterial({ map: plateTex(text, '', { bg: role === 'cmo' ? '#7A1F48' : role ? '#1E232B' : '#7A3B12', fg: '#F3EFE8', sub: '#A9B2C0' }) });
     const [x, z] = dLocal(d, 0.42, 0.18), g = new THREE.Group(); g.position.set(x, 0.835, z); g.rotation.y = d.ry; scene.add(g);
     for (const s of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.125), face); m.position.z = s * 0.004; m.rotation.y = s > 0 ? 0 : Math.PI; m.userData.noMerge = true; g.add(m); }
   });
@@ -116,7 +129,7 @@ function buildWing() {
   const [bx0, bx1] = WING.corB, door = DEPTS[2].door.at - WING.corA[1];
   glassWall(bx0, WING.corA[1], bx0, Z1, [[door - 0.6, door + 0.6]]);
   glassWall(bx1, WING.corA[1], bx1, Z1, [[door - 0.6, door + 0.6]]);
-  lowWall(-8, WING.split, bx0, WING.split);
+  lowWall(-8, WING.split, bx0, WING.split, DEPTS[0].mk && DEPTS[2].mk ? [[4.4, 6.2]] : []);   // (one marketing department: a doorway between its rooms)
   lowWall(bx1, WING.split, 14, WING.split);
 
   /* door plaques: on the face the camera sees (into the room for the back rooms, the corridor for the front left) */
@@ -130,13 +143,13 @@ function buildWing() {
   sprintBoard(1, 12.2, 1.3, 11.3, 0, 1.3, 0.8, true);
   sprintBoard(2, -5.4, 0.78, WING.split + 0.1, 0, 1.3, 0.72);
   sprintBoard(3, 11.9, 0.78, WING.split + 0.1, 0, 1.3, 0.72);
-  credenza(-6.3, 11.3); credenza(6.2, 11.3); credenza(-1.3, WING.split + 0.45); if (!DEPTS[3].team) credenza(7.3, WING.split + 0.45);
+  credenza(-6.3, 11.3); credenza(6.2, 11.3); if (!DEPTS[2].big) credenza(-1.3, WING.split + 0.45); if (!DEPTS[3].team) credenza(7.3, WING.split + 0.45);
   for (const [x, z, s, k] of [[-7.5, 11.25, 1.0, 'monstera'], [1.75, 11.3, 0.9, 'snake'], [-7.5, 17.85, 0.95, 'bush'], [1.75, 17.85, 0.9, 'snake'],
     [4.75, 11.3, 0.9, 'snake'], [13.55, 11.3, 1.0, 'monstera'], [4.75, 17.85, 0.9, 'bush'], [13.55, 17.85, 0.95, 'snake'],
-    [-7.5, 18.9, 0.9, 'snake'], ...(DEPTS[3].team ? [] : [[13.55, 18.9, 0.9, 'snake']]), [-7.45, 25.5, 1.05, 'monstera'], [1.6, 25.5, 0.95, 'bush'], ...(DEPTS[3].team ? [] : [[5.2, 25.5, 0.95, 'bush'], [13.5, 25.5, 1.05, 'monstera']])]) potPlant(x, z, s, k);   // (the AI team's room: its 16 desks fill it)
-  makeSofa(-5.4, 25.35, 1.9, 0, '#4F6D8F', ['#F2B33D', '#E8742A']);
+    ...(DEPTS[2].big ? [] : [[-7.5, 18.9, 0.9, 'snake']]), ...(DEPTS[3].team ? [] : [[13.55, 18.9, 0.9, 'snake']]), ...(DEPTS[2].big ? [] : [[-7.45, 25.5, 1.05, 'monstera'], [1.6, 25.5, 0.95, 'bush']]), ...(DEPTS[3].team ? [] : [[5.2, 25.5, 0.95, 'bush'], [13.5, 25.5, 1.05, 'monstera']])]) potPlant(x, z, s, k);   // (the AI team's room: its 16 desks fill it)
+  if (!DEPTS[2].big) makeSofa(-5.4, 25.35, 1.9, 0, '#4F6D8F', ['#F2B33D', '#E8742A']);
   if (!DEPTS[3].team) makeSofa(10.2, 25.35, 1.9, 0, '#6B4F3A', ['#BDE0FE', '#E2B04A']);
-  teamPlates();
+  teamPlates(); marketingPlates();
 
   /* corridors: the company's sign at the end of corridor A, plants where the corridors end */
   put(scene, rbox(0.03, 2.7, 1.6, mat('#2F4A3D', { roughness: 0.9 }), 0.005), -7.985, 1.35, (WING.corA[0] + WING.corA[1]) / 2);

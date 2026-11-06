@@ -7,6 +7,7 @@ import { BULB_OFF, GY, bollards, boxAt, cI, cPick, cR, colorize, cr, mergeAll, m
 import { buildStreetLife } from './street-life.js';
 import { SHOPS, SHOP_CEIL, SHOP_W, buildShops, officeMiddle, shopDepth } from './shops.js';
 import { pickleSite } from './street-pickle.js';
+import { cityLampSites, roadDashAllowed } from '../../../shared/street-fixtures.js';
 
 export let dotTex;
 export let poolTex;
@@ -21,9 +22,9 @@ export function buildCity(G) {
   // asphalt: fine grain, a few patches and cracks, tiled every 5 m (the colour, day or night, multiplies it)
   const asphalt = canvasTex(256, 256, (g) => {
     g.fillStyle = '#E4E4E4'; g.fillRect(0, 0, 256, 256);
-    for (let k = 0; k < 9000; k++) { const v = 180 + Math.floor(cr() * 75); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(cr() * 256, cr() * 256, 1 + cr() * 1.5, 1 + cr() * 1.5); }
-    for (let k = 0; k < 5; k++) { g.fillStyle = 'rgba(0,0,0,.07)'; g.beginPath(); g.ellipse(cr() * 256, cr() * 256, 18 + cr() * 40, 10 + cr() * 25, cr() * 3, 0, Math.PI * 2); g.fill(); }
-    g.strokeStyle = 'rgba(0,0,0,.18)'; g.lineWidth = 1;
+    for (let k = 0; k < 9000; k++) { const v = 224 + Math.floor(cr() * 18); g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(cr() * 256, cr() * 256, 1 + cr() * 0.7, 1 + cr() * 0.7); }
+    for (let k = 0; k < 5; k++) { g.fillStyle = 'rgba(0,0,0,.025)'; g.beginPath(); g.ellipse(cr() * 256, cr() * 256, 18 + cr() * 40, 10 + cr() * 25, cr() * 3, 0, Math.PI * 2); g.fill(); }
+    g.strokeStyle = 'rgba(0,0,0,.045)'; g.lineWidth = 0.65;
     for (let k = 0; k < 4; k++) { let x = cr() * 256, y = cr() * 256; g.beginPath(); g.moveTo(x, y); for (let n = 0; n < 6; n++) { x += (cr() - 0.5) * 30; y += (cr() - 0.5) * 30; g.lineTo(x, y); } g.stroke(); }
   });
   asphalt.wrapS = asphalt.wrapT = THREE.RepeatWrapping; asphalt.repeat.set(64, 64); asphalt.anisotropy = 8;
@@ -257,30 +258,32 @@ export function buildCity(G) {
   slabs.push(boxAt(SB.x1 - SB.x0, 0.12, SB.z1 - SB.z0, (SB.x0 + SB.x1) / 2, GY + 0.06, (SB.z0 + SB.z1) / 2, '#8D939B'));
   // lane dashes (zebras and stop lines come with the street life, below)
   const zMin = ZS[0] - 6, zMax = ZS[ZS.length - 1] + 6, xMin = XS[0] - 6, xMax = XS[XS.length - 1] + 6;
-  for (const x of XS) for (let z = zMin; z < zMax; z += 3) if (!inSB(x, z)) lanes.push(boxAt(0.12, 0.01, 1.4, x, GY + 0.01, z, '#6B6F76'));
-  for (const z of ZS) for (let x = xMin; x < xMax; x += 3) if (!inSB(x, z)) lanes.push(boxAt(1.4, 0.01, 0.12, x, GY + 0.01, z, '#6B6F76'));
+  for (const x of XS) for (let z = zMin; z < zMax; z += 3) if (!inSB(x, z) && roadDashAllowed(z, ZS)) lanes.push(boxAt(0.12, 0.01, 1.4, x, GY + 0.01, z, '#D7D5C9'));
+  for (const z of ZS) for (let x = xMin; x < xMax; x += 3) if (!inSB(x, z) && roadDashAllowed(x, XS)) lanes.push(boxAt(1.4, 0.01, 0.12, x, GY + 0.01, z, '#D7D5C9'));
 
-  /* street lamps on both sidewalks, every 12 units, with a pool of light under each */
+  /* One lamp per block on alternating kerbs, clear of intersections, zebras, doors and the office. */
   const lampGeo = [], bulbGeo = [], pools = [];
+  // Shop rooms/doors initialize on the first update; their front descriptors already locate every possible entrance.
+  const entrances = nearest.map(({ x, z, dir }) => [x + (dir === 'px' ? 0.45 : 0), z + (dir === 'pz' ? 0.45 : 0), 1.5]);
+  const lamps = cityLampSites({ XS, ZS, streetWidth: STREET_W, superblock: SB, avoid: entrances }).filter(({ x, z }) => !onCourt(x, z, 0.4));
   const lamp = (x, z, ax, az) => {
-    if ((x > -9.4 && x < 12.6 && z > -7.2 && z < 11.2) || onCourt(x, z, 0.3)) return;   // not on the terrace, nor in the pickleball court
-    lampGeo.push(colorize(new THREE.CylinderGeometry(0.06, 0.08, 3.8, 6).translate(x, GY + 1.9, z), '#2B2F36'));
-    lampGeo.push(boxAt(ax ? 1.0 : 0.08, 0.07, az ? 1.0 : 0.08, x + ax * 0.45, GY + 3.75, z + az * 0.45, '#2B2F36'));
-    bulbGeo.push(boxAt(ax ? 0.4 : 0.18, 0.06, az ? 0.4 : 0.18, x + ax * 0.85, GY + 3.68, z + az * 0.85, '#FFFFFF'));
+    lampGeo.push(colorize(new THREE.CylinderGeometry(0.06, 0.08, 3.8, 10).translate(x, GY + 0.12 + 1.9, z), '#303A43'));
+    lampGeo.push(colorize(new THREE.CylinderGeometry(0.12, 0.14, 0.14, 10).translate(x, GY + 0.19, z), '#303A43'));
+    lampGeo.push(boxAt(ax ? 1.0 : 0.08, 0.07, az ? 1.0 : 0.08, x + ax * 0.45, GY + 0.12 + 3.75, z + az * 0.45, '#303A43'));
+    bulbGeo.push(boxAt(ax ? 0.4 : 0.18, 0.06, az ? 0.4 : 0.18, x + ax * 0.85, GY + 0.12 + 3.68, z + az * 0.85, '#FFFFFF'));
     pools.push(new THREE.PlaneGeometry(4.8, 4.8).rotateX(-Math.PI / 2).translate(x + ax * 1.0, GY + 0.14, z + az * 1.0));
   };
-  for (const x of XS) for (let z = zMin + 4, k = 0; z < zMax; z += 9, k++) { if (!inSB(x, z)) { if (k % 2) lamp(x - STREET_W / 2 - 0.5, z, 1, 0); else lamp(x + STREET_W / 2 + 0.5, z, -1, 0); } }
-  for (const z of ZS) for (let x = xMin + 4, k = 0; x < xMax; x += 9, k++) { if (!inSB(x, z)) { if (k % 2) lamp(x, z - STREET_W / 2 - 0.5, 0, 1); else lamp(x, z + STREET_W / 2 + 0.5, 0, -1); } }
+  for (const p of lamps) lamp(p.x, p.z, p.ax, p.az);
 
   /* traffic, the lights, the bus stop and people on the pavements (street-life.js) */
-  const life = buildStreetLife(G, { XS, ZS, STREET_W, SB, shops: nearest, parks, solids, trees, plazas, faces: fronts, inShop: stores.walk, pickle });
+  const life = buildStreetLife(G, { XS, ZS, STREET_W, SB, shops: nearest, parks, solids, trees, plazas, faces: fronts, inShop: stores.walk, pickle, lamps });
   lanes.push(...life.marks);
   FACADES.forEach((_, i) => mergedTo(G, parts[i].filter(Boolean), styleMats[i]));
   mergedTo(G, roofs, vmat({ roughness: 0.9 }));
   mergedTo(G, clutter, vmat({ roughness: 0.7, metalness: 0.15 }));
   mergedTo(G, greens, vmat({ roughness: 0.95 }));
   const slabMesh = mergedTo(G, slabs, vmat({ roughness: 0.92 }), false);   // sidewalks: light concrete by day, dark at night
-  mergedTo(G, lanes, new THREE.MeshBasicMaterial({ vertexColors: true }), false);
+  mergedTo(G, lanes, vmat({ roughness: 0.95 }), false);
   if (shops.length) { const o = new THREE.Mesh(mergeAll(shops), shopM); G.add(o); }
   mergedTo(G, lampGeo, vmat({ roughness: 0.4, metalness: 0.5 }));
   const lampBulbM = new THREE.MeshBasicMaterial({ color: BULB_OFF.clone() }); bollards.push(lampBulbM);

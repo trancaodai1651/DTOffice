@@ -40,6 +40,17 @@ function flow(stages) {
   }
   return box;
 }
+// the marketing department: its 18 positions by group, each with what it does; the manager first, who takes your task
+function marketingOrg(mk) {
+  const box = el('div', 'tm-mk-org');
+  for (const g of mk.groups) {
+    const col = el('div', `tm-group is-${g}`); col.append(el('h3', null, tr(`team.marketing.groups.${g}`)));
+    const ul = el('ul', 'tm-mk-list');
+    for (const r of mk.roles.filter((x) => x.group === g)) { const li = el('li'); li.append(el('b', null, tr(`team.roles.${r.id}.name`)), el('small', null, ` · ${tr(`team.roles.${r.id}.duty`)}`)); ul.append(li); }
+    col.append(ul); box.append(col);
+  }
+  return box;
+}
 function drawRuns() {
   if (!runsBox) return;
   if (!lastRuns.length) { runsBox.replaceChildren(el('p', 'zc-task-note', tr('team.noRuns'))); return; }
@@ -145,10 +156,16 @@ function buildTaskInfo(sheet, t, r) {
   const about = el('details', 'tm-about');
   about.append(el('summary', null, tr('team.flowTitle')), flow(t.stages));
   sheet.append(about);
+  const mkTeam = (t.teams || []).find((x) => x.id === 'marketing');
+  if (mkTeam && t.marketing) {
+    const mk = el('details', 'tm-about');
+    mk.append(el('summary', null, `📣 ${tr('team.marketing.title', { n: t.marketing.roles.length })}`), el('p', 'zc-task-note', tr('team.marketing.sub')), marketingOrg(t.marketing), flow(mkTeam.stages));
+    sheet.append(mk);
+  }
   // the goal
   const saved = kept(), dirs = [...r.projects.map((p) => [p.dir, p.name]), ...r.sessions.filter((s) => !r.projects.some((p) => p.dir === s.dir)).map((s) => [s.dir, s.dir.split(/[\\/]/).pop()])].filter((x, i, a) => a.findIndex((y) => y[0] === x[0]) === i);
   const can = (a) => (a === 'codex' ? r.codex : r.claude !== false);
-  const pick = { dir: dirs.some((d) => d[0] === saved.dir) ? saved.dir : dirs[0]?.[0] || '', lead: saved.lead === 'cto' ? 'cto' : 'pm', agent: can(saved.agent) ? saved.agent : can('claude') ? 'claude' : 'codex', model: saved.model || '', effort: saved.effort || '' };
+  const pick = { dir: dirs.some((d) => d[0] === saved.dir) ? saved.dir : dirs[0]?.[0] || '', lead: ['cto', 'cmo'].includes(saved.lead) ? saved.lead : 'pm', agent: can(saved.agent) ? saved.agent : can('claude') ? 'claude' : 'codex', model: saved.model || '', effort: saved.effort || '' };
   const form = el('div', 'tm-form');
   const goal = el('textarea', 'zc-task-in'); goal.rows = 3; goal.maxLength = 4000; goal.placeholder = tr('team.goalPh');
   const fields = el('div', 'tm-fields'), go = el('button', 'zc-task-go', tr('team.go')); go.type = 'button';
@@ -159,7 +176,7 @@ function buildTaskInfo(sheet, t, r) {
     if (pick.effort && !efforts.includes(pick.effort)) pick.effort = '';
     fields.replaceChildren(
       select(tr('team.project'), dirs.map(([d, n]) => [d, `${n} · ${d}`]), pick.dir, (v) => { pick.dir = v; }),
-      select(tr('team.giveTo'), [['pm', tr('team.roles.pm.name')], ['cto', tr('team.roles.cto.name')]], pick.lead, (v) => { pick.lead = v; }),
+      select(tr('team.giveTo'), [['pm', `${tr('team.roles.pm.name')} · ${tr('team.teams.dev')}`], ['cto', `${tr('team.roles.cto.name')} · ${tr('team.teams.dev')}`], ...((t.teams || []).some((x) => x.id === 'marketing') ? [['cmo', `${tr('team.roles.cmo.name')} · ${tr('team.teams.marketing')}`]] : [])], pick.lead, (v) => { pick.lead = v; }),
       select(tr('team.cli'), [['claude', 'Claude Code'], ['codex', 'Codex CLI']].filter(([a]) => can(a)), pick.agent, (v) => { pick.agent = v; pick.model = ''; pick.effort = ''; drawFields(); }),
       select(tr('team.model'), [['', tr('chat.task.modelDefault')], ...models.map((x) => [x.id, x.name])], pick.model, (v) => { pick.model = v; drawFields(); }),
       select(tr('team.effort'), [['', tr('chat.task.effortDefault')], ...efforts.map((e) => [e, effortName(e)])], pick.effort, (v) => { pick.effort = v; }),

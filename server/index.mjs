@@ -24,9 +24,11 @@ import { createCodexAccounts } from './codex-accounts.mjs';
 import { createSetup, pickAgents } from './setup.mjs';
 import { agentModels, pickRun } from './agent-models.mjs';
 import { createMemory, wrap as wrapMemory } from './memory.mjs';
-import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS, TEAMS } from './team.mjs';
+import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS } from './team.mjs';
 import { createCodexSessions, readCodexLog } from './codex-sessions.mjs';
 import { createCodexBurn } from './codex-burn.mjs';
+import { desktopBotSnapshot } from '../src/shared/desktop-bot.js';
+import { sessionName } from '../src/shared/session-name.js';
 import { createSpecialists, openPath, ffmpegInstall } from './specialists.mjs';
 import { createAntigravityAccounts, makeDb, windowsOf } from './antigravity-accounts.mjs';
 import { report as promptReport } from './prompt-report.mjs';
@@ -56,6 +58,7 @@ import { managedEnvs, otelOwner } from './otel-setup.mjs';
 import { pickLang, createT } from '../src/i18n/index.js';
 import { createLiftService } from './lift-service.mjs';
 import { dataDir } from './data-dir.mjs';
+import { specialistRequest, specialistForSession } from '../src/shared/specialist-request.js';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.OFFICE_PORT) || 4310;
@@ -337,7 +340,7 @@ function freeDesk() {
   return -1;
 }
 const pubSub = (x) => ({ id: x.id, type: x.type, desc: x.desc || '', last: x.last || null, startedAt: x.startedAt, endedAt: x.endedAt || null, steps: x.steps || 0, model: x.model || '' });
-const pub = (s) => ({ id: s.id, pid: s.pid, name: s.name, title: s.title || '', role: s.role || '', team: s.team || null, dir: tilde(s.cwd), link: s.link, desk: s.desk, status: s.status, lastPrompt: s.lastPrompt && oneLine(unwrapPaste(s.lastPrompt)),
+const pub = (s) => ({ id: s.id, pid: s.pid, name: s.name, personnelName: sessionName(s), title: s.title || '', role: s.role || '', team: s.team || null, dir: tilde(s.cwd), link: s.link, desk: s.desk, status: s.status, lastPrompt: s.lastPrompt && oneLine(unwrapPaste(s.lastPrompt)),
   taskStart: s.taskStart, counts: s.counts, subs: Object.values(s.subs).map(pubSub), doneSubs: (s.doneSubs || []).map(pubSub), last: s.last, acct: acctOf(s),
   entry: s.entry || '', agent: s.agent || 'claude', model: s.agent === 'codex' ? s.model || '' : undefined, moved: s.parked ? { to: acctShown(s.parked.to), at: s.parked.at } : null,
   lastAt: s.lastEventAt || s.createdAt, doneAt: s.doneAt || 0, todos: s.todos || [], lastReply: s.lastReply || '', origin: s.origin || '',
@@ -597,8 +600,8 @@ let chat = null, chatSaveT = null;
 const STAFF_NAME = { __reception: 'people.staff.receptionist', __hr: 'people.staff.hr', __cleaner: 'people.staff.cleaner', __accountant: 'people.accountant.name', __guard: 'people.guard.name', __director: 'people.director', __courier: 'people.staff.shipper', __claude: 'chat.claudeTag' };   // (__claude: a new conversation's answers, before it has a person)
 chat = createChatEngine({
   tr, now: () => Date.now(),
-  members: () => [...sessions.values()].map((s) => ({ id: s.id, name: s.title || s.name || 'claude', status: s.status, task: s.lastPrompt ? clip(oneLine(unwrapPaste(s.lastPrompt)), 80) : '', last: s.last, project: path.basename(s.cwd || '') })),
-  staffName: (key) => (STAFF_NAME[key] ? tr(STAFF_NAME[key]) : null),
+  members: () => [...sessions.values()].map((s) => ({ id: s.id, name: sessionName(s) || 'claude', status: s.status, task: s.lastPrompt ? clip(oneLine(unwrapPaste(s.lastPrompt)), 80) : '', last: s.last, project: path.basename(s.cwd || '') })),
+  staffName: (key) => (key === '__news' || key === '__video' ? tr(`specialists.${key.slice(2)}.name`) : STAFF_NAME[key] ? tr(STAFF_NAME[key]) : null),
   store: {
     load: () => { try { return JSON.parse(fs.readFileSync(CHAT_FILE, 'utf8')); } catch { return null; } },
     save: (d) => { clearTimeout(chatSaveT); chatSaveT = setTimeout(() => { fsp.writeFile(`${CHAT_FILE}.tmp`, JSON.stringify(d)).then(() => fsp.rename(`${CHAT_FILE}.tmp`, CHAT_FILE)).catch(() => {}); }, 800); },
@@ -625,13 +628,14 @@ const tasks = createTasks({
   onStep: (t, x) => cardStep(t.id, stepOf(x.name, x.input)),
   onBg: (t, what, detail) => onBgTask(t, what, detail),
   onDone: (t) => {
+    if (['news', 'video'].includes(t.role) && t.sid) specialists.bind(t.id, t.sid);
     if (t.sid) taskSids.add(t.sid);
     const card = cards.get(t.id); cards.delete(t.id);
     if (card) { clearTimeout(card.timer); chat.setWork(card.id, { state: t.stopped ? 'stopped' : t.error && !t.result ? 'fail' : 'done', steps: card.steps, n: card.n, end: Date.now(), perm: null, ask: null }); }
     for (const x of sessions.values()) if (x.viaOffice === t.id) delete x.viaOffice;   // (its events are its own again)
     const dm = t.from?.chat, folder = path.basename(t.dir);
     // the answer from whoever you asked (the conversation's person; Claude itself for a new conversation, or if that one has gone)
-    const all = [...sessions.values()], who = (t.from?.id && all.some((x) => x.id === t.from.id) && t.from.id) || (dm ? 'claude' : t.sid && all.find((x) => x.sid === t.sid)?.id);
+    const all = [...sessions.values()], who = ['news', 'video'].includes(t.role) ? `__${t.role}` : (t.from?.id && all.some((x) => x.id === t.from.id) && t.from.id) || (dm ? 'claude' : t.sid && all.find((x) => x.sid === t.sid)?.id);
     // the pages it changed (its SCREENSHOT lines): named under the answer, then their pictures at a phone's size
     const { text: said, urls } = shotsIn(t.result);
     const text = t.stopped && !t.result ? tr('chat.task.stopped') : t.error && !t.result ? tr('chat.task.failed', { folder, error: clip(oneLine(t.error), 200) }) : clip(`${said || tr('chat.task.doneEmpty')}${urls.length ? `\n\n📸 ${tr('chat.task.shots', { pages: urls.map((u) => new URL(u).pathname).join(', ') })}` : ''}`, dm ? 3800 : 560);
@@ -648,7 +652,7 @@ const tasks = createTasks({
     // a member of the AI team: its stage goes on once its memory is kept; any other run: a free place for a member waiting its turn
     setTimeout(() => team.taskDone(t), t.team ? (t.agent === 'codex' ? 4500 : 1500) : 200);
     if (t.perm === 'specialist' || ['news', 'video'].includes(t.role)) setTimeout(() => specialists.taskDone(t).catch(() => {}), 300);   // (the news reader's report printed to PDF)
-    if (t.agent === 'codex') setTimeout(() => { const s = t.sid && bySid(t.sid); memory.finish({ key: s?.key, cwd: t.dir, agent: 'codex', name: s ? s.title || s.name : folder, prompt: t.text, reply: t.result || t.error, failed: !!t.error && !t.result, who: whoOfRun(t.sid) }); }, 4000);
+    if (t.agent === 'codex') setTimeout(() => { const s = t.sid && bySid(t.sid); memory.finish({ key: s?.key, cwd: t.dir, agent: 'codex', name: s ? sessionName(s) : folder, prompt: t.text, reply: t.result || t.error, failed: !!t.error && !t.result, who: whoOfRun(t.sid) }); }, 4000);
   },
 });
 /* ---------- "✨ Viết lại cho rõ", the chat's prompt helper (server/rewrite.mjs): a message for Claude, made clearer by a
@@ -719,7 +723,7 @@ const acctEnv = (slug) => ({ CLAUDE_CONFIG_DIR: slug ? dirOfSlug(slug) : null })
    it is, still resting) and parked on its account, so its tab takes it up again (the editor's script, --resume) the next
    time you write there, with what was said on the phone. One in a terminal can't be: it would just end. */
 async function parkForPhone(s) {
-  const name = s.title || s.name;
+  const name = sessionName(s);
   if (s.entry !== 'claude-vscode') return { ok: false, message: tr('chat.task.macTerminal', { name }) };
   const eds = setEditorWrapper(true), host = eds.find((e) => e.app === s.origin);
   if (!(host ? host.ok : eds.some((e) => e.ok))) return { ok: false, message: tr('server.move.noScript') };
@@ -748,7 +752,7 @@ async function stopBgSession(s) {
 const agentOn = (a) => { const l = prefs.get('agents'); return !Array.isArray(l) || l.includes(a); };
 const tasksOut = (local) => ({ ok: true, models: agentModels(codexHome()), memoryOn: memoryOn(), allowed: local || !!prefs.get('phoneTasks'), running: tasks.list(), bg: bgOut(), codex: agentOn('codex') && !!findCodex(), claude: agentOn('claude') && !!findClaude(),
   projects: knownDirs.filter((d) => fs.existsSync(d)).map((d) => ({ dir: tilde(d), name: path.basename(d), memory: memory.count(d) })),
-  sessions: [...sessions.values()].filter((s) => s.sid && s.cwd).map((s) => ({ id: s.id, sid: s.sid, name: s.title || s.name, dir: tilde(s.cwd), status: s.status, cache: cacheOut(s), agent: s.agent || 'claude', memory: memory.count(s.cwd) })) });
+  sessions: [...sessions.values()].filter((s) => s.sid && s.cwd).map((s) => ({ id: s.id, sid: s.sid, name: sessionName(s), dir: tilde(s.cwd), status: s.status, cache: cacheOut(s), agent: s.agent || 'claude', memory: memory.count(s.cwd) })) });
 
 /* ---------- what eats the plan (server/otel.mjs): Claude Code's own telemetry, received at /v1/metrics and /v1/logs
    ----------
@@ -768,7 +772,7 @@ function transcriptCwd(sid) {
   }
   return '';
 }
-const codexBurn = createCodexBurn({ home: () => codexHome(), nameOf: (sid) => { const s = bySid(sid); const t = !s && tasks.list().find((x) => x.sid === sid); const m = !s && team.whoSid(sid); return s ? { name: s.title || s.name, open: true, role: s.role || '' } : t?.role ? { name: roleName(t.role), role: t.role } : m ? { name: roleName(m.role), role: m.role } : null; } });
+const codexBurn = createCodexBurn({ home: () => codexHome(), nameOf: (sid) => { const s = bySid(sid); const t = !s && tasks.list().find((x) => x.sid === sid); const m = !s && team.whoSid(sid); return s ? { name: sessionName(s), open: true, role: s.role || '' } : t?.role ? { name: roleName(t.role), role: t.role } : m ? { name: roleName(m.role), role: m.role } : null; } });
 const otel = createOtel({ dir: path.join(DATA_DIR, 'otel'), cwdOf: (sid) => bySid(sid)?.cwd || transcriptCwd(sid) });
 // The panel's numbers: today or the last 7 days, the 40 sessions that cost most (the rest in one line, so they still add
 // up), and the plan's week as an exchange rate: the % of the weekly limit used so far over what was counted since that
@@ -780,7 +784,7 @@ function burnOut(range) {
   let plan = null;
   if (w && w.pct >= 1 && w.resetsAt > Date.now()) { const usd = otel.usdSince(w.resetsAt - 7 * 86400e3); if (usd >= 0.5) plan = { pct: w.pct, resetsAt: w.resetsAt, perUsd: w.pct / usd, name: planLimits.account?.plan || '' }; }
   const shown = r.sessions.slice(0, 40), rest = r.sessions.slice(40);
-  const named = (x) => { const s = bySid(x.sid); return { ...x, name: s ? s.title || s.name : '', open: !!s, dir: tilde(x.cwd), cwd: undefined }; };
+  const named = (x) => { const s = bySid(x.sid); return { ...x, name: s ? sessionName(s) : '', open: !!s, dir: tilde(x.cwd), cwd: undefined }; };
   return { ok: true, ...r, sessions: shown.map(named), rest: { n: rest.length, usd: rest.reduce((a, x) => a + x.usd, 0), share: rest.reduce((a, x) => a + x.share, 0) },
     projects: r.projects.map((p) => ({ ...p, dir: tilde(p.cwd), cwd: undefined })), setup: otelOwner({ settings, managed: managedEnvs() }).state, plan };
 }
@@ -788,6 +792,8 @@ function burnOut(range) {
 /* Giving work to a conversation or a project ("Gửi tới", 📋 Giao việc), from the chat, a phone, or a note kept for when
    a conversation is done: [status, reply]. who: 'mac', 'phone <ip>' or 'queued', for the log. */
 async function giveWork(b, who) {
+  const request = specialistRequest(b?.text);
+  if (request) return giveSpecialistWork(request, b);
   // who it goes to: a conversation the office knows (carried on itself, the very one), or a project folder (a new
   // conversation there, or the one you started there); one way for both the chat's "Gửi tới" and 📋 Giao việc
   const s = b?.sid && [...sessions.values()].find((x) => x.sid === String(b.sid) && x.cwd);
@@ -795,7 +801,7 @@ async function giveWork(b, who) {
   if (!s && !pdir) return [400, { ok: false, code: 'noDir', message: tr('chat.task.noDir') }];
   const text = String(b?.text || '').trim().slice(0, 4000), images = (Array.isArray(b?.images) ? b.images : []).slice(0, 4).map(String);
   if (!text) return [400, { ok: false, code: 'empty' }];
-  const name = s ? s.title || s.name : path.basename(pdir), key = s ? s.sid : `dir:${pdir}`, th = threads.get(key);
+  const name = s ? sessionName(s) : path.basename(pdir), key = s ? s.sid : `dir:${pdir}`, th = threads.get(key);
   if (th?.running) return [409, { ok: false, code: 'busy', message: tr('chat.task.threadBusy', { name }) }];
   // who does it: a Codex session's own CLI; for a project, the one asked for (b.agent), else Claude Code
   const agent = s ? (s.agent === 'codex' ? 'codex' : 'claude') : b?.agent === 'codex' ? 'codex' : 'claude';
@@ -814,7 +820,7 @@ async function giveWork(b, who) {
   } else {   // a project: a new conversation, or the one you started there (for 6 hours; ＋ asks for a new one)
     const on = th?.sid && !b.fresh && (th.agent || 'claude') === agent && Date.now() - th.at < 6 * 3600e3 ? th.sid : null;
     const live = on && bySid(on);   // (that one opened on the Mac since, `claude attach`, and at work there: it waits)
-    if (live?.pid && (live.status !== 'rest' || live.busy)) return [409, { ok: false, code: 'macBusy', message: tr('chat.task.macBusy', { name: live.title || live.name }) }];
+    if (live?.pid && (live.status !== 'rest' || live.busy)) return [409, { ok: false, code: 'macBusy', message: tr('chat.task.macBusy', { name: sessionName(live) }) }];
     from = { sid: on, fork: false, name, orig: key, chat: true };
   }
   memory.sync(s ? s.cwd : pdir);   // (the project's memory file and its lines in CLAUDE.md / AGENTS.md, before the session reads them)
@@ -848,7 +854,7 @@ async function steerTo(b, who) {
   const key = t?.from?.orig || (b?.sid ? String(b.sid) : pdir ? `dir:${pdir}` : null);
   if (!t && key) t = tasks.byKey(key);
   const s = (t?.sid && bySid(t.sid)) || (b?.sid && bySid(String(b.sid))) || (key?.startsWith('dir:') && threads.get(key)?.sid && bySid(threads.get(key).sid)) || null;
-  const name = t?.from?.name || (s && (s.title || s.name)) || (pdir && path.basename(pdir)) || 'Claude';
+  const name = t?.from?.name || (s && (sessionName(s))) || (pdir && path.basename(pdir)) || 'Claude';
   if (!t && !(s?.pid && (s.status !== 'rest' || s.busy))) return [409, { ok: false, code: 'notBusy', message: tr('chat.steer.notBusy', { name }) }];
   const inbox = t?.inbox || s?.inbox || null, acct = s && acctOf(s);
   const can = steerable({ inbox, mode: s?.mode || '', inbound: inboundFrom({ configDir: t?.env?.CLAUDE_CONFIG_DIR || (acct ? dirOfSlug(acct) : CLAUDE_DIR), cwd: s?.cwd || t?.dir }), isSocket });
@@ -947,7 +953,7 @@ async function doScan() {
     if (j.sessionId && s.sid !== j.sessionId) { if (s.sid) sidToKey.delete(s.sid); s.sid = j.sessionId; changed = true; }
     if (j.sessionId) sidToKey.set(j.sessionId, key);
     const link = j.bridgeSessionId ? 'https://claude.ai/code/' + j.bridgeSessionId : null;
-    const name = j.name || base(j.cwd) || 'claude';
+    const name = s.role ? roleName(s.role) : j.name || base(j.cwd) || 'claude';
     if (s.name !== name || s.cwd !== j.cwd || s.link !== link) { s.name = name; s.cwd = j.cwd || ''; s.link = link; changed = true; noteDir(s.cwd); }
     s.pid = j.pid; s.fromFile = true; s.busy = j.status === 'busy'; s.entry = j.entrypoint || '';
     s.jobId = j.kind === 'bg' && /^[0-9a-f]{6,16}$/.test(j.jobId || '') ? j.jobId : null;   // (a background session: `claude stop` / `attach` take this)
@@ -968,6 +974,7 @@ async function doScan() {
 const transcriptOf = (s) => s.transcript || (s.sid && s.cwd ? path.join(CLAUDE_DIR, 'projects', s.cwd.replace(/[^A-Za-z0-9-]/g, '-'), `${s.sid}.jsonl`) : null);
 const lastField = (text, field) => { let m, out = null; const re = new RegExp(`"${field}":"((?:[^"\\\\]|\\\\.)*)"`, 'g'); while ((m = re.exec(text))) out = m[1]; if (out == null) return null; try { return JSON.parse(`"${out}"`); } catch { return null; } };
 async function refreshTitle(s, first = false) {
+  if (s.role) return;   // A role's resident keeps its own name when the CLI generates a chat title.
   const file = transcriptOf(s); if (!file) return;
   s.titleAt = Date.now();
   let fh;
@@ -1005,7 +1012,7 @@ async function recallTask(s) {
 }
 function dropSession(key, s) {
   memory.end(key, s);   // (gone without a SessionEnd: what it did is kept all the same)
-  if (s.fromFile && !taskSids.has(s.sid) && !s.viaOffice) chat.onLeft(s.title || s.name);
+  if (s.fromFile && !taskSids.has(s.sid) && !s.viaOffice) chat.onLeft(sessionName(s));
   sessions.delete(key);
   if (s.sid && sidToKey.get(s.sid) === key) sidToKey.delete(s.sid);
   broadcast({ k: 'gone', id: s.id });
@@ -1069,7 +1076,7 @@ async function onHook(p) {
     s = newSession(key);
     // (Codex's ids are UUIDv7, a timestamp first: their last characters tell two apart)
     s.sid = sid; s.cwd = p.cwd || ''; s.name = `${base(p.cwd) || p.agent || 'claude'}-${p.agent === 'codex' ? sid.slice(-2) : sid.slice(0, 2)}`; noteDir(s.cwd);
-    if (p.agent === 'codex') { s.agent = 'codex'; s.origin = 'Codex'; }   // (a Codex CLI session, read from its rollout file: server/codex-sessions.mjs)
+    if (p.agent === 'codex') { s.agent = 'codex'; s.origin = /desktop/i.test(p.codex_origin || '') ? 'Codex Desktop' : 'Codex'; }   // (a Codex session, read from its rollout file)
     sessions.set(key, s); sidToKey.set(sid, key);
     broadcast({ k: 'sess', s: pub(s) });
     if (s.agent === 'codex' && p.codex_file) { s.codexFile = p.codex_file; recallTask(s); }
@@ -1500,7 +1507,7 @@ function onMemory(p) {
   if (!p?.cwd || p.source === 'compact') return null;
   const text = memory.context(p.cwd); if (!text) return null;
   const s = bySid(p.session_id), n = memory.count(p.cwd);
-  chat.system(tr('chat.memory.read', { name: s ? s.title || s.name : path.basename(p.cwd), n }));
+  chat.system(tr('chat.memory.read', { name: s ? sessionName(s) : path.basename(p.cwd), n }));
   return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } };
 }
 // a folder the memory may be read or written for: one the office knows (a session's, a project's)
@@ -1514,8 +1521,11 @@ const roleName = (id) => tr(`team.roles.${id}.name`);
 function teamRole(s, sid, p) {
   const here = path.resolve(String(s.cwd || p?.cwd || ''));
   const mine = (x) => x?.role && (x.team || SPECIALIST_ROLES.includes(x.role));   // (a member of the team, or one of the specialists)
-  const run = (sid && tasks.of(sid)) || tasks.list().find((x) => mine(x) && (!x.sid || x.sid === sid) && path.resolve(x.dir) === here);
+  const job = specialistForSession({ sid, cwd: s.cwd || p?.cwd, jobs: specialists.list() });
+  const exact = sid && (tasks.of(sid) || runsDone.get(sid) || (job?.sid === sid && { role: job.kind, id: job.task }));
+  const run = exact || tasks.list().find((x) => mine(x) && (!x.sid || x.sid === sid) && path.resolve(x.dir) === here) || (job && { role: job.kind, id: job.task });
   if (!mine(run)) return;
+  if (SPECIALIST_ROLES.includes(run.role) && run.id) specialists.bind(run.id, sid);
   s.roleSet = true; s.role = run.role; s.team = run.team || null;
   s.title = s.name = roleName(run.role);
   broadcast({ k: 'sess', s: pub(s) });
@@ -1536,6 +1546,13 @@ const specialists = createSpecialists({
 });
 const specialistsOut = () => ({ ok: true, jobs: specialists.list(), tools: { ...specialists.tools(), skills: specialists.tools().skills }, defaults: specialists.defaults(),
   claude: agentOn('claude') && !!findClaude(), codex: agentOn('codex') && !!findCodex(), models: agentModels(codexHome()) });
+function giveSpecialistWork(request, b = {}) {
+  const agent = b.agent === 'codex' ? 'codex' : b.agent === 'claude' ? 'claude' : agentOn('claude') && findClaude() ? 'claude' : 'codex';
+  const fail = (code) => [409, { ok: false, code, message: tr(code === 'specialistBusy' ? 'specialists.why.specialistBusy' : `chat.task.why.${code}`) }];
+  if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) return fail(agent === 'codex' ? 'noCodex' : 'noClaude');
+  const r = specialists.news({ topic: request.topic, agent, ...pickRun(agent, { model: b.model, effort: b.effort }, codexHome()) });
+  return r.ok ? [200, { ...r, specialist: 'news' }] : fail(r.code);
+}
 const team = createTeam({
   dataDir: DATA_DIR, lang: () => prefs.lang(),
   start: (r, s, prompt, role) => {
@@ -1548,6 +1565,9 @@ const team = createTeam({
     if (what === 'begin') chat.system(tr('team.chat.begin', { lead, goal: clip(oneLine(r.goal), 160), folder: path.basename(r.dir) }));
     else if (what === 'stage') chat.system(tr('team.chat.stage', { n: r.stages.length, stage: tr(`team.stages.${x.stage.key}`), names: names(x.stage) }));
     else if (what === 'stageDone' && x.stage.key === 'plan') chat.system(tr(r.named ? 'team.chat.assigned' : 'team.chat.assignedAll', { lead: roleName('pm'), names: (r.named || []).map(roleName).join(', ') }));
+    else if (what === 'stageDone' && x.stage.key === 'mplan') chat.system(tr(r.named ? 'team.chat.assignedMk' : 'team.chat.assignedMkNone', { lead: roleName('cmo'), names: (r.named || []).map(roleName).join(', ') }));
+    else if (what === 'jobDone' && x.stage.key === 'mreview' && x.job.verdict) chat.system(tr('team.chat.verdictOf', { name: roleName(x.job.role), verdict: tr(`team.verdict.${x.job.verdict}`) }));
+    else if (what === 'stageDone' && x.stage.key === 'mreview') chat.system(tr(x.stage.verdict === 'pass' ? 'team.chat.passMk' : 'team.chat.failMk', { names: names(x.stage) }));
     else if (what === 'jobDone' && x.stage.key === 'verify' && x.job.verdict) chat.system(tr('team.chat.verdictOf', { name: roleName(x.job.role), verdict: tr(`team.verdict.${x.job.verdict}`) }));
     else if (what === 'stageDone' && x.stage.key === 'verify') chat.system(tr(x.stage.verdict === 'pass' ? 'team.chat.pass' : 'team.chat.failVerify', { names: names(x.stage) }));
     else if (what === 'done') chat.system(tr('team.chat.done', { lead, folder: path.basename(r.dir) }));
@@ -1560,7 +1580,8 @@ const team = createTeam({
     broadcast({ k: 'team', runs: team.list() });
   },
 });
-const teamOut = () => ({ ok: true, teams: TEAMS.map(({ id, roles }) => ({ id, roles })), roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
+const teamOut = () => ({ ok: true, teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
+  marketing: { roles: MARKETING_ROLES.map(({ id, group }) => ({ id, group })), groups: MARKETING_GROUPS }, roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
 
 /* ---------- "Ghi nhớ cho Claude": what you pin for a conversation (the session drawer's "Ghi nhớ" tab), said to Claude
    again each time Claude Code compacts it, when what it was told along the way may be summed up away. The synchronous
@@ -1590,7 +1611,7 @@ async function onStart(p) {
   if (p?.source !== 'compact') return null;
   const list = pinsOf(p.session_id); if (!list.length) return null;
   pins[p.session_id].said = Date.now(); savePins();
-  const s = bySid(p.session_id); if (s) chat.system(tr('chat.pins.said', { name: s.title || s.name, n: list.length }));
+  const s = bySid(p.session_id); if (s) chat.system(tr('chat.pins.said', { name: sessionName(s), n: list.length }));
   fsp.appendFile(ACTION_LOG, `${new Date().toISOString()} pins said again ${p.session_id} (${list.length})\n`).catch(() => {});
   return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `${tr('server.pins.context')}\n${list.map((x) => `- ${x.text}`).join('\n')}` } };
 }
@@ -1635,10 +1656,10 @@ async function undoAct(b, who) {
     const files = String(b.files || '').slice(0, 2000);
     return s.pid && (s.status !== 'rest' || s.busy) ? steerTo({ sid: s.sid, text: tr('server.undo.tell', { files }) }, who) : giveWork({ sid: s.sid, text: tr('server.undo.tell', { files }) }, who);
   }
-  if (s.status !== 'rest' || s.busy) return [409, { ok: false, message: tr('server.undo.busy', { name: s.title || s.name }) }];
+  if (s.status !== 'rest' || s.busy) return [409, { ok: false, message: tr('server.undo.busy', { name: sessionName(s) }) }];
   const r = await undo.apply(s.sid);
   if (!r.done.length) return [409, { ok: false, message: tr('server.undo.nothing') }];
-  chat.system(tr('chat.undo.done', { name: s.title || s.name, n: r.done.length }));
+  chat.system(tr('chat.undo.done', { name: sessionName(s), n: r.done.length }));
   broadcast({ k: 'sess', s: pub(s) });
   fsp.appendFile(ACTION_LOG, `${new Date().toISOString()} undo ${s.sid} from ${who}: ${r.done.map((x) => `${x.action} ${x.file}`).join(', ')}\n`).catch(() => {});
   return [200, { ok: true, done: r.done.map((x) => ({ ...x, file: tilde(x.file) })), after: tilde(r.after || '') }];
@@ -1720,7 +1741,7 @@ function loopLine(st, name) {
 }
 function onLoop(s, sig) {
   if (!s || !sig) return;
-  const card = loopCards.get(s.id), name = s.title || s.name;
+  const card = loopCards.get(s.id), name = sessionName(s);
   const setCard = (loop) => { if (card) chat.setLoop(card.id, loop); };
   if (sig.type === 'fire') {
     const st = sig.stuck, run = loopRun(s);
@@ -1752,7 +1773,7 @@ function loopReply(p) {
 /* ---------- "Chặn ghi đè và giành cổng" (server/overlap.mjs): two sessions on one file, a port another process holds.
    Told to the session's Claude with its next tool call (the synchronous hook above), and said in the chat. ---------- */
 const overlap = createOverlap();
-const nameOfSid = (sid) => { const x = bySid(sid); return x ? x.title || x.name : String(sid || '').slice(0, 8); };
+const nameOfSid = (sid) => { const x = bySid(sid); return x ? sessionName(x) : String(sid || '').slice(0, 8); };
 // before a call: another session's recent edit of the same file (once per pair and file), a word kept for this session
 function overlapNote(p) {
   if (p.hook_event_name && p.hook_event_name !== 'PreToolUse') return null;
@@ -1780,7 +1801,7 @@ async function portClash(s, sid, port) {
   if (!port || !overlap.portOnce(sid, port)) return;
   const d = (await sysSnapshot().catch(() => null))?.devServers?.find((x) => x.ports.includes(port));
   const holder = !d ? tr('server.overlap.someone') : d.owner?.name ? tr('server.overlap.holderOf', { label: d.label, owner: d.owner.name, up: sysDur(d.up) }) : tr('server.overlap.holder', { label: d.label, up: sysDur(d.up) });
-  chat.system(tr('chat.overlap.port', { name: s.title || s.name, port, holder }));
+  chat.system(tr('chat.overlap.port', { name: sessionName(s), port, holder }));
   overlap.note(sid, tr('server.overlap.port', { port, holder }));
   fsp.appendFile(ACTION_LOG, `${new Date().toISOString()} port ${port} clash ${sid}${d ? ` held by pid ${d.pid}` : ''}\n`).catch(() => {});
 }
@@ -1791,7 +1812,7 @@ function loopAct(b, mac) {
   if (b.op === 'stop') {
     const run = loopRun(s);
     if (run) { const ok = tasks.stop(run.id); if (ok && card) chat.setLoop(card.id, { state: 'stopped' }); return { ok, how: 'task' }; }
-    if (s.status === 'rest') return { ok: false, code: 'resting', message: tr('server.loop.resting', { name: s.title || s.name }) };
+    if (s.status === 'rest') return { ok: false, code: 'resting', message: tr('server.loop.resting', { name: sessionName(s) }) };
     loops.stop(s.sid); if (card) chat.setLoop(card.id, { state: 'stopping' });
     fsp.appendFile(ACTION_LOG, `${new Date().toISOString()} stuck stop ${s.sid} from ${mac ? 'mac' : 'phone'}\n`).catch(() => {});
     return { ok: true, how: 'next' };
@@ -1875,7 +1896,7 @@ setInterval(() => {
     const waits = s.status === 'wait' || (s.status === 'rest' && s.askedYou);
     if (k.state !== 'warm' || k.left > NUDGE_MS || !waits || s.nudged === s.cache.until) continue;
     s.nudged = s.cache.until;
-    pushOut({ title: tr('server.cache.nudgeTitle', { name: s.title || s.name, n: Math.max(1, Math.round(k.left / 60e3)) }), body: tr('server.cache.nudgeBody', { tokens: num(Math.round(k.tokens / 1000)) }), tag: `cache-${s.id}`, url: '/?chat' });
+    pushOut({ title: tr('server.cache.nudgeTitle', { name: sessionName(s), n: Math.max(1, Math.round(k.left / 60e3)) }), body: tr('server.cache.nudgeBody', { tokens: num(Math.round(k.tokens / 1000)) }), tag: `cache-${s.id}`, url: '/?chat' });
   }
 }, 30_000).unref();
 
@@ -2382,7 +2403,7 @@ async function moveSession(s, to, why = 'you') {
   try { return await moveNow(s, to, why); } finally { s.moving = false; }
 }
 async function moveNow(s, to, why) {
-  const from = acctOf(s), name = s.title || s.name;
+  const from = acctOf(s), name = sessionName(s);
   if (!s.pid || !s.sid || !SID_RE.test(s.sid) || s.parked) return { ok: false, message: tr('server.move.notOpen') };
   if (to && !dirOfSlug(to)) return { ok: false, message: tr('server.move.noAccount') };
   if (to === from) return { ok: false, message: tr('server.move.same', { to: acctShown(to) }) };
@@ -2574,7 +2595,7 @@ function aiOut() { return AI_OFF ? null : { codex: codex.out(), ag: ag.out() }; 
    finishes), with the words in the office's language. The office starts it when it starts, if it was built. */
 function panelOut() {
   const now = Date.now(), waitingFor = new Set([...pending.values()].map((p) => p.sess));
-  const list = [...sessions.values()].map((s) => ({ id: s.id, name: s.title || s.name, status: s.status === 'wait' || waitingFor.has(s.id) ? 'wait' : s.status === 'work' ? 'work' : 'rest' }));
+  const list = [...sessions.values()].map((s) => ({ id: s.id, name: sessionName(s), status: s.status === 'wait' || waitingFor.has(s.id) ? 'wait' : s.status === 'work' ? 'work' : 'rest' }));
   const tight = (ws) => Math.max(0, ...(ws || []).filter((w) => !w.resetsAt || w.resetsAt > now).map((w) => w.pct || 0));
   const ai = aiOut(), cx = ai?.codex?.list?.find((a) => a.id === ai.codex.now), ag2 = ai?.ag?.list?.find((a) => a.id === ai.ag.now);
   const top = Math.max(tight(limitsOut()?.windows), tight(cx?.windows), ag2?.rows?.[0]?.pct || 0);
@@ -2693,6 +2714,11 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && url.pathname === '/api/doctor') {
     if (!isLoopback(req)) { res.writeHead(403).end(); return; }
     json(res, 200, { uptime: Math.round((Date.now() - startedAt) / 1000), lastEventAt: lastHookAt, sessions: sessions.size, pending: pending.size, node: process.versions.node, statusAt, limitsAt: planLimits?.at || 0, limitsSource: planLimits?.source || null, usageNote: noteText(), otel: otel.info() });
+    return;
+  }
+  if (req.method === 'GET' && url.pathname === '/api/desktop-bot') {
+    if (!isLoopback(req) || req.headers.origin || req.headers['x-forwarded-for']) { json(res, 403, { ok: false }); return; }
+    json(res, 200, { ...desktopBotSnapshot(sessions.values(), codexOn(), tr), lang: prefs.lang() });
     return;
   }
   if (req.method === 'POST' && url.pathname === '/hook/question') {
@@ -2902,7 +2928,7 @@ const server = http.createServer((req, res) => {
     if (!local && (!prefs.get('phoneTasks') || what === 'open' || what === 'ffmpeg')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
     readJson(req, 20_000).then((b) => {
       const agent = b?.agent === 'codex' ? 'codex' : 'claude';
-      const why = (r) => tr(['empty', 'badDir', 'noInput'].includes(r.code) ? `specialists.why.${r.code}` : `chat.task.why.${r.code}`);
+      const why = (r) => tr(['empty', 'badDir', 'noInput', 'specialistBusy'].includes(r.code) ? `specialists.why.${r.code}` : `chat.task.why.${r.code}`);
       if (what === 'news' || what === 'video') {
         if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) { json(res, 409, { ok: false, code: agent === 'codex' ? 'noCodex' : 'noClaude', message: tr(`chat.task.why.${agent === 'codex' ? 'noCodex' : 'noClaude'}`) }); return; }
         const run = pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome());
@@ -2922,9 +2948,11 @@ const server = http.createServer((req, res) => {
     if (!isLoopback(req) && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
     readJson(req, 40_000).then((b) => {
       if (url.pathname === '/api/team/stop') { json(res, 200, { ok: team.halt(String(b?.id || '')) }); return; }
-      if (url.pathname === '/api/team/route') { json(res, 200, { ok: true, teams: routeTeams(String(b?.text || '').slice(0, 4000)) }); return; }   // the guide: which team(s) a task needs
+      if (url.pathname === '/api/team/route') { const text = String(b?.text || '').slice(0, 4000), specialist = specialistRequest(text); json(res, 200, { ok: true, teams: specialist ? [] : routeTeams(text), specialist }); return; }   // the guide: which specialist or team a task needs
       if (url.pathname === '/api/team/resume') { const ok = team.resume(String(b?.id || '')); json(res, ok ? 200 : 409, ok ? { ok } : { ok, message: tr('team.cantResume') }); return; }
       if (url.pathname !== '/api/team') { json(res, 404, { ok: false }); return; }
+      const specialist = specialistRequest(b?.goal);
+      if (specialist) { const [code, out] = giveSpecialistWork(specialist, b); json(res, code, out); return; }
       const dir = memoryDir(b?.dir); if (!dir) { json(res, 400, { ok: false, code: 'noDir', message: tr('chat.task.noDir') }); return; }
       const agent = b?.agent === 'codex' ? 'codex' : 'claude';
       if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) { json(res, 409, { ok: false, code: agent === 'codex' ? 'noCodex' : 'noClaude', message: tr(`chat.task.why.${agent === 'codex' ? 'noCodex' : 'noClaude'}`) }); return; }
@@ -2986,7 +3014,16 @@ const server = http.createServer((req, res) => {
     if (!authorized(req, url) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
     readJson(req, 600_000).then((b) => {
       const mac = isLoopback(req), op = String(b?.op || ''), str = (x, n) => String(x ?? '').slice(0, n);
-      if (op === 'send') chat.send({ text: str(b.text, 600), sticker: Number.isInteger(b.sticker) ? b.sticker : null, replyTo: str(b.replyTo, 40) || null });
+      if (op === 'send') {
+        const text = str(b.text, 600), request = specialistRequest(text);
+        if (request && b.sticker == null) {
+          if (!mac && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
+          chat.say('me', text, { now: true, long: true });
+          const [code, out] = giveSpecialistWork(request, b); if (!out.ok) chat.system(out.message);
+          json(res, code, out); return;
+        }
+        chat.send({ text, sticker: Number.isInteger(b.sticker) ? b.sticker : null, replyTo: str(b.replyTo, 40) || null });
+      }
       else if (op === 'react') chat.react(str(b.id, 40), 'me', str(b.emoji, 8));
       else if (op === 'vote') chat.vote(str(b.id, 40), 'me', Number(b.i));
       else if (op === 'rsvp') chat.rsvp(str(b.id, 40), 'me', !!b.yes);

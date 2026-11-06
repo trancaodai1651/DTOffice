@@ -41,6 +41,8 @@ export default {
   dept: {
     team: 'AI 15-AGENT DEV ROOM',
     teamSub: 'AI Agent Dev team · 15 agents and the CEO',
+    marketing: 'MARKETING DEPARTMENT',
+    marketingSub: 'AI Agent Marketing team · 18 agents',
     free: 'DEPARTMENT {n}',
     freeSub: 'free for the next project',
     name: '{name}',

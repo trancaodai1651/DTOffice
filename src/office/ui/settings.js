@@ -88,6 +88,15 @@ export function setTimeMode(m) { if (m === 'auto') { state.nightManual = false; 
 export function syncTimeBtns() { const m = state.nightManual ? (night ? 'night' : 'day') : 'auto'; for (const b of document.querySelectorAll('[data-time]')) b.setAttribute('aria-pressed', String(b.dataset.time === m)); }
 
 export function setup() {
+  // The companion is a native, transparent desktop window, independent of the 3D office.
+  if (window.__TAURI__?.core?.invoke) {
+    $('desktop-bot-controls').hidden = false;
+    $('btn-desktop-bot').addEventListener('click', () => window.__TAURI__.core.invoke('desktop_bot', { action: 'show' }).catch(() => toast(tr('specialists.bot.offline'))));
+    addEventListener('office-codex-plan', () => {
+      togglePlan(true);
+      setTimeout(() => document.querySelector('#plan-tabs [data-k="codex"], #plan-tabs [data-tab="codex"]')?.click(), 30);
+    });
+  }
   /* ---------- appearance popover: backdrop, character look, time of day ---------- */
   popLook = $('pop-look'); btnLook = $('btn-look');
   for (const b of document.querySelectorAll('[data-layout]')) b.setAttribute('aria-pressed', String(b.dataset.layout === LAYOUT));

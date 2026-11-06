@@ -33,6 +33,7 @@ import { buildSignals } from './street-signals.js';
 import { buildRiderExtras } from './street-riders.js';
 import { buildShade, plantStreetTrees } from './street-shade.js';
 import { buildLunar } from './street-lunar.js';
+import { createTrafficSpace, trafficOverlaps } from '../../../shared/traffic-space.js';
 
 const W = (g) => colorize(g, '#FFFFFF');   // parts painted per instance (the instance colour multiplies white)
 const at = (g, x, y, z) => g.translate(x, y, z);
@@ -289,9 +290,11 @@ const walkersAt = (h) => (h >= 7 && h < 22 ? 1 : h >= 6 && h < 23 ? 0.6 : 0.22);
 /** G: the city group; the street grid (XS, ZS, STREET_W), SB (the office's superblock), shops: the shop fronts (shops.js),
     parks: the blocks left as parks, solids: the buildings' footprints ([x0, x1, z0, z1], for walking in); for the park
     life and the weekend's wedding: trees ([x, z, size]), plazas (the parks' paved squares), faces (the buildings' fronts) */
-export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [], solids = [], trees = [], plazas = [], faces = [], inShop = () => undefined, pickle: court = null }) {
+export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [], solids = [], trees = [], plazas = [], faces = [], inShop = () => undefined, pickle: court = null, lamps = [] }) {
   textures();
   const low = quality.level === 'low';
+  const shadowCasters = []; let shadowLevel = quality.level;
+  const casts = o => { if (o) { shadowCasters.push(o); o.castShadow = quality.level !== 'low'; } };
   const C = officeMiddle();
   const TER = HQ ? { x0: -8.9, x1: 15.7, z0: -8.5, z1: 28.7 } : PRO ? { x0: -8.9, x1: 15.7, z0: -8.5, z1: 11.7 } : { x0: -8.9, x1: 12.1, z0: -6.7, z1: 10.7 };
   const inSB = (x, z) => x > SB.x0 && x < SB.x1 && z > SB.z0 && z < SB.z1;
@@ -365,6 +368,32 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   // where on the map a vehicle is: s along its lane, `side` out from the middle of the road towards its kerb
   const spotOf = (L, s, side) => (L.axis === 'x' ? [s, L.v + L.dir * side] : [L.v - L.dir * side, s]);
   const yawOf = (L) => (L.axis === 'x' ? (L.dir > 0 ? 0 : Math.PI) : (L.dir > 0 ? -Math.PI / 2 : Math.PI / 2));
+  const trafficSpace = createTrafficSpace(), playerVehicles = new Set();
+  const trafficShape = (v, L = v.L, s = v.s, side = v.side) => {
+    const [x, z] = spotOf(L, s, side);
+    return { x, z, half: Math.max(v.half + 0.12, Math.abs(v.box?.[0] || 0), Math.abs(v.box?.[3] || 0), v.loadHalf || 0), width: Math.max(v.w, v.name === 'moto' ? 0.34 : 0, v.loadWidth || 0), angle: -yawOf(L) + (v.steer || 0) };
+  };
+  const playerShape = v => ({ x: v.x, z: v.z, half: v.kind === 'car' ? 1.56 : 0.92, width: v.kind === 'car' ? 0.86 : 0.34, angle: Math.PI / 2 - v.yaw });
+  const registerPlayerVehicle = v => {
+    const shape = playerShape(v);
+    if (!trafficSpace.clear(shape, v)) return false;
+    playerVehicles.add(v); trafficSpace.set(v, shape); return true;
+  };
+  const movePlayerVehicle = (v, x, z, yaw) => {
+    if (!playerVehicles.has(v) && !registerPlayerVehicle(v)) return { x: v.x, z: v.z, yaw: v.yaw, fraction: 0 };
+    const b = trafficSpace.move(v, x, z, Math.PI / 2 - yaw);
+    return { x: b.x, z: b.z, yaw: Math.PI / 2 - b.angle, fraction: b.fraction };
+  };
+  // Every spawn, merge and intersection uses the same footprint space, including parked vehicles.
+  function placeTraffic(v, L, initialS, side) {
+    let s = initialS;
+    for (let n = 0; n < Math.ceil(LEN / 0.8); n++) {
+      const shape = { ...trafficShape(v, L, s, side), angle: -yawOf(L) };
+      if (trafficSpace.clear(shape, v)) { trafficSpace.set(v, shape); return s; }
+      s = ((s - L.dir * 0.8 - LO) % LEN + LEN) % LEN + LO;
+    }
+    return null;
+  }
   // more traffic on the streets near the office (that is where you look); in the rush, most of it on the four streets
   // round the office's block, where the jams are seen
   const ring = (L) => (L.axis === 'z' ? [SB.x0 - HALF, SB.x1 + HALF] : [SB.z0 - HALF, SB.z1 + HALF]).some((v) => Math.abs(L.v - v) < 0.01);
@@ -385,7 +414,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     const trim = parts && new THREE.InstancedMesh(mergeAll(parts.trim), trimM, n);
     const rider = parts?.rider ? new THREE.InstancedMesh(mergeAll(parts.rider), vmat({ roughness: 0.8 }), n) : null;
     for (const o of [body, trim, rider]) if (o) { o.frustumCulled = false; G.add(o); }
-    if (body) body.castShadow = name !== 'moto' && !low; if (rider) rider.castShadow = !low;
+    if (name !== 'moto') casts(body); casts(rider);
     meshes[name] = parts ? { body, trim, rider,
       doors: K.doors ? extra(mergeAll([decal('xsm', 0.86, 0.43, 0.35, 0.8, 0.885), decal('xsm', 0.86, 0.43, 0.35, 0.8, -0.885, Math.PI)]), n) : null } : null;
     if (rider) {   // the scooters' extras: masks, the companies' logos, the GrabFood box, passengers
@@ -395,7 +424,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
         mask: inst(parts.mask, cloth), xsmLogo: extra(driverLogos('xsmCloth'), n), grabLogo: extra(driverLogos('grab'), n), box: extra(slotBox('box', 0.44, 0.42, 0.44, -0.62, 1.1, 0), n),
         paxCloth: inst(pax.cloth, cloth), paxHelmet: inst(pax.helmet, vmat({ roughness: 0.35, metalness: 0.1 })), paxTrim: inst(pax.trim, vmat({ roughness: 0.8 })),
         paxXsm: extra(passengerLogos('xsmCloth'), n), paxGrab: extra(passengerLogos('grab'), n) });
-      meshes[name].box.castShadow = meshes[name].paxCloth.castShadow = !low;
+      casts(meshes[name].box); casts(meshes[name].paxCloth);
     }
     for (let k = 0; k < n; k++) {
       const livery = rider ? pickLivery() : null, L0 = LIVERIES[livery], M0 = meshes[name];
@@ -424,7 +453,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
       const { body: bg, trim: tg, box } = kitCar(kit, K.kit, K.extras), n = counts[name];
       const body = new THREE.InstancedMesh(bg, paintM, n), trim = new THREE.InstancedMesh(tg, trimM, n);
       for (const o of [body, trim]) { o.frustumCulled = false; G.add(o); }
-      body.castShadow = !low;
+      casts(body);
       for (const v of byKind[name]) { body.setColorAt(v.k, v.paint); v.w = (box[5] - box[2]) / 2; v.box = box; }
       meshes[name] = { body, trim };
     }
@@ -437,15 +466,16 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   // Scooters ride two abreast, three in the rush.
   function join(v, first) {
     const L = v.name === 'bus' && v.k < 2 && stopLane ? stopLane : pickLane(rush > 0.5);
-    const s = first ? 0 : L.dir > 0 ? LO + cR(0, 25) : HI - cR(0, 25);
-    if (!first && L.list.some((o) => Math.abs(o.s - s) < 10)) return false;
+    const initialS = first ? cR(LO, HI) : L.dir > 0 ? LO + cR(0, 25) : HI - cR(0, 25);
+    if (!first && L.list.some((o) => Math.abs(o.s - initialS) < 10)) return false;
     if (v.name === 'moto') v.base = cPick(rush > 0.3 ? [0.62, 1.15, 1.68] : [1.15, 1.68]) + cR(-0.07, 0.07);
+    if (v.name === 'moto') extras.ride(v, hour);
+    const s = placeTraffic(v, L, initialS, v.base); if (s == null) { if (v.extra) extras.drop(v); return false; }
     Object.assign(v, { L, s, on: true, mode: 'drive', v: v.vmax * 0.6, side: v.base, sideGoal: v.base, steer: 0, blink: 0, blinkOff: 0, passing: null, slot: null, served: false, stopUntil: 0 });
     L.list.push(v);
-    if (v.name === 'moto') extras.ride(v, hour);
     return true;
   }
-  function retire(v) { const i = v.L.list.indexOf(v); if (i >= 0) v.L.list.splice(i, 1); v.on = false; if (v.extra) extras.drop(v); }
+  function retire(v) { const i = v.L.list.indexOf(v); if (i >= 0) v.L.list.splice(i, 1); trafficSpace.remove(v); v.on = false; if (v.extra) extras.drop(v); }
   const outOfSight = (v) => { const [x, z] = spotOf(v.L, v.s, v.side); return !near(x, z, 72); };
   let censusAt = -1, rush = 0, hour = 12, shade = null, shadeOn = false;
   function census(t, first = false) {
@@ -461,7 +491,6 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
       for (let i = list.length - 1; i >= 0 && on > want; i--) { const v = list[i]; if (v.on && !v.special && v.mode === 'drive' && outOfSight(v)) { retire(v); on--; } }
       for (const v of list) if (v.special && !v.slot && !v.siren && v.on && outOfSight(v)) v.special = false;   // (a rider for the office, or a siren, gone again)
     }
-    if (first) for (const L of lanes) { const n = L.list.length; L.list.forEach((v, idx) => { v.s = LO + ((idx + cR(0.1, 0.6)) / n) * LEN; }); }
   }
 
   /* ---------- parking at the kerb ---------- */
@@ -594,6 +623,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     const mid = L.axis === 'x' ? C[0] : C[1];
     let s = mid - L.dir * 58;   // (out of sight, well inside the lane's loop: it ends 62 past the office)
     for (let k = 0; k < 3 && L.list.some((o) => Math.abs(o.s - s) < 6); k++) s -= L.dir * 4;
+    s = placeTraffic(v, L, s, 0.05); if (s == null) return null;
     Object.assign(v, { L, s, on: true, special: true, siren: true, sirenEnd: mid + L.dir * 62, mode: 'drive', v: v.vmax * 0.8, base: 0.05, side: 0.05, sideGoal: 0.05, steer: 0, blink: 0, blinkOff: 0, passing: null, slot: null, served: false, stopUntil: 0 });
     L.list.push(v); sirens.push(v);
     return v;
@@ -610,6 +640,12 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   }
   const arrived = [];
   function updateTraffic(dt, t) {
+    // At most 50 ms of motion at once: crossing traffic reserves its space before the other
+    // direction advances, even during timelapse or after a slow frame. Sweeps below also prevent tunnelling.
+    const steps = Math.max(1, Math.ceil(dt / 0.05)), h = dt / steps;
+    for (let n = 0; n < steps; n++) trafficStep(h, t - dt + (n + 1) * h);
+  }
+  function trafficStep(dt, t) {
     const slow = 1 - 0.3 * rush, motoGap = 1.1 - 0.55 * rush;   // the rush: everyone slower, scooters nose to tail
     if (sirens.length) sirenStep();
     for (const L of lanes) {
@@ -641,18 +677,34 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
         let want = Math.min(v.vmax * (v.siren ? 1 : slow * (v.passing ? 0.7 : 1)), Math.sqrt(Math.max(0, 2 * 4.5 * (room - 0.15))), cap);
         if (t < v.stopUntil) want = 0;
         v.v += THREE.MathUtils.clamp(want - v.v, -10 * dt, 2.6 * dt);
-        v.s += v.v * L.dir * dt;
-        if (v.s > HI) { v.s -= LEN; v.served = false; } else if (v.s < LO) { v.s += LEN; v.served = false; }
+        const step = Math.min(v.v * dt, Math.max(0, room)), wantedS = v.s + step * L.dir;
+        const wrapped = wantedS > HI ? wantedS - LEN : wantedS < LO ? wantedS + LEN : null;
+        if (wrapped != null) {
+          const shape = trafficShape(v, L, wrapped);
+          if (trafficSpace.clear(shape, v)) { v.s = wrapped; trafficSpace.set(v, shape); v.served = false; }
+          else v.v = 0;
+        } else {
+          const [x, z] = spotOf(L, wantedS, v.side), b = trafficSpace.move(v, x, z);
+          const travelled = Math.max(0, ((L.axis === 'x' ? b.x : b.z) - v.s) * L.dir);
+          v.s += travelled * L.dir;
+          if (b.fraction < 1 || step < v.v * dt) v.v = Math.min(v.v, travelled / Math.max(dt, 1e-6));
+        }
       });
     }
     for (const v of arrived) settle(v, t);
     arrived.length = 0;
     // sideways, towards where it wants to be across the road: only as fast as it rolls forward, the nose turned that way
     for (const v of vehicles) {
-      if (!v.on || v.side === v.sideGoal) { v.steer *= 0.8; continue; }
+      if (!v.on) continue;
+      if (v.side === v.sideGoal) {
+        const [x, z] = spotOf(v.L, v.s, v.side), b = trafficSpace.move(v, x, z, -yawOf(v.L) + v.steer * Math.exp(-8 * dt));
+        v.steer = b.angle + yawOf(v.L); continue;
+      }
       const step = (0.12 + 0.3 * v.v) * dt, ds = THREE.MathUtils.clamp(v.sideGoal - v.side, -step, step);
-      v.side += ds;
-      v.steer += (THREE.MathUtils.clamp(Math.atan2(ds / dt, Math.max(v.v, 0.6)), -0.4, 0.4) - v.steer) * Math.min(1, dt * 8);
+      const steer = v.steer + (THREE.MathUtils.clamp(Math.atan2(ds / Math.max(dt, 1e-6), Math.max(v.v, 0.6)), -0.4, 0.4) - v.steer) * Math.min(1, dt * 8);
+      const [x, z] = spotOf(v.L, v.s, v.side + ds), b = trafficSpace.move(v, x, z, -yawOf(v.L) + steer);
+      v.side = (v.L.axis === 'x' ? b.z - v.L.v : v.L.v - b.x) * v.L.dir;
+      v.steer = b.angle + yawOf(v.L);
     }
   }
   const headPos = new Float32Array(vehicles.length * 3), tailPos = new Float32Array(vehicles.length * 3), blinkPos = new Float32Array(vehicles.length * 12);
@@ -665,6 +717,10 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
 
   const OFF = -1e4, tops = {};
   function drawVehicles(t) {
+    if (quality.level !== shadowLevel) {
+      shadowLevel = quality.level;
+      for (const o of shadowCasters) o.castShadow = shadowLevel !== 'low';
+    }
     for (const name in byKind) tops[name] = 0;
     const flash = (t * 1.6) % 1 < 0.55;
     vehicles.forEach((v, n) => {
@@ -753,6 +809,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     let s = s0 - L.dir * (opt.far ?? 70);
     for (let k = 0; k < 6 && L.list.some((o) => Math.abs(o.s - s) < 8); k++) s -= L.dir * 9;
     s = ((s - LO) % LEN + LEN) % LEN + LO;
+    s = placeTraffic(v, L, s, v.base); if (s == null) return null;
     dress(v, opt);
     const sl = { L, s: s0, kind: 'rider', side: opt.side ?? (car ? 1.5 : 1.92), v, next: Infinity, stay: !!opt.stay };
     slots.push(sl);
@@ -765,6 +822,9 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     const v = L && pick(opt.livery || 'plain', opt.kind);
     if (!v) return null;
     if (v.on) retire(v);
+    const side = opt.side ?? 1.92, shape = { ...trafficShape(v, L, s, side), angle: -yawOf(L) };
+    if (!trafficSpace.clear(shape, v)) return null;
+    trafficSpace.set(v, shape);
     dress(v, opt);
     const sl = { L, s, kind: 'rider', side: opt.side ?? 1.92, v, next: Infinity, stay: !!opt.stay };
     slots.push(sl);
@@ -796,7 +856,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   const BIKES = low ? 12 : 24, scoot = scooterParts(), bikeFree = [...Array(BIKES).keys()];
   const bikeBody = new THREE.InstancedMesh(mergeAll(scoot.body), paintM, BIKES), bikeTrim = new THREE.InstancedMesh(mergeAll(scoot.trim), trimM, BIKES);
   for (const o of [bikeBody, bikeTrim]) { o.frustumCulled = false; for (let i = 0; i < BIKES; i++) o.setMatrixAt(i, Z0); G.add(o); }
-  bikeBody.castShadow = !low;
+  casts(bikeBody);
   // (electric: one of the e-scooters, street-ev.js, its ids from 1000; seed: its owner's, for its share of the charge)
   function parkBike(L, s, side, color, electric = false, seed = 0) {
     if (electric && ev) { const i = L ? ev.park(L, s, side, color, seed) : -1; return i < 0 ? -1 : 1000 + i; }
@@ -860,7 +920,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     pm[k] = new THREE.InstancedMesh(mergeAll(list), vmat({ roughness: 0.85, side: k === 'umbrella' ? THREE.DoubleSide : THREE.FrontSide }), n);
     pm[k].frustumCulled = false; pm[k].count = k === 'leg' ? PN * 2 : PN; G.add(pm[k]);
   }
-  pm.torso.castShadow = pm.head.castShadow = !low;
+  casts(pm.torso); casts(pm.head);
   const SHIRTS = ['#E8742A', '#3F7CC4', '#F2F2F2', '#D64550', '#2A9D8F', '#C9A227', '#8C4FA8', '#5B6CD8', '#3B3B3B', '#F28FA8', '#6A8042'];
   const UMBRELLAS = ['#D64550', '#2E86DE', '#F2C200', '#2A9D8F', '#3B3B3B', '#8C4FA8'];
   /* street sellers among them: two women carrying fruit in baskets on a shoulder pole, under a conical hat (6:00–19:00),
@@ -996,7 +1056,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     const cart = new THREE.Group();
     cart.add(new THREE.Mesh(mergeAll(solid), vmat({ roughness: 0.55, metalness: 0.25 })), new THREE.Mesh(mergeAll(glass), new THREE.MeshStandardMaterial({ color: '#D6ECF5', transparent: true, opacity: 0.32, roughness: 0.1 })));
     const plate = board(sign('BÁNH MÌ', '#C8102E', '#FFE45C'), 1.15, 0.28); plate.position.set(0, 1.86, 0); cart.add(plate);
-    cart.children[0].castShadow = !low;
+    casts(cart.children[0]);
     cart.matrixAutoUpdate = false; cart.matrix.copy(c.M); G.add(cart);
     food.cart = { g: cart, x: c.x, z: c.z, hours: [[6, 10.5], [15, 20.5]] };
     // the trà đá stall, on the grass at the corner of the next park (or the same one, at its other end)
@@ -1023,7 +1083,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
       const m = new THREE.Matrix4().compose(V3(p.x - Math.cos(p.r) * 0.12, 0.0, p.z + Math.sin(p.r) * 0.12), new THREE.Quaternion().setFromAxisAngle(UP, p.r), S1);
       sitShirt.setMatrixAt(i, m); sitRest.setMatrixAt(i, m); sitShirt.setColorAt(i, new THREE.Color(SHIRTS[(i * 5 + 2) % SHIRTS.length]));
     });
-    for (const o of [sitShirt, sitRest]) { o.frustumCulled = false; o.castShadow = !low; stall.add(o); }
+    for (const o of [sitShirt, sitRest]) { o.frustumCulled = false; casts(o); stall.add(o); }
     stall.matrixAutoUpdate = false; stall.matrix.copy(st.M); G.add(stall);
     // (toMiddle: which way along the stall's own x the rest of the park's edge is, for the chess game beside it)
     const lx = [f2.out[1], -f2.out[0]], toMiddle = Math.sign(-end * (f2.along[0] * lx[0] + f2.along[1] * lx[1])) || 1;
@@ -1113,7 +1173,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   // round it as round a parked car, but for whoever lets(v) lets by (the traffic police's own: pulling in beside their
   // cones, and out again). Returns its removal.
   function obstacle(L, s, half, side, w, lets = null) {
-    const o = { s, half, side, w, mode: 'parked', lets };
+    const o = { L, s, half, side, w, mode: 'parked', lets };
     L.parked.push(o);
     return () => { const i = L.parked.indexOf(o); if (i >= 0) L.parked.splice(i, 1); };
   }
@@ -1148,16 +1208,16 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   if (!WITHOUT.includes('ev')) ev = buildEv(G, { finder, low, riderParts, place: (L, s, side, m) => { const [x, z] = spotOf(L, s, side); q.setFromAxisAngle(UP, yawOf(L)); P.set(x, GY + (side > HALF + 0.15 ? 0.12 : 0), z); return m.compose(P, q, S1); } });
   trade.push(com, atm, pickle, photo, ...(ev ? [ev] : []));
   // a few big street trees by the kerb near the office, where their shade falls just before a stop line (street-shade.js)
-  const streetTrees = plantStreetTrees(G, { lanes, spotOf, inSB, HALF, XS, ZS, C, GY, avoid: [...finder.taken, ...wedding.sites.map(([x, z]) => [x, z, 4.0])] });
+  const streetTrees = plantStreetTrees(G, { lanes, spotOf, inSB, HALF, XS, ZS, C, GY, avoid: [...finder.taken, ...wedding.sites.map(([x, z]) => [x, z, 4.0]), ...lamps.map(({ x, z }) => [x, z, 1.3])] });
   // the countdowns beside the lights, and the shade scooters wait in on a hot day
   const signals = buildSignals(G, { poles, phaseOf, lightOf, GY });
   shade = buildShade({ lanes, spotOf, inSB, solids, trees: [...trees, ...streetTrees], office: [[TER.x0, TER.x1, TER.z0, TER.z1, GY + 3.4]], C, GY });
   // the power lines: one merged mesh, clear of all the above and of where a wedding's tent may go
-  buildWires(G, { XS, ZS, HALF, SB, C, avoid: [...finder.taken, ...wedding.sites.map(([x, z]) => [x, z, 3.8]), ...streetTrees.map(([x, z]) => [x, z, 1.2]), ...lunar.spots] });
+  buildWires(G, { XS, ZS, HALF, SB, C, avoid: [...finder.taken, ...wedding.sites.map(([x, z]) => [x, z, 3.8]), ...streetTrees.map(([x, z]) => [x, z, 1.2]), ...lunar.spots, ...lamps.map(({ x, z }) => [x, z, 1.1])] });
   const siren = buildSirens(G, { call: sirenCall, list: () => sirens, vehicle: (kind) => byKind[kind][0] });
   // the traffic police: a patrol now and then, a checkpoint on the office's pavement some mornings and evenings
   const csgt = buildCsgt(G, { laneAt, spotOf, SB, HALF, C, slots, pullOver, callRider, depart, lookOf, lightAt, riderParts, obstacle, inShop, eveningAt: nhau.lane ? { L: nhau.lane, s: nhau.s } : null,
-    avoid: [...finder.taken, ...wedding.sites.map(([x, z]) => [x, z, 4.5]), ...streetTrees.map(([x, z]) => [x, z, 1.4])] });
+    avoid: [...finder.taken, ...wedding.sites.map(([x, z]) => [x, z, 4.5]), ...streetTrees.map(([x, z]) => [x, z, 1.4]), ...lamps.map(({ x, z }) => [x, z, 1.1])] });
   nhau.police(csgt.expect);   // (a regular riding home after a few passes the evening's alcohol checkpoint)
   for (const o of G.children.slice(before)) o.userData.setPiece = true;   // (for ?debug: what they cost)
 
@@ -1169,7 +1229,15 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
   const inRect = (x, z, [x0, x1, z0, z1], r = 0) => x > x0 - r && x < x1 + r && z > z0 - r && z < z1 + r;
   const groundAt = (x, z) => (pads.some((p) => inRect(x, z, p)) ? GY + 0.12 : GY);
   // (in a shop, or at its front: the shop says, shops.js)
-  const blockedAt = (x, z, r = 0.25) => inShop(x, z, r) ?? (!near(x, z, 66) || inRect(x, z, TERR, r) || solids.some((sd) => inRect(x, z, sd, r)) || park.blocked(x, z, r) || wedding.blocked(x, z, r) || trade.some((p) => p.blocked?.(x, z, r)));
+  const blockedAt = (x, z, r = 0.25) => lamps.some(p => Math.hypot(x - p.x, z - p.z) < r + 0.11) || (inShop(x, z, r) ?? (!near(x, z, 66) || inRect(x, z, TERR, r) || solids.some((sd) => inRect(x, z, sd, r)) || park.blocked(x, z, r) || wedding.blocked(x, z, r) || trade.some((p) => p.blocked?.(x, z, r))));
+  const trafficState = () => {
+    const bodies = trafficSpace.values(), collisions = [];
+    for (let i = 0; i < bodies.length; i++) for (let j = i + 1; j < bodies.length; j++) {
+      if (bodies[i].lets?.(bodies[j].id) || bodies[j].lets?.(bodies[i].id)) continue;
+      if (trafficOverlaps(bodies[i], bodies[j])) collisions.push([i, j]);
+    }
+    return { collisions, shadows: shadowCasters.filter(o => o.castShadow).length, shadowCasters: shadowCasters.length, vehicles: bodies.map(b => ({ x: b.x, z: b.z, angle: b.angle, half: b.half, width: b.width, kind: b.id.name || b.id.kind || 'obstacle', mode: b.id.mode || 'player', speed: b.id.v ?? b.id.speed ?? 0 })) };
+  };
 
   if (statics.length) mergedTo(G, statics, vmat({ roughness: 0.6, metalness: 0.2 }));
   return {
@@ -1179,6 +1247,7 @@ export function buildStreetLife(G, { XS, ZS, STREET_W, SB, shops = [], parks = [
     night(on) { headPts.visible = tailPts.visible = beams.visible = on; nightOn = on; foodAt = -1; park.night(on); wedding.night(on); siren.night(on); csgt.night(on); nhau.night(on); pickle.night(on); photo.night(on); },
     // for outings.js and walking in (first-person.js); slots: for ?debug
     street: { route, exits, callRider, depart, parkBike, unparkBike, at: (L, s, side) => { const [x, z] = spotOf(L, s, side); return { x, z }; },
+      lampPosts: lamps, registerPlayerVehicle, movePlayerVehicle, traffic: trafficState,
       pavement: GY + 0.12, road: GY, pavementSide: HALF + INS, spots, groundAt, blockedAt, setWalker: (p) => { walker = p; }, slots, wedding: wedding.debug, park: park.debug, trades: () => ({ corner: corner.debug(), repair: repair.debug(), morning: morning.debug(), lunar: lunar.debug(), shade: shadeOn, shadeStops: lanes.flatMap((L) => Object.entries(L.shade || {}).map(([idx, sh]) => { const [x, z] = spotOf(L, sh, 1.3), [lx, lz] = spotOf(L, L.cross[idx] - L.dir * 5.2, 1.3); return { at: [+x.toFixed(1), +z.toFixed(1)], line: [+lx.toFixed(1), +lz.toFixed(1)], waiting: L.list.filter((v) => v.name === 'moto' && v.v < 0.3 && Math.abs(v.s - sh) < 3).length }; })) }),
       carrying: () => vehicles.filter((v) => v.on && v.extra).map((v) => { const [x, z] = spotOf(v.L, v.s, v.side); return { what: Object.keys(v.extra), at: [+x.toFixed(1), +z.toFixed(1)], v: +v.v.toFixed(1) }; }),
       csgt: csgt.debug, nhau: nhau.office, nhauDebug: nhau.debug, com: com.office, comDebug: com.debug, atm: atm.office, atmDebug: atm.debug, pickle: pickle.office, pickleDebug: pickle.debug, photo: photo.office, photoDebug: photo.debug, ev: ev?.office || null, evDebug: ev?.debug || null,

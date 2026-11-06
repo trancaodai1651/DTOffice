@@ -92,6 +92,10 @@ export function buildRiderExtras(G, { rider, low = false }) {
   const mk = (geo, mat, n) => { const o = new THREE.InstancedMesh(geo, mat, n); o.frustumCulled = false; o.castShadow = false; o.count = 0; o.userData.part = 'riders'; for (let i = 0; i < n; i++) o.setMatrixAt(i, Z0); G.add(o); return o; };
   const suits = mk(suit(), new THREE.MeshStandardMaterial({ map: floral(), vertexColors: true, roughness: 0.85 }), SLOTS);
   const loads = Object.fromEntries(Object.entries(LOADS).map(([k, f]) => [k, mk(mergeAll(f()), vmat({ roughness: 0.6 }), CAP)]));
+  const loadBounds = Object.fromEntries(Object.entries(loads).map(([k, m]) => {
+    m.geometry.computeBoundingBox(); const b = m.geometry.boundingBox;
+    return [k, { half: Math.max(Math.abs(b.min.x), Math.abs(b.max.x)), width: Math.max(Math.abs(b.min.z), Math.abs(b.max.z)) }];
+  }));
   const free = { suit: [...Array(SLOTS).keys()], ...Object.fromEntries(Object.keys(LOADS).map((k) => [k, [...Array(CAP).keys()]])) };
   const jackets = new Map(), col = new THREE.Color();
   let share = 0, carry = 0, checkAt = -1;
@@ -109,7 +113,7 @@ export function buildRiderExtras(G, { rider, low = false }) {
     if (!v.extra) return;
     for (const [k, i] of Object.entries(v.extra)) { free[k].push(i); (k === 'suit' ? suits : loads[k]).setMatrixAt(i, Z0); }
     if (v.extra.suit != null) { const j = jackets.get(v); if (j) { rider.setColorAt(v.k, j); rider.instanceColor.needsUpdate = true; } }
-    v.extra = null; dirty = true;
+    v.extra = null; v.loadHalf = v.loadWidth = 0; dirty = true;
   }
   let dirty = false;
   return {
@@ -128,7 +132,7 @@ export function buildRiderExtras(G, { rider, low = false }) {
       }
       if (!v.pax && Math.random() < carry) {
         const kinds = Object.keys(LOADS).filter((k) => free[k].length);
-        if (kinds.length) { const k = kinds[Math.floor(Math.random() * kinds.length)]; extra[k] = take(k); }
+        if (kinds.length) { const k = kinds[Math.floor(Math.random() * kinds.length)]; extra[k] = take(k); v.loadHalf = loadBounds[k].half; v.loadWidth = loadBounds[k].width; }
       }
       if (Object.keys(extra).length) v.extra = extra;
     },

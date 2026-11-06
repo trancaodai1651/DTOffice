@@ -12,30 +12,31 @@ import { GAMES, createGame, drawIdle } from '../world/props/tv-games.js';
 import { napOn } from '../life/nap.js';
 import { fp } from '../interact/first-person.js';
 import { STATIONS, faceTo } from './navigation.js';
-import { sessions, workers } from './workers.js';
+import { dn, sessions, workers } from './workers.js';
 import { asleep, free, quip } from './errands.js';
 import { toast } from '../ui/activity.js';
 import { sfx } from '../audio/sfx.js';
 import { t as tr } from '../../i18n/index.js';
+import { gameWorkPending } from '../../shared/game-lifecycle.js';
 
 const FPS = 20;            // (the screen is redrawn this often while it is on)
 let G = null;              // the match: { kind, game, side: [{ w, name, color, e, seat, ai, skill }], stage, at, over }
 let ME = null;             // first person on the sofa: { seat, menu, pick, keys, fov }
 let nextAt = 0, drawAt = 0, glowAt = 0;
 const pick = (key) => { const l = tr(key, null, 'list'); return Array.isArray(l) ? l[Math.floor(Math.random() * l.length)] : l; };
-const nameOf = (w) => { const n = sessions.get(w.id)?.name || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
+const nameOf = (w) => { const n = dn(sessions.get(w.id)) || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
 const seats = () => STATIONS?.coffee?.slice(0, 2) || [];
 const look = () => GTV && [GTV.center[0], GTV.center[2]];
-const called = (w) => { const s = sessions.get(w.id); return !s || s.status !== 'rest' || !!s.bg?.length || !!w.want; };
+const called = (w) => gameWorkPending(sessions.get(w.id), w.want);
 // who could play: resting, nothing else on (not out, not on a break, not carrying anything, not at tea)
 function who() {
   return [...workers.values()].filter((w) => { const s = sessions.get(w.id);
-    return !w.sub && s?.status === 'rest' && !s.bg?.length && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
+    return !w.sub && !gameWorkPending(s, w.want) && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
 }
 // someone walking to a seat and sitting down on it with a controller (until the match's end)
 function sitDown(w, seat, line, wait) {
   const e = w.errand({ type: 'idle', spot: seat, look: look(), anim: 'gamepad', wait, hold: 0.4, anim2: 'idle', linger: 0.8, line });
-  e.until = state.sim + 600;
+  e.until = Infinity;
   return e;
 }
 const seated = (s) => !s.w || (s.w.chore === s.e && s.e.stage === 'go' && s.w.phase !== 'walk' && s.w.spot === s.seat && Math.hypot(s.w.pos.x - s.seat.x, s.w.pos.y - s.seat.z) < 0.2);
@@ -107,8 +108,17 @@ const KEYS = { KeyW: 'u', ArrowUp: 'u', KeyS: 'd', ArrowDown: 'd', KeyA: 'l', Ar
 export function playFp() {
   if (!GTV || !GAMES.length || !fp?.on || ME) return;
   if (G?.npc) { toast(tr('fp.tv.busy', { a: G.side[0].name, b: G.side[1].name })); return; }
-  const free2 = seats().filter((s) => !s.by); if (!free2.length) { toast(tr('fp.tv.noSeat')); return; }
-  const seat = free2[0], [tx, tz] = look();
+  let seat = seats().find((s) => !s.by);
+  // The sofa is shared with ordinary breaks. An idle colleague can make room; never interrupt another activity.
+  if (!seat) {
+    seat = seats().find((s) => s.by?.id && !gameWorkPending(sessions.get(s.by.id), s.by.want) && (free(s.by) || asleep(s.by)) && !s.by.chore);
+    if (seat) {
+      const w = seat.by;
+      w.goTo(w.homeSpot(), () => { w.station = 'desk'; w.anim = 'idle'; w.restAt = state.sim + rand(20, 40); w.hush(); });
+    }
+  }
+  if (!seat) { toast(tr('fp.tv.noSeat')); return; }
+  const [tx, tz] = look();
   seat.by = 'you';
   ME = { seat, menu: true, pick: 0, keys: new Set(), tap: new Set(), fov: fpCam.fov, lastPad: {}, mate: null };
   fp.seat = { x: seat.x, z: seat.z, y: 0.55 }; fp.pos.set(seat.x, seat.z); fp.yaw = faceTo(seat.x, seat.z, tx, tz); fp.pitch = -0.2; fp.anim = 'gamepad';
@@ -206,6 +216,13 @@ export function updateGaming(dt) {
   // the match's life: the two sit down, it starts, it ends (or work calls one of them away)
   if (!G && !ME && state.sim > nextAt) { nextAt = state.sim + 30; if (Math.random() < 0.18 && tvMatch()) nextAt = state.sim + rand(900, 1800); }
   if (ME && !fp.on) standUp();   // (left first person)
+  // A human keeps playing against the console when their colleague is called back to work.
+  if (ME?.mate && (gone(ME.mate) || called(ME.mate.w))) {
+    const mate = ME.mate;
+    if (mate.w.chore === mate.e) { mate.e.until = state.sim; if (mate.w.after) mate.w.afterAt = Math.min(mate.w.afterAt, state.sim); }
+    if (G && !G.npc) for (const side of G.side) if (side.w === mate.w) Object.assign(side, { w: null, e: null, ai: true, name: tr('fp.tv.cpu') });
+    ME.mate = null;
+  }
   if (G) {
     const players = G.side.filter((s) => s.w);
     if (G.npc && players.every(gone)) { G = null; nextAt = state.sim + rand(900, 1800); }

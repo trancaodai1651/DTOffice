@@ -77,7 +77,7 @@ export function setup() {
   // a team's area: half a pod on the open floor (the two desks face to face on its left or right side: a project with
   // more people takes the other half too), a whole department room on the headquarters' wing, a row in the small office
   UNITS = PRO ? [...[0, 1, 2].flatMap((p) => [[0, 2], [1, 3]].map((h) => ({ desks: h.map((k) => p * 4 + k), dept: -1, pod: p, side: h[0] ? 1 : -1 }))),
-    ...(HQ ? DEPTS.map((d, i) => ({ desks: range(12 + DEPTS.slice(0, i).reduce((n, x) => n + x.pods.length * 4, 0), d.pods.length * 4), dept: i, team: !!d.team })) : [])]
+    ...(HQ ? DEPTS.map((d, i) => ({ desks: range(12 + DEPTS.slice(0, i).reduce((n, x) => n + x.pods.length * 4, 0), d.pods.length * 4), dept: i, team: !!d.team, mk: !!d.mk })) : [])]
     : DESK_ROWS.map((_, r) => ({ desks: range(r * DESK_COLS.length, DESK_COLS.length), dept: -1 }));
   unitOfDesk = []; UNITS.forEach((u, i) => { for (const d of u.desks) unitOfDesk[d] = i; });
   TEAMS = UNITS.length;

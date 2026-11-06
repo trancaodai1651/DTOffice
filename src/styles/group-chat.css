@@ -528,6 +528,10 @@
 .tm-about summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--zc-blue); padding: 4px 0; }
 .tm-org { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 6px; margin: 6px 0; }
 .tm-group { display: flex; flex-direction: column; gap: 4px; padding: 8px; border-radius: 10px; background: #F5F7FA; }
+.tm-mk-org { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 8px; margin: 6px 0; }
+.tm-mk-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px; font-size: 12px; }
+.tm-mk-list small { color: var(--zc-muted, #667085); }
+.tm-group .tm-mk-list b { text-transform: none; letter-spacing: 0; color: inherit; }
 .tm-group b { font-size: 12px; color: var(--zc-grey); text-transform: uppercase; letter-spacing: .3px; }
 .tm-group.is-lead { background: #FFF3E8; } .tm-group.is-design { background: #F1EEFF; } .tm-group.is-dev { background: #E8F3FF; } .tm-group.is-quality { background: #EAF7EE; } .tm-group.is-ops { background: #F2F4F7; }
 .tm-role { font-size: 12.5px; padding: 3px 7px; border-radius: 6px; background: #fff; box-shadow: 0 1px 2px rgba(21, 39, 71, .08); cursor: default; }

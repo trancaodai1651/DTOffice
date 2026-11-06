@@ -58,7 +58,6 @@ import * as peopleAiTeam from './people/ai-team.js';
 import * as peopleExitPermission from './people/exit-permission.js';
 import * as peopleTeamBrief from './people/team-brief.js';
 import * as peopleSpecialists from './people/specialists.js';
-import * as peopleCodexBot from './people/codex-bot.js';
 import * as uiSpecialists from './ui/specialists.js';
 import * as uiTeamRoster from './ui/team-roster.js';
 import * as peopleErrands from './people/errands.js';
@@ -188,7 +187,6 @@ const MODULES = [
   peopleExitPermission,
   peopleTeamBrief,
   { setup: peopleSpecialists.setupWorld },
-  peopleCodexBot,
   peopleErrands,
   peopleGatherings,
   peopleOutings,

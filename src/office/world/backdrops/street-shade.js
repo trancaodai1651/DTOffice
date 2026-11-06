@@ -73,13 +73,12 @@ export function buildShade({ lanes, spotOf, inSB, solids, trees, office, C, GY }
    1.8 m in from the kerb and 1.5 m back), so on a hot day there is somewhere to wait. One merged mesh, the only thing
    in these street batches that casts a shadow: the shade is the point. Returns the trees ([x, z, size], as city.js's,
    for the shade test) and where they stand (to keep the power poles off them). */
-export function plantStreetTrees(G, { lanes, spotOf, inSB, HALF, XS, ZS, C, GY, avoid = [] }) {
-  const out = [], geo = [], zMin = ZS[0] - 6, xMin = XS[0] - 6;
+export function plantStreetTrees(G, { lanes, spotOf, inSB, HALF, C, GY, avoid = [] }) {
+  const out = [], geo = [];
   const d = new THREE.Vector3().subVectors(sun.position, sun.target.position);
   if (d.lengthSq() < 1e-6) d.set(10, 18, 8.5);
   d.normalize();
   const off = { x: (-d.x / d.y) * 3.3, z: (-d.z / d.y) * 3.3 };   // (where the shadow of a crown 3.3 m up falls)
-  const lampNear = (along, axis) => { const o = axis === 'z' ? zMin : xMin, k = Math.round((along - o - 4) / 9); return Math.abs(o + 4 + 9 * k - along) < 1.4; };
   for (const L of lanes) {
     // only lanes whose kerb is on the +x / +z side: their tree's shadow falls back across the lane
     const kerbPlus = L.axis === 'z' ? L.dir < 0 : L.dir > 0;
@@ -90,7 +89,7 @@ export function plantStreetTrees(G, { lanes, spotOf, inSB, HALF, XS, ZS, C, GY, 
       const [x, z] = spotOf(L, along, HALF + 0.45), [px, pz] = spotOf(L, stop, 1.3);
       if (Math.hypot(px - C[0], pz - C[1]) > 22) return;
       if (inSB(x, z) || inSB(...spotOf(L, along, 0.5))) return;
-      if (lampNear(along, L.axis) || avoid.some(([ax, az, ar]) => Math.hypot(ax - x, az - z) < ar)) return;
+      if (avoid.some(([ax, az, ar]) => Math.hypot(ax - x, az - z) < ar)) return;
       const sz = 1.25;
       out.push([x, z, sz, 3.3]);
       geo.push(colorize(new THREE.CylinderGeometry(0.16, 0.24, 3.2, 7).translate(x, GY + 0.12 + 1.6, z), '#5B4433'));

@@ -1,14 +1,13 @@
 // The render loop and its frame budget.
 import * as THREE from 'three';
 import { state } from './state.js';
-import { reduceMotion, replay } from './env.js';
+import { reduceMotion, replay, stage } from './env.js';
 import { HOME, SOFTWARE_GL, camera, controls, fpCam, labels, renderer, resize, scene } from '../scene/renderer.js';
 import { updateExtras } from '../world/props/update.js';
 import { leaving, residents, npcs, subs, updateZs, workers, workerForSession } from '../people/workers.js';
 import { updateTeam } from '../people/team-lines.js';
 import { updateExitRequests } from '../people/exit-permission.js';
 import { updateBriefs } from '../people/team-brief.js';
-import { updateCodexBot } from '../people/codex-bot.js';
 import { flights, updateFlights } from '../people/director.js';
 import { updateWeather } from '../life/weather.js';
 import { updateNap } from '../life/nap.js';
@@ -54,6 +53,8 @@ import { THEME } from '../world/backdrops/index.js';
 import { drawFrame, onQualityChange, phoneLike, quality, stepDown } from '../scene/quality.js';
 import { toast } from '../ui/activity.js';
 import { t as tr } from '../../i18n/index.js';
+import { canAdaptGraphics, graphicsResolutionSteps } from '../../shared/graphics-policy.js';
+import { updateShadowFocus } from '../scene/lights.js';
 
 export let focusTarget;
 const clock = new THREE.Clock();
@@ -97,8 +98,9 @@ function updateWorld(o, force) {
 function labelsIn(o) { const ch = o.children; for (let i = 0; i < ch.length; i++) { if (ch[i].isCSS2DObject) ch[i].updateWorldMatrix(true, false); if (ch[i].children.length) labelsIn(ch[i]); } }
 let PR_STEPS;
 let prIdx = 0, prSlow = 0, prFast = 0, prHoldUntil = 0;
+let prWarmUntil = 0;
 function adaptResolution(gap, target, dt) {
-  if (target > 1000 / 55 || !PR_STEPS.length) { prSlow = prFast = 0; return; }   // only judged while aiming for 60
+  if (quality.choice !== 'auto' || performance.now() < prWarmUntil || !canAdaptGraphics(target) || !PR_STEPS.length) { prSlow = prFast = 0; return; }
   if (gap > target * 1.3) { prSlow += dt; prFast = 0; } else if (gap < target * 1.1) { prFast += dt; prSlow = Math.max(0, prSlow - dt); }
   let next = prIdx;
   if (prSlow > 1.2 && prIdx < PR_STEPS.length - 1) { next = prIdx + 1; prHoldUntil = performance.now() + 60e3; }
@@ -152,7 +154,6 @@ export function loop(now = 0) {
   updateExitRequests();
   for (const w of workers.values()) w.update(dt, state.sim);
   updateBriefs();
-  updateCodexBot(dt, state.sim);
   for (const w of residents.values()) if (w.roaming) w.update(dt, state.sim); else w.animate(dt, state.sim);
   for (const w of subs.values()) w.update(dt, state.sim);
   for (const w of leaving) { w.update(dt, state.sim); if (!w.root.parent) leaving.delete(w); }
@@ -199,11 +200,13 @@ export function loop(now = 0) {
   updateTips();
   if (fp.on) {
     fpUpdate(dt0);
+    updateShadowFocus(fp.street ? fp.avatar.position : null);
     updateWorld(scene, false); if (PERF) lap('world');
     drawFrame(fpCam); if (PERF) lap('draw');
     labels.render(scene, fpCam); placePlc(); if (PERF) lap('labels');
     return;
   }
+  updateShadowFocus(null);
   const sel = state.selectedId && workerForSession(state.selectedId);
   if (sel) focusTarget.set(sel.pos.x, 0.9, sel.pos.y);
   const delta = _camDelta.copy(focusTarget).sub(controls.target).multiplyScalar(Math.min(1, dt0 * 4));
@@ -229,16 +232,24 @@ export function setup() {
   scene.matrixWorldAutoUpdate = false;   // (updateWorld above does it, once a frame)
   // the tests' and the performance checks' hooks (?debug): frames drawn so far, the renderer (its info: draw calls…)
   PERF = new URLSearchParams(location.search).has('debug');
-  if (PERF) setTimeout(function hook() { if (!window.__office) { setTimeout(hook, 200); return; } Object.defineProperties(window.__office, { frames: { get: () => frameNo }, renderer: { get: () => renderer }, frameTimes: { get: () => ({ ...T, frames: frameNo }) } }); }, 0);
+  if (PERF) setTimeout(function hook() { if (!window.__office) { setTimeout(hook, 200); return; } Object.defineProperties(window.__office, { frames: { get: () => frameNo }, renderer: { get: () => renderer }, graphics: { get: () => ({ ...quality, software: SOFTWARE_GL, pixelRatio: renderer.getPixelRatio() }) }, frameTimes: { get: () => ({ ...T, frames: frameNo }) } }); }, 0);
   shadowStandIns(renderer);   // (characters' shadows from low-poly stand-ins: people/chibi-rig.js)
    renderer.shadowMap.needsUpdate = true;
-  // Dynamic resolution: on a Retina screen the GPU draws four times the pixels. When frames keep arriving late while the
-  // office aims for 60 a second, the 3D is drawn a step softer (2 → 1.75 → 1.5 → 1.25 → 1; labels stay sharp, they are
-  // HTML); after a long stretch with room to spare it steps back up, and not again soon after having had to step down.
-  // The graphics level caps the steps (Low: 1×, Medium: 1.5×); a level change starts again from its sharpest step.
-  onQualityChange((q) => {
-    PR_STEPS = [2, 1.75, 1.5, 1.25, 1].filter((x) => x <= Math.min(window.devicePixelRatio || 1, 2, q.prMax));
-    prIdx = 0; prSlow = prFast = 0;
-    renderer.setPixelRatio(PR_STEPS[0] ?? q.prMax); resize();
-  });
+  // Dynamic resolution also adapts at the phone's 12/20/30 fps budgets, down to 0.6× when needed.
+  // A tablet's Auto buffer has a pixel budget; labels stay sharp HTML, and explicit quality keeps its selected cap.
+  let sizeKey;
+  const resolution = (reset = false) => {
+    const key = `${stage.clientWidth}:${stage.clientHeight}:${window.devicePixelRatio}`;
+    if (!reset && key === sizeKey) return;
+    sizeKey = key;
+    const previous = renderer.getPixelRatio();
+    PR_STEPS = graphicsResolutionSteps({ width: stage.clientWidth, height: stage.clientHeight, pixelRatio: window.devicePixelRatio, prMax: quality.prMax, software: SOFTWARE_GL, coarse: matchMedia('(pointer: coarse)').matches, auto: quality.choice === 'auto' });
+    prIdx = reset ? 0 : Math.max(0, PR_STEPS.findIndex((v) => v <= previous));
+    prSlow = prFast = 0; prHoldUntil = 0;
+    if (reset) prWarmUntil = performance.now() + 15_000;
+    renderer.setPixelRatio(PR_STEPS[prIdx]); resize();
+  };
+  onQualityChange(() => resolution(true));
+  new ResizeObserver(() => resolution()).observe(stage);
+  addEventListener('resize', () => resolution(), { passive: true });
 }

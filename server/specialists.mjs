@@ -63,6 +63,7 @@ export function newsPrompt({ topic, lang = 'vi', since = 7 }) {
   const vi = lang === 'vi';
   return [
     'You are the NEWS READER of "DT Office" (Nhân sự đọc báo). The CEO (the user) asked you to read the news on this topic:',
+    'This assignment belongs to you. Read the sources and write the report yourself; do not hand it to another office employee or create a subagent to do it.',
     '', `TOPIC: ${topic}`, '',
     `1. Search the web for recent coverage (the last ${since} days, longer only when there is too little), in BOTH:`,
     '   - Vietnamese press: e.g. VnExpress, Tuổi Trẻ, Thanh Niên, VietnamNet, Dân Trí, Znews, Báo Chính phủ, VTV, Nhân Dân, Người Lao Động.',
@@ -115,7 +116,7 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
   for (const j of jobs) if (j.status === 'run' || j.status === 'print') j.status = 'stopped';   // (the office stopped under it)
   const save = () => { try { fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(file, JSON.stringify({ jobs: jobs.slice(0, 40) }, null, 1)); } catch { /* best effort */ } };
   const pub = (j) => ({ id: j.id, kind: j.kind, topic: j.topic, brief: j.brief, source: j.source, input: j.input, from: j.from || null, dir: j.dir, status: j.status, at: j.at, end: j.end || 0,
-    pdf: j.pdf || '', video: j.video || '', summary: j.summary || '', agent: j.agent, model: j.model, effort: j.effort, asked: !!j.asked });
+    sid: j.sid || null, task: j.task || null, pdf: j.pdf || '', video: j.video || '', summary: j.summary || '', agent: j.agent, model: j.model, effort: j.effort, asked: !!j.asked });
   const defaults = () => ({ news: path.join(home, 'Documents', 'DT Office', 'Bao chi'), video: path.join(home, 'Videos', 'DT Office') });
   const folder = (root, title) => { const d = path.join(root, `${day(now())}-${slug(title)}`); let f = d, i = 2; while (fs.existsSync(f)) f = `${d}-${i++}`; fs.mkdirSync(f, { recursive: true }); return f; };
   const absolute = (p) => { const s = String(p || '').trim().replace(/^["']|["']$/g, '').replace(/^~(?=$|[\\/])/, home); return s && path.isAbsolute(s) ? path.resolve(s) : ''; };
@@ -133,10 +134,12 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
     raw: (id) => jobs.find((x) => x.id === id) || null,
     defaults,
     tools: () => ({ ffmpeg: ffmpeg() || '', browser: browser() || '', skills: videoSkills() }),
+    bind(task, sid) { const j = jobs.find((x) => x.task === task); if (!j || !sid || j.sid === sid) return; j.sid = sid; save(); onChange(pub(j), 'bind'); },
     /** { topic, dir?, agent, model, effort } -> { ok, job } | { ok: false, code } */
     news({ topic, dir = '', agent = 'claude', model = '', effort = '' }) {
       topic = String(topic || '').trim().slice(0, 500);
       if (!topic) return { ok: false, code: 'empty' };
+      if (jobs.some((j) => j.kind === 'news' && ['run', 'print'].includes(j.status))) return { ok: false, code: 'specialistBusy' };
       const root = dir ? absolute(dir) : defaults().news; if (!root) return { ok: false, code: 'badDir' };
       const j = { id: crypto.randomUUID().slice(0, 8), kind: 'news', topic, agent: agent === 'codex' ? 'codex' : 'claude', model, effort, at: now(), dir: folder(root, topic) };
       return run(j, newsPrompt({ topic, lang: lang() }), { claude: ['--allowedTools', 'WebSearch WebFetch Read Write Edit Glob Grep'], codex: ['-c', 'web_search="live"'] });
@@ -146,6 +149,7 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
       brief = String(brief || '').trim().slice(0, 2000);
       const news = from ? jobs.find((x) => x.id === from && x.kind === 'news') : null;
       if (!brief && !news) return { ok: false, code: 'empty' };
+      if (jobs.some((j) => j.kind === 'video' && ['run', 'print'].includes(j.status))) return { ok: false, code: 'specialistBusy' };
       const src = source === 'folder' ? 'folder' : 'web', inDir = src === 'folder' ? absolute(input) : '';
       if (src === 'folder' && !(inDir && fs.existsSync(inDir) && fs.statSync(inDir).isDirectory())) return { ok: false, code: 'noInput' };
       const root = out ? absolute(out) : defaults().video; if (!root) return { ok: false, code: 'badDir' };
@@ -162,6 +166,7 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
     /** A task ended: if it was a specialist's, its result (the news report printed to PDF). */
     async taskDone(t) {
       const j = jobs.find((x) => x.task === t.id); if (!j) return false;
+      if (t.sid) j.sid = t.sid;
       j.summary = String(t.result || t.error || '').trim().slice(-1500);
       if (t.stopped) { j.status = 'stopped'; j.end = now(); save(); onChange(pub(j), 'stopped'); return true; }
       if (t.error && !t.result) { j.status = 'fail'; j.end = now(); save(); onChange(pub(j), 'fail'); return true; }

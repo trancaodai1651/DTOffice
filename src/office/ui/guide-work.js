@@ -6,6 +6,7 @@ import { el } from '../core/env.js';
 import { TOKEN } from '../net/live.js';
 import { projectPicker } from './projects.js';
 import { t as tr } from '../../i18n/index.js';
+import { specialistRequest } from '../../shared/specialist-request.js';
 
 const q = () => (TOKEN ? `?k=${encodeURIComponent(TOKEN)}` : '');
 const KEEP = 'office-guide-work';
@@ -24,9 +25,9 @@ const say = (text) => el('p', 'gw-say', text);
 
 /**
  * Her side of it, in the guide's panel: back() goes to her topics, openTeam() opens the team's sheet.
- * @param {{ back: () => void, openTeam: () => void }} o
+ * @param {{ back: () => void, openTeam: () => void, openSpecialist: (kind: string, options: object) => void }} o
  */
-export function workFlow({ back, openTeam }) {
+export function workFlow({ back, openTeam, openSpecialist }) {
   const box = el('div', 'gd-topic gw');
   const saved = kept(), pick = { goal: '', dir: saved.dir || '', teams: [], lead: saved.lead === 'cto' ? 'cto' : 'pm', agent: saved.agent || '', model: saved.model || '', effort: saved.effort || '' };
   const head = el('div', 'gd-topic-head'), up = el('button', 'gd-back', '‹'); up.type = 'button'; up.title = tr('guide.back'); up.setAttribute('aria-label', up.title);
@@ -42,7 +43,7 @@ export function workFlow({ back, openTeam }) {
     text.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) next.click(); });
     const next = el('button', 'gd-go', tr('guide.work.next')); next.type = 'button'; next.disabled = !text.value.trim();
     text.addEventListener('input', () => { next.disabled = !text.value.trim(); });
-    next.addEventListener('click', () => { pick.goal = text.value.trim(); if (pick.goal) stepProject(); });
+    next.addEventListener('click', () => { pick.goal = text.value.trim(); if (!pick.goal) return; const request = specialistRequest(pick.goal); if (request) openSpecialist(request.kind, { topic: request.topic }); else stepProject(); });
     body.replaceChildren(say(tr('guide.work.askTask')), text, next);
     setTimeout(() => text.focus({ preventScroll: true }), 30);
   }
@@ -107,7 +108,7 @@ export function workFlow({ back, openTeam }) {
   // 4. given: the lead calls each member, who comes to you for their part
   function stepDone(run) {
     pick.goal = '';
-    const lead = tr(`team.roles.${run?.lead === 'cto' ? 'cto' : 'pm'}.name`);
+    const lead = tr(`team.roles.${['cto', 'cmo'].includes(run?.lead) ? run.lead : 'pm'}.name`);
     const see = el('button', 'gd-go', tr('guide.work.openTeam')); see.type = 'button'; see.addEventListener('click', openTeam);
     const more = el('button', 'gw-prev', tr('guide.work.another')); more.type = 'button'; more.addEventListener('click', stepTask);
     const acts = el('div', 'gw-acts'); acts.append(more, see);

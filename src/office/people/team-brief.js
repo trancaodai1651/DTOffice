@@ -38,7 +38,7 @@ export function briefFromRuns(runs) {
       const key = `${r.id}:${n}:${j.role}`;
       if (j.state !== 'run' || seen.has(key)) continue;
       seen.add(key);
-      if (Date.now() - (j.at || 0) < 90e3) fresh.push(j.role);
+      if (Date.now() - (j.at || 0) < 90e3 && residents.has(j.role)) fresh.push(j.role);   // (only those with a desk in the AI room come to the meeting)
     }
     if (fresh.length) callMeeting(fresh, `${tr(`team.stages.${s.key}`)}: ${short(r.goal || '', 60)}`);
   }

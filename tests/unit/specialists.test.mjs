@@ -30,6 +30,7 @@ test('what the news reader is told: both presses, no invention, one HTML report'
   assert.match(p, /TOPIC: giá vàng/);
   assert.match(p, /VnExpress/); assert.match(p, /Reuters/);
   assert.match(p, /Never invent/);
+  assert.match(p, /do not hand it to another office employee or create a subagent/);
   assert.match(p, /bao-cao\.html/);
   assert.match(p, /Vietnamese/);
 });
@@ -72,4 +73,17 @@ test('a video job: from the news report, its skills copied in, its footage folde
   assert.equal(h.sp.get(n.job.id).asked, true, 'the reader\'s question is answered');
   const web = videoPrompt({ brief: 'b', source: 'web', out: 'o', ffmpeg: 'ffmpeg', skills: ['a'] });
   assert.match(web, /Pexels/); assert.match(web, /nguon-tu-lieu\.md/); assert.doesNotMatch(web, /NOT installed/);
+});
+
+test('one news reader owns the task, keeps its session after completion and cannot take overlapping jobs', async () => {
+  const h = harness(), first = h.sp.news({ topic: 'AI' });
+  assert.equal(h.sp.news({ topic: 'Gold' }).code, 'specialistBusy');
+  assert.equal(h.started.length, 1);
+  h.sp.bind(first.job.task, 'news-thread');
+  assert.equal(h.sp.get(first.job.id).sid, 'news-thread');
+  await h.sp.taskDone({ id: first.job.task, sid: 'news-thread', result: 'Finished report' });
+  assert.equal(h.sp.get(first.job.id).sid, 'news-thread');
+  const restored = createSpecialists({ dataDir: path.join(h.home, 'data'), lang: () => 'vi', home: h.home, start: () => ({ ok: false }), stop: () => {}, browser: () => null });
+  assert.equal(restored.get(first.job.id).sid, 'news-thread');
+  assert.equal(h.sp.news({ topic: 'Gold' }).ok, true);
 });

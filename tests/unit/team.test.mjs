@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ROLES, STAGES, GROUPS, TEAMS, createTeam, membersOf, rolePrompt, rolesOf, routeTeams, verdictOf } from '../../server/team.mjs';
+import { ROLES, STAGES, GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS, MARKETING_STAGES, createTeam, membersOf, rolePrompt, rolesOf, routeTeams, verdictOf } from '../../server/team.mjs';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'office-team-'));
 // a team whose sessions are stand-ins: at most `max` at once (the office's own limit), each ended by hand
@@ -201,4 +201,54 @@ test('the guide picks the team(s); a task for two teams goes from one to the nex
     assert.equal(r.ti, 1); assert.equal(r.stages.at(-1).team, 'other');
     assert.match(h.started.at(-1).prompt, /5-report-pm.md|report/);
   } finally { TEAMS.pop(); }
+});
+
+test('the marketing department: one agent per position, all in one department, under one manager', () => {
+  assert.equal(MARKETING_ROLES.length, 18);
+  assert.equal(new Set(MARKETING_ROLES.map((r) => r.id)).size, 18, 'one agent per position');
+  assert.ok(MARKETING_ROLES.every((r) => MARKETING_GROUPS.includes(r.group)));
+  assert.deepEqual(MARKETING_ROLES.filter((r) => r.group === 'mlead').map((r) => r.id), ['cmo'], 'one manager');
+  assert.ok(!MARKETING_ROLES.some((r) => ROLES.some((d) => d.id === r.id)), 'no position shared with the dev team');
+  assert.equal(TEAMS.find((t) => t.id === 'marketing').lead, 'cmo');
+  assert.ok(MARKETING_STAGES.flatMap((s) => s.roles).every((id) => MARKETING_ROLES.some((r) => r.id === id)));
+  assert.deepEqual(routeTeams('lên kế hoạch quảng cáo facebook cho sản phẩm mới').map((x) => x.id), ['marketing']);
+});
+
+test('a task given to the Marketing Manager: it plans, assigns the right positions, the review can send work back', () => {
+  const h = harness({ max: 10 });
+  h.team.begin({ dir: h.dir, goal: 'Ra mắt sản phẩm', lead: 'cmo' });
+  let r = h.team.list()[0];
+  assert.deepEqual(r.teams, ['marketing']); assert.equal(r.lead, 'cmo');
+  assert.deepEqual(h.atWork(), ['mplan:cmo', 'mplan:research', 'mplan:strategist'], 'the manager plans with research and strategy');
+  assert.match(h.started[0].prompt, /AI Agent Marketing/);
+  assert.match(h.started[0].prompt, /ROLES:/);
+  assert.match(h.started[0].prompt, /Never post, publish, send email/);
+  h.finish('cmo', 'Kế hoạch\nROLES: copywriter, ads, seo'); h.finish('research'); h.finish('strategist');
+  assert.deepEqual(h.atWork(), ['mstrategy:content'], 'only the strategy positions it named (content always)');
+  h.finish('content');
+  assert.deepEqual(h.atWork(), ['mproduce:ads', 'mproduce:copywriter', 'mproduce:seo'], 'exactly the positions the manager assigned, side by side');
+  h.finish('copywriter'); h.finish('seo'); h.finish('ads');
+  assert.deepEqual(h.atWork(), ['mreview:editor']);
+  h.finish('editor', 'VERDICT: FAIL - sai giá'); h.finish('analytics', 'VERDICT: PASS');
+  assert.deepEqual(h.atWork(), ['mfix:ads', 'mfix:copywriter', 'mfix:seo'], 'the review failed: the producers fix their own work');
+  h.finish('copywriter'); h.finish('seo'); h.finish('ads');
+  h.finish('editor', 'VERDICT: PASS'); h.finish('analytics', 'VERDICT: PASS');
+  assert.deepEqual(h.atWork(), ['report:cmo'], 'the manager reports to the CEO');
+  h.finish('cmo');
+  r = h.team.list()[0];
+  assert.equal(r.status, 'done');
+});
+
+test('the Marketing Manager named nobody: the three positions most goals need produce', () => {
+  const run = { teams: ['marketing'], ti: 0, lead: 'cmo', named: null };
+  assert.deepEqual(membersOf(run, MARKETING_STAGES[2]), ['copywriter', 'designer', 'social']);
+  assert.deepEqual(membersOf({ ...run, named: ['brand'] }, MARKETING_STAGES[2]), ['copywriter', 'designer', 'social'], 'no producer named');
+  assert.deepEqual(membersOf(run, { key: 'report' }), ['cmo']);
+});
+
+test("the marketing department's desks hold every marketing position once", async () => {
+  const { MARKETING_SEATS, MARKETING_ROLE_IDS } = await import('../../src/shared/team-roles.js');
+  assert.deepEqual([...MARKETING_ROLE_IDS].sort(), MARKETING_ROLES.map((r) => r.id).sort());
+  assert.equal(MARKETING_SEATS[0], 'cmo', 'the manager at the head desk');
+  assert.ok(MARKETING_SEATS.length <= 24, 'they fit the department: 2 pods + 4 pods');
 });

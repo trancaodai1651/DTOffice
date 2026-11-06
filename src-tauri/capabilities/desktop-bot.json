@@ -1,0 +1,6 @@
+{
+  "identifier": "desktop-bot",
+  "description": "The bundled desktop companion can read its status, move, hide and open DT Office.",
+  "windows": ["codex-bot"],
+  "permissions": ["allow-desktop-bot"]
+}

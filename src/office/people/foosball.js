@@ -14,6 +14,7 @@ import { sessions, workers } from './workers.js';
 import { asleep, free, quip } from './errands.js';
 import { sfx } from '../audio/sfx.js';
 import { t as tr } from '../../i18n/index.js';
+import { gameHasWinner, gameWorkPending } from '../../shared/game-lifecycle.js';
 
 // the table (world/pro/floor.js builds its cabinet): 1.2 x 0.7, the rods 2 cm over its top; red keeps the -x goal
 const L = 1.2, W = 0.7, TOP = 0.92, GOAL = 0.1, BALL_Y = TOP - 0.05, XMAX = L / 2 - 0.07, ZMAX = W / 2 - 0.07;
@@ -54,11 +55,11 @@ function places() {
 }
 
 /* ---------- a game ---------- */
-const called = (w) => { const s = sessions.get(w.id); return !s || s.status !== 'rest' || !!s.bg?.length || !!w.want; };
+const called = (w) => gameWorkPending(sessions.get(w.id), w.want);
 // who could play: resting, nothing else on (not out, not on a break, not carrying anything, not at tea)
 function who() {
   return [...workers.values()].filter((w) => { const s = sessions.get(w.id);
-    return !w.sub && s?.status === 'rest' && !s.bg?.length && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
+    return !w.sub && !gameWorkPending(s, w.want) && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
 }
 /** A game now (?debug: __office.pingpong(), or forced), else now and then on its own. Returns whether one started. */
 export function foosball(force = false) {
@@ -68,12 +69,12 @@ export function foosball(force = false) {
   const at = places(); if (!at) return false;
   const list = who(); if (list.length < 2) return false;
   const a = list.splice(Math.floor(Math.random() * list.length), 1)[0], b = list[Math.floor(Math.random() * list.length)];
-  const end = state.sim + rand(70, 170), look = [FB.position.x, FB.position.z];
-  G = { a, b, end, score: [0, 0], ready: false, over: false, serveAt: 0, bx: 0, bz: 0, vx: 0, vz: 0 };
+  const look = [FB.position.x, FB.position.z];
+  G = { a, b, score: [0, 0], ready: false, over: false, serveAt: 0, bx: 0, bz: 0, vx: 0, vz: 0 };
   // one asks and walks over, the other answers and follows a moment later
   G.ea = a.errand({ type: 'idle', spot: at.red, look, anim: 'console', wait: 0.4, hold: 0.4, anim2: 'idle', linger: 0.8, line: tr('people.foos.invite') });
   G.eb = b.errand({ type: 'idle', spot: at.blue, look, anim: 'console', wait: 2.4, hold: 0.4, anim2: 'idle', linger: 0.8, line: tr('people.foos.join') });
-  G.ea.until = G.eb.until = end;
+  G.ea.until = G.eb.until = Infinity;
   return true;
 }
 // the end of it: both let go (now, or after a moment for the winner's cheer), and back to their places
@@ -98,7 +99,7 @@ function play(dt) {
       quip(scorer, `${tr('people.foos.goal')} ${tr('people.foos.score', { a: G.score[0], b: G.score[1] })}`, 'idle');
       sfx.play('pop');
       G.serveAt = state.sim + 1.6; G.bx = Math.sign(G.bx) * (XMAX + 0.04); G.vx = G.vz = 0;
-      if (Math.max(...G.score) >= 5) gameOver();
+      if (gameHasWinner(G.score, 5)) gameOver();
       return;
     }
     G.bx = Math.sign(G.bx) * XMAX; G.vx = -G.vx; tok();
@@ -137,11 +138,10 @@ export function updateFoosball(dt) {
   if (!G.over) {
     if (gone(a, G.ea) || gone(b, G.eb)) finish();
     else if (called(a) || called(b)) { quip(called(a) ? a : b, tr('people.foos.called'), 'idle'); finish(); }   // work came in: that's that
-    else if (state.sim > G.end - 3 && G.ready) gameOver();
   }
   if (!G.ready && at(a, G.ea) && at(b, G.eb)) { G.ready = true; serve(); }
   if (!G.ready || G.over) return;
-  for (let t = dt; t > 0; t -= 0.03) play(Math.min(t, 0.03));
+  for (let t = dt; t > 0 && !G.over; t -= 0.03) play(Math.min(t, 0.03));
   ball.position.set(G.bx, BALL_Y, G.bz);
   // the rods: each side's slide after the ball, spin from a kick dying away, a fidget now and then
   for (const r of rods) {

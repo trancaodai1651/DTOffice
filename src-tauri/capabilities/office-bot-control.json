@@ -1,0 +1,8 @@
+{
+  "identifier": "office-bot-control",
+  "description": "Only the local DT Office main window can restore its desktop companion.",
+  "local": false,
+  "remote": { "urls": ["http://localhost:*/*", "http://127.0.0.1:*/*"] },
+  "windows": ["main"],
+  "permissions": ["allow-desktop-bot"]
+}

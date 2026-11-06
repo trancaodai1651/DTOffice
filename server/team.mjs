@@ -42,13 +42,57 @@ export const ROLES = [
   { id: 'database', group: 'ops', duty: 'Owns the data: schema and migrations, indexes, backups, data integrity and how the data is kept over time.' },
 ];
 export const GROUPS = ['lead', 'design', 'dev', 'quality', 'ops'];
+/** "Đội AI Agent Marketing": one department, one agent per position, run by its Marketing Manager (CMO). You give the goal
+ *  to the manager; it plans with Research and Strategy and names (a "ROLES:" line) the positions the goal needs: only
+ *  those are called after. Deliverables are files in the project (marketing/<run>/); nothing is posted, sent or paid for. */
+export const MARKETING_ROLES = [
+  { id: 'cmo', group: 'mlead', duty: 'Marketing Manager: receives the goal from the CEO, sets the objective, budget split and KPIs, assigns each part to the right position, keeps everyone on one message, and reports to the CEO.' },
+  { id: 'research', group: 'mstrategy', duty: 'Market research: the market and its size, competitors, customer segments, insights and the evidence behind them (say what is assumed).' },
+  { id: 'strategist', group: 'mstrategy', duty: 'Marketing strategy: positioning, target personas, the customer journey, channel mix, marketing plan and timeline.' },
+  { id: 'brand', group: 'mstrategy', duty: 'Brand: brand identity, voice and tone, key messages and the guidelines everyone else must follow.' },
+  { id: 'product', group: 'mstrategy', duty: 'Product marketing: value proposition, features turned into benefits, pricing and offer framing, launch plan, sales enablement.' },
+  { id: 'content', group: 'mcontent', duty: 'Content strategy: content pillars, the editorial calendar, formats per channel, and the creative brief each producer works from.' },
+  { id: 'copywriter', group: 'mcontent', duty: 'Copywriting: headlines, ad copy, landing page and website copy, posts, scripts and CTAs, in the brand voice.' },
+  { id: 'designer', group: 'mcontent', duty: 'Graphic design: visual concepts, key visuals, layouts and specifications for banners, posts and print (as briefs, mockups or SVG/HTML when possible).' },
+  { id: 'motion', group: 'mcontent', duty: 'Video and motion content: short-video ideas, scripts, storyboards, shot lists and editing notes for TikTok, Reels, YouTube.' },
+  { id: 'seo', group: 'mchannel', duty: 'SEO: keyword research, search intent, on-page optimisation, content outlines for search, technical SEO checks.' },
+  { id: 'ads', group: 'mchannel', duty: 'Performance ads: paid campaigns on Google, Meta, TikTok: structure, audiences, budgets, bids, ad sets and A/B tests. Never spends money.' },
+  { id: 'social', group: 'mchannel', duty: 'Social media: channel plan and posting calendar for Facebook, TikTok, Instagram, Zalo, LinkedIn; community replies and engagement.' },
+  { id: 'email', group: 'mchannel', duty: 'Email and CRM: segments, automated journeys, newsletters, email copy and subject lines, retention and loyalty. Never sends.' },
+  { id: 'pr', group: 'mchannel', duty: 'PR and communications: press releases, media list, story angles, crisis lines and Q&A.' },
+  { id: 'kol', group: 'mchannel', duty: 'KOL, influencers and affiliates: selection criteria, brief, collaboration plan and costs, partnerships and community.' },
+  { id: 'events', group: 'mchannel', duty: 'Events and activation: online and offline events, webinars, promotions and trade marketing, run sheets and checklists.' },
+  { id: 'editor', group: 'mquality', duty: 'Editor and brand compliance: checks every deliverable for accuracy, brand voice, spelling, claims that cannot be backed and advertising law/platform policy.' },
+  { id: 'analytics', group: 'mquality', duty: 'Marketing analytics: KPIs and targets, tracking plan (UTM, pixels, events), dashboards and how results will be measured and reported.' },
+];
+export const MARKETING_GROUPS = ['mlead', 'mstrategy', 'mcontent', 'mchannel', 'mquality'];
+const MK_MAKERS = ['copywriter', 'designer', 'motion', 'seo', 'ads', 'social', 'email', 'pr', 'kol', 'events'];
+export const MARKETING_STAGES = [
+  { key: 'mplan', roles: ['cmo', 'research', 'strategist'], always: ['cmo', 'research', 'strategist'], parallel: true, task: 'Plan the goal, each from your own role: read first what the project already holds about the product, the brand and past marketing (README, docs, marketing/). Do not produce the final content in this stage.' },
+  { key: 'mstrategy', roles: ['brand', 'product', 'content'], always: ['content'], parallel: true, task: 'Turn the plan into the message and the brief, each from your own role: what we say, to whom, in which voice, in which formats. Do not produce the final content in this stage.' },
+  { key: 'mproduce', roles: MK_MAKERS, always: [], parallel: true, task: 'Produce your own deliverables from the plan and the brief, ready to use, as files in marketing/<run>/ in the project. Do not post, publish, send or spend anything anywhere.' },
+  { key: 'mreview', roles: ['editor', 'analytics'], always: ['editor', 'analytics'], parallel: false, task: 'Review every deliverable from your own role. Fix only small, certain problems (a typo, a wrong link); list the rest. End your report and your answer with a line that is exactly "VERDICT: PASS" when it can be used, or "VERDICT: FAIL" followed by the problems that must be fixed.' },
+];
+const MK_FIX = { key: 'mfix', roles: MK_MAKERS, always: [], parallel: true, task: 'Fix every problem the review found in your own deliverables (read its reports).' };
 /** The AI Agent teams, and the words of a task that call for each (lower case, Vietnamese and English). Each team runs its
  *  stages (STAGES for the dev team); a new team adds its own roles and stages here, and its room in the office. */
 export const TEAMS = [
   { id: 'dev', roles: ROLES.map((r) => r.id), stages: () => STAGES,
+    name: 'AI Agent Dev', kind: 'software', plan: 'plan', check: 'verify', fix: () => FIX, fallback: ['frontend', 'backend'],
     words: ['code', 'app', 'web', 'api', 'bug', 'lỗi', 'tính năng', 'feature', 'giao diện', 'ui', 'ux', 'server', 'backend', 'frontend', 'database', 'test', 'build', 'deploy', 'phần mềm', 'software', 'module', 'fix', 'sửa', 'refactor', 'mobile', 'desktop', 'trang', 'màn hình', 'screen', 'dữ liệu', 'data', 'ai', 'agent', 'nhân sự', 'văn phòng', 'office'] },
+  { id: 'marketing', roles: MARKETING_ROLES.map((r) => r.id), stages: () => MARKETING_STAGES, lead: 'cmo',
+    name: 'AI Agent Marketing', kind: 'marketing', plan: 'mplan', check: 'mreview', fix: () => MK_FIX, fallback: ['copywriter', 'designer', 'social'],
+    words: ['marketing', 'quảng cáo', 'quảng bá', 'ads', 'seo', 'content', 'nội dung', 'bài viết', 'bài đăng', 'copywriting', 'slogan', 'thương hiệu', 'brand', 'chiến dịch', 'campaign', 'truyền thông', 'pr', 'thông cáo', 'mạng xã hội', 'social', 'facebook', 'fanpage', 'tiktok', 'instagram', 'zalo', 'youtube', 'email marketing', 'newsletter', 'kol', 'koc', 'influencer', 'sự kiện', 'event', 'khuyến mãi', 'ưu đãi', 'promotion', 'ra mắt', 'launch', 'bán hàng', 'doanh số', 'khách hàng', 'thị trường', 'đối thủ', 'landing page', 'tiếp thị', 'livestream'] },
 ];
+const ALL_ROLES = [...ROLES, ...MARKETING_ROLES];
 const teamOf = (id) => TEAMS.find((t) => t.id === id) || TEAMS[0];
+const teamNow = (run) => teamOf(run?.teams?.[run?.ti || 0]);
+/** Who leads a team in this run: the Marketing Manager for marketing; for dev, the PM or the CTO the goal went to. */
+const leadOf = (run, team = teamNow(run)) => team.lead || (run?.lead === 'cto' ? 'cto' : 'pm');
+const isCheck = (key) => TEAMS.some((t) => checkOf(t) === key);
+const fixOf = (team) => team.fix?.() || FIX, checkOf = (team) => team.check || 'verify', fallbackOf = (team) => team.fallback || ['frontend', 'backend'];
+const isFix = (key) => TEAMS.some((t) => fixOf(t).key === key);
+const isPlan = (key) => TEAMS.some((t) => (t.plan || 'plan') === key);
 /** The team(s) a task needs, best first, each with the words that matched; the dev team when none matched. */
 export function routeTeams(text) {
   const low = ` ${String(text || '').toLowerCase()} `;
@@ -81,35 +125,46 @@ const FOCUS = {
   security: 'Check secrets, input validation, auth, dependencies and data exposure.',
   devops: 'Build and package it, check the configuration and CI, write how to deploy, monitor and roll back.',
   database: 'Check the schema and migrations, indexes, backups and data integrity.',
+  cmo: `Restate the goal as a marketing objective with KPIs, target audience, budget split and timeline; break it into tasks and assign each to a position. End your report with a line "ROLES: …" naming, from brand, product, content, ${MK_MAKERS.join(', ')}, only the positions this goal needs (Research, Strategist, Content, Editor and Analytics always take part).`,
+  research: 'Give the market, competitors, segments and insights this goal rests on; mark what is assumed and how to check it.',
+  strategist: 'Give the positioning, personas, customer journey, channel mix and the timeline of the campaign.',
+  brand: 'Give the key message, voice and tone, and the do and do not list for everyone producing content.',
+  product: 'Give the value proposition, benefits, offer and pricing framing, and the launch angle.',
+  content: 'Write the content plan and calendar, and a short creative brief for each position that produces.',
+  editor: 'Check accuracy, brand voice, spelling, unbacked claims, advertising law and platform policies.',
+  analytics: 'Give KPIs and targets, the tracking plan (UTM, pixels, events) and how to measure and report; check every deliverable is measurable.',
 };
-const roleOf = (id) => ROLES.find((r) => r.id === id);
+const roleOf = (id) => ALL_ROLES.find((r) => r.id === id);
 const fileOf = (run, n, key, role) => path.posix.join('.ai-office', 'team', run.id, `${n}-${key}-${role}.md`);
 
 /** The roles the PM named in its plan ("ROLES: frontend, backend"), or null when it named none. */
 export function rolesOf(text) {
   const m = /^\s*ROLES?\s*:\s*(.+)$/im.exec(String(text || '')); if (!m) return null;
-  const ids = ROLES.map((r) => r.id), got = m[1].toLowerCase().split(/[\s,;/]+/).map((w) => w.replace(/[^a-z]/g, '')).filter((w) => ids.includes(w));
+  const ids = ALL_ROLES.map((r) => r.id), got = m[1].toLowerCase().split(/[\s,;/]+/).map((w) => w.replace(/[^a-z]/g, '')).filter((w) => ids.includes(w));
   return got.length ? [...new Set(got)] : null;
 }
 /** Who works in a stage of this run: its members always there, and those the PM named (all of them when it named none). */
 export function membersOf(run, stage) {
-  if (stage.key === 'report') return [run.lead];
+  const team = teamNow(run);
+  if (stage.key === 'report') return [leadOf(run, team)];
   const named = run.named, pick = stage.roles.filter((r) => stage.always.includes(r) || !named || named.includes(r));
   if (stage.key === 'plan' && run.lead === 'cto') pick.unshift('cto');
-  if ((stage.key === 'build' || stage.key === 'fix') && !pick.length) return stage.roles.filter((r) => r === 'frontend' || r === 'backend');   // (the PM named no engineer: the two who build most things)
+  if ((stage.key === 'mproduce' || stage.key === 'mfix') && !named) return [...fallbackOf(team)];   // (the manager named nobody: the three most goals need, not all ten)
+  if ((stage.key === 'build' || stage.key === 'mproduce' || isFix(stage.key)) && !pick.length) return stage.roles.filter((r) => fallbackOf(team).includes(r));   // (nobody named who makes it: those who make most things)
   return pick;
 }
 
 /** What one member's session is told: the team, its own role and only that, the goal, what to read, where to write. */
 export function rolePrompt({ run, stage, n, role, mates, lang, earlier }) {
-  const R = roleOf(role), others = mates.filter((m) => m !== role);
+  const R = roleOf(role), others = mates.filter((m) => m !== role), team = teamNow(run);
   return [
-    `You are the ${role.toUpperCase()} Agent of the "AI Agent Dev" team (software) in "DT Office". The CEO (the user) gave this goal to the ${run.lead === 'cto' ? 'CTO' : 'PM'}${(run.teams || []).length > 1 ? ` (teams on it, in order: ${run.teams.join(', ')}; yours now: ${run.teams[run.ti || 0]})` : ''}:`,
+    `You are the ${role.toUpperCase()} Agent of the "${team.name || team.id}" team (${team.kind || team.id}) in "DT Office". The CEO (the user) gave this goal to the ${leadOf(run, team).toUpperCase()}${(run.teams || []).length > 1 ? ` (teams on it, in order: ${run.teams.join(', ')}; yours now: ${run.teams[run.ti || 0]})` : ''}:`,
     '', `GOAL: ${run.goal}`, '',
     `This session is yours alone: stage ${n} (${stage.key}), running on ${run.agent === 'codex' ? 'Codex CLI' : 'Claude Code'}${run.model ? `, model ${run.model}` : ''}${run.effort ? `, effort ${run.effort}` : ''} (write exactly that in your notes).`,
     `Your role: ${R.duty}`,
     ...(FOCUS[role] ? [`In this stage: ${FOCUS[role]}`] : []),
-    `The stage's task: ${stage.task}`,
+    `The stage's task: ${stage.task.replace('<run>', run.id)}`,
+    ...(team.id === 'marketing' ? [`Put your deliverables (plans, copy, scripts, calendars, briefs, designs) in marketing/${run.id}/ in the project, one file or folder per deliverable, named for your role. Do not change the product's code. Never post, publish, send email or messages, or spend any budget: prepare everything ready for the CEO to approve and use.`] : []),
     ...(others.length ? ['', 'Your colleagues in this stage are separate agents, each in its own session. Do not do their work:', ...others.map((m) => `- ${m.toUpperCase()} Agent: ${roleOf(m).duty}`)] : []),
     '',
     ...(earlier.length ? ['Read these reports first (the stages before you, and the colleagues before you in this one):', ...earlier.map((f) => `- ${f}`), ''] : []),
@@ -144,10 +199,11 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
     if (r.status !== 'run') return;
     const last = r.stages.at(-1);
     let stage;
+    const team = teamNow(r);
     if (!last) stage = teamOf(r.teams?.[0]).stages()[0];
-    else if (last.key === 'verify' && last.verdict !== 'pass' && r.fixes < MAX_FIXES) { r.fixes++; stage = FIX; }
-    else if (last.key === 'fix') stage = teamOf(r.teams?.[r.ti || 0]).stages().find((s) => s.key === 'verify');
-    else if (last.key === 'verify' && last.verdict !== 'pass') stage = REPORT;   // (still failing after the fixes: nothing shipped, the CEO is told)
+    else if (isCheck(last.key) && last.verdict !== 'pass' && r.fixes < MAX_FIXES) { r.fixes++; stage = fixOf(team); }
+    else if (isFix(last.key)) stage = team.stages().find((s) => s.key === checkOf(team));
+    else if (isCheck(last.key) && last.verdict !== 'pass') stage = REPORT;   // (still failing after the fixes: nothing shipped, the CEO is told)
     else if (last.key === 'report' && (r.ti || 0) + 1 < (r.teams || []).length) { r.ti = (r.ti || 0) + 1; r.fixes = 0; r.named = null; onChange(r, 'team', { team: r.teams[r.ti] }); stage = teamOf(r.teams[r.ti]).stages()[0]; }   // (the next team, reading what this one left)
     else if (last.key === 'report') { end(r, 'done', 'done'); return; }
     else if (last.key === 'ship') stage = REPORT;
@@ -175,7 +231,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   }
   function launch(r) {
     const s = r.stages.at(-1); if (!s || r.status !== 'run') return;
-    const stage = [...teamOf(s.team).stages(), FIX, REPORT].find((x) => x.key === s.key);
+    const stage = [...teamOf(s.team).stages(), fixOf(teamOf(s.team)), REPORT].find((x) => x.key === s.key);
     for (const j of s.jobs) {
       if (j.state !== 'wait') continue;
       if (!s.parallel && s.jobs.some((x) => x.state === 'run')) return;
@@ -193,14 +249,14 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   // every member of a stage done: its verdict, then the next stage
   function stageDone(r, s) {
     s.state = 'done';
-    if (s.key === 'verify') s.verdict = s.jobs.some((x) => x.verdict === 'fail') ? 'fail' : s.jobs.some((x) => x.verdict === 'pass') ? 'pass' : 'fail';   // (one FAIL is enough; nobody saying PASS is no pass)
+    if (isCheck(s.key)) s.verdict = s.jobs.some((x) => x.verdict === 'fail') ? 'fail' : s.jobs.some((x) => x.verdict === 'pass') ? 'pass' : 'fail';   // (one FAIL is enough; nobody saying PASS is no pass)
     save(); onChange(r, 'stageDone', { stage: s });
     nextStage(r);
   }
   // the other tasks, the oldest first: a member just freed goes to whoever waited longest
   function others(r) { for (const x of [...runs].reverse()) if (x !== r && x.status === 'run') launch(x); }
   return {
-    ROLES, STAGES, TEAMS,
+    ROLES, STAGES, TEAMS, MARKETING_ROLES, MARKETING_STAGES,
     /** Who a session was: { run, role, team } for a member's session, else null (what eats the plan). */
     whoSid(sid) { for (const r of runs) for (const s of r.stages) for (const j of s.jobs || []) if (sid && j.sid === sid) return { run: r.id, role: j.role, team: s.team || 'dev' }; return null; },
     list: () => runs.map(pub),
@@ -211,7 +267,8 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
       goal = String(goal || '').trim().slice(0, 4000);
       if (!goal) return { ok: false, code: 'empty' };
       const ids = [...new Set((Array.isArray(teams) ? teams : []).filter((x) => TEAMS.some((t) => t.id === x)))];
-      const r = { teams: ids.length ? ids : [TEAMS[0].id], ti: 0, id: `${new Date(now()).toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 6)}`, dir, goal, lead: lead === 'cto' ? 'cto' : 'pm', agent: agent === 'codex' ? 'codex' : 'claude', model, effort, status: 'run', at: now(), fixes: 0, named: null, stages: [] };
+      const list = ids.length ? ids : lead === 'cmo' ? ['marketing'] : [TEAMS[0].id];   // (a goal given to the Marketing Manager: the marketing team)
+      const r = { teams: list, ti: 0, id: `${new Date(now()).toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 6)}`, dir, goal, lead: teamOf(list[0]).lead || (lead === 'cto' ? 'cto' : 'pm'), agent: agent === 'codex' ? 'codex' : 'claude', model, effort, status: 'run', at: now(), fixes: 0, named: null, stages: [] };
       runs.unshift(r); runs = runs.slice(0, 20);
       onChange(r, 'begin');
       nextStage(r);
@@ -225,8 +282,8 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
       let report = ''; try { report = fs.readFileSync(path.join(r.dir, j.file), 'utf8'); } catch { /* it wrote none */ }
       j.summary = String(t.result || t.error || '').trim().slice(-1200);
       if (t.sid) j.sid = t.sid;
-      if (s.key === 'verify') j.verdict = verdictOf(t.result) || verdictOf(report) || (t.error ? 'fail' : '');
-      if (j.role === 'pm' && s.key === 'plan') r.named = rolesOf(report) || rolesOf(t.result);   // (the PM's assignment: who works after)
+      if (isCheck(s.key)) j.verdict = verdictOf(t.result) || verdictOf(report) || (t.error ? 'fail' : '');
+      if (isPlan(s.key) && j.role === (teamOf(s.team).lead || 'pm')) r.named = rolesOf(report) || rolesOf(t.result);   // (the PM's assignment: who works after)
       if (t.stopped || r.status !== 'run') { j.state = 'stopped'; if (r.status === 'run') end(r, 'stopped', 'stopped'); else save(); return true; }
       if (t.error && !t.result) { j.state = 'fail'; s.state = 'fail'; end(r, 'fail', 'fail', { stage: s, job: j }); return true; }
       j.state = 'done'; save(); onChange(r, 'jobDone', { stage: s, job: j });

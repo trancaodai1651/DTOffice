@@ -8,18 +8,22 @@ export let LAY;
    front onto corridor B. Each room is named after the project that sits in it. */
 export const WING = { z0: 9, z1: 26, corA: [9, 10.8], corB: [2.3, 4.3], split: 18.4, doors: [-2.4, 7.4] };
 export const DEPTS = [
-  { x0: -8, x1: 2.3, z0: 10.8, z1: 18.4, cx: -2.85, door: { side: 'n', at: -2.4 } },
+  // the marketing department ("Phòng Marketing", server/team.mjs MARKETING_ROLES): the two rooms on the left of corridor B,
+  // one open space (a doorway in the half wall between them), the front one with four pods like the AI team's room
+  { x0: -8, x1: 2.3, z0: 10.8, z1: 18.4, cx: -2.85, door: { side: 'n', at: -2.4 }, mk: true },
   { x0: 4.3, x1: 14, z0: 10.8, z1: 18.4, cx: 9.15, door: { side: 'n', at: 9.15 } },
-  { x0: -8, x1: 2.3, z0: 18.4, z1: 26, cx: -3.05, door: { side: 'e', at: 22.2 } },
+  { x0: -8, x1: 2.3, z0: 18.4, z1: 26, cx: -3.05, door: { side: 'e', at: 22.2 }, mk: true, big: true },
   // the AI team's room ("Phòng AI 15 Agent DEV", server/team.mjs): four pods in two rows, a desk for each of the 15 agents
   // and one for the CEO; the door from corridor B opens into the lane between the rows
   { x0: 4.3, x1: 14, z0: 18.4, z1: 26, cx: 9.5, door: { side: 'w', at: 22.2 }, team: true },
 ].map((d) => ({ ...d, cz: (d.z0 + d.z1) / 2,
   // [x, z, aisle]: a pod's centre, and how far its aisles run from it (behind each row of chairs)
-  pods: d.team ? [[d.cx - 2.65, 20.55, 1.45], [d.cx + 2.65, 20.55, 1.45], [d.cx - 2.65, 23.85, 1.45], [d.cx + 2.65, 23.85, 1.45]]
+  pods: d.team || d.big ? [[d.cx - 2.65, 20.55, 1.45], [d.cx + 2.65, 20.55, 1.45], [d.cx - 2.65, 23.85, 1.45], [d.cx + 2.65, 23.85, 1.45]]
     : [[d.cx - 2.65, (d.z0 + d.z1) / 2], [d.cx + 2.65, (d.z0 + d.z1) / 2]] }));
 /** The AI team's room among DEPTS (-1 when there is none). */
 export const TEAM_DEPT = DEPTS.findIndex((d) => d.team);
+/** The marketing department's rooms among DEPTS. */
+export const MK_DEPTS = DEPTS.map((d, i) => (d.mk ? i : -1)).filter((i) => i >= 0);
 // The ground the office stands on (building, terrace and its edge), for the backdrops to keep clear of
 export const REACH = () => (HQ ? { x0: -11, x1: 16, z0: -9, z1: 29.5 } : { x0: -11, x1: 14.5, z0: -9, z1: 13.5 });
 // Is (x, z) inside the building with a margin (people never stand closer than `m` to an outer wall)?

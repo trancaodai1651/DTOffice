@@ -12,9 +12,6 @@ const POLE_H = 6.4, CABLE = '#1A1C20';
 export function buildWires(G, { XS, ZS, HALF, SB, C, avoid = [], reach = 40 }) {
   const inSB = (x, z) => x > SB.x0 && x < SB.x1 && z > SB.z0 && z < SB.z1;
   const geo = [], D = HALF + 0.3;   // (the poles 0.3 m in from the kerb; people walk at 0.95)
-  const zMin = ZS[0] - 6, xMin = XS[0] - 6;
-  // where the lamps are (city.js): every 9 m, on alternate sides
-  const lampAt = (v, along, axis) => { const o = axis === 'z' ? zMin : xMin, k = Math.round((along - o - 4) / 9); return Math.abs(o + 4 + 9 * k - along) < 0.9 ? (k % 2 ? -1 : 1) : 0; };
   let rnd = 7;
   const r = () => ((rnd = (rnd * 16807) % 2147483647) / 2147483647);
   let transformer = false;
@@ -31,7 +28,6 @@ export function buildWires(G, { XS, ZS, HALF, SB, C, avoid = [], reach = 40 }) {
         if (Math.abs(a - mid) > reach) continue;
         const [x, z] = axis === 'z' ? [w, a] : [a, w];
         if (inSB(x, z) || inSB(axis === 'z' ? v : a, axis === 'z' ? a : v)) continue;   // (no street there: the office's block)
-        if (lampAt(v, a, axis) === side) continue;
         if (avoid.some(([ax, az, ar]) => Math.hypot(ax - x, az - z) < ar)) continue;
         poles.push({ x, z, a });
       }

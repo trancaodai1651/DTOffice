@@ -4,7 +4,7 @@ import { getT } from '@/i18n/server';
 
 export default async function CameraToolbar() {
   const t = await getT();
-  const home = t('ui.cameraToolbar.home'), team = t('ui.cameraToolbar.team'), desks = t('ui.cameraToolbar.desks'), meeting = t('ui.cameraToolbar.meeting'), server = t('ui.cameraToolbar.server');
+  const home = t('ui.cameraToolbar.home'), team = t('ui.cameraToolbar.team'), marketing = t('ui.cameraToolbar.marketing'), desks = t('ui.cameraToolbar.desks'), meeting = t('ui.cameraToolbar.meeting'), server = t('ui.cameraToolbar.server');
   return (
     <div className="toolbar" role="toolbar" aria-label={t('ui.cameraToolbar.label')}>
       <div className="tb-seg">
@@ -12,6 +12,7 @@ export default async function CameraToolbar() {
         <button type="button" className="seg-btn" data-view="desks" aria-label={desks} title={desks} aria-pressed="false"><span data-icon="monitor"></span><span>{desks}</span></button>
         {/* the AI team's room (headquarters only: hidden elsewhere by src/office/ui/camera-bar.js) */}
         <button type="button" className="seg-btn" data-view="team" aria-label={team} title={team} aria-pressed="false" hidden><span data-icon="terminal"></span><span>{team}</span></button>
+        <button type="button" className="seg-btn" data-view="marketing" aria-label={marketing} title={marketing} aria-pressed="false" hidden><span data-icon="sparkle"></span><span>{marketing}</span></button>
         <button type="button" className="seg-btn" data-view="meeting" aria-label={meeting} title={meeting} aria-pressed="false"><span data-icon="users"></span><span>{meeting}</span></button>
         <button type="button" className="seg-btn" data-view="server" aria-label={server} title={server} aria-pressed="false"><span data-icon="server"></span><span>{server}</span></button>
       </div>

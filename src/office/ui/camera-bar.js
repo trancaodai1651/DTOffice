@@ -24,7 +24,7 @@ export function goView(v) {
 
 export function setup() {
   /* ---------- camera toolbar ---------- */
-  VIEWS = HQ ? { home: { t: [3, 0.3, 9], z: 1 }, desks: { t: [3, 0.6, 18.2], z: 1.6 }, team: { t: [9.2, 0.6, 22.2], z: 3.0 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.8 }, server: { t: [-5.6, 1.0, -0.6], z: 3.3 } }
+  VIEWS = HQ ? { home: { t: [3, 0.3, 9], z: 1 }, desks: { t: [3, 0.6, 18.2], z: 1.6 }, team: { t: [9.2, 0.6, 22.2], z: 3.0 }, marketing: { t: [-2.9, 0.6, 18.4], z: 2.1 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.8 }, server: { t: [-5.6, 1.0, -0.6], z: 3.3 } }
     : PRO ? { home: { t: [3, 0.3, 0.7], z: 1 }, desks: { t: [2.3, 0.6, 3.6], z: 1.9 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.0 }, server: { t: [-5.6, 1.0, -0.6], z: 2.4 } }
     : { home: { t: [0, 0.3, 0.2], z: 1 }, desks: { t: [0, 0.6, 0.4], z: 1.75 }, meeting: { t: [5.2, 0.6, 2.4], z: 2.3 }, server: { t: [5.4, 1.0, -4.4], z: 2.2 } };
   if (PRO) VIEWS.director = { t: [-5.4, 0.6, -5.6], z: 2.8 };

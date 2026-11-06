@@ -11,6 +11,8 @@ import { TOKEN } from '../net/live.js';
 import { openMemory } from './memory-view.js';
 import { projectPicker } from './projects.js';
 import { t as tr, locale } from '../../i18n/index.js';
+import { specialistRequest } from '../../shared/specialist-request.js';
+import { openSpecialist } from './specialists.js';
 
 const q = () => (TOKEN ? `?k=${encodeURIComponent(TOKEN)}` : '');
 let sheet = null;
@@ -113,13 +115,13 @@ export async function openTaskSheet(host, { to = null, text = '' } = {}) {
   if (r.running.length) step1.append(el('p', 'zc-task-note', tr('chat.task.running', { n: r.running.length })));
   const step2 = el('div', 'zc-task-step'); step2.hidden = true;
   const sync = () => {
-    next.disabled = !pick || !field.value.trim();
+    next.disabled = (!pick && !specialistRequest(field.value)) || !field.value.trim();
     const t = target(), n = t?.memory || 0;
     memLine.hidden = !t || r.memoryOn === false;
     memLine.textContent = `🧠 ${n ? tr('chat.task.memory', { n }) : tr('chat.task.memoryNone')} · ${tr('chat.task.memoryOpen')}`;
   };
   field.addEventListener('input', sync);
-  next.addEventListener('click', () => { stopMic?.(); stopMic = null; step1.hidden = true; step2.hidden = false; drawRun(step2, r, pick, target(), () => { step2.hidden = true; step1.hidden = false; }, send); offerTeam(step2, r, field.value, target()); });
+  next.addEventListener('click', () => { stopMic?.(); stopMic = null; const request = specialistRequest(field.value); if (request) { sheet.remove(); sheet = null; openSpecialist(request.kind, { topic: request.topic }); return; } step1.hidden = true; step2.hidden = false; drawRun(step2, r, pick, target(), () => { step2.hidden = true; step1.hidden = false; }, send); offerTeam(step2, r, field.value, target()); });
   async function send(run, go) {
     go.disabled = true; go.textContent = tr('chat.task.sending');
     const res = await fetch(`/api/tasks${q()}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...pick, text: field.value, images: photos, fresh: !!pick.dir, ...run }) }).then((x) => x.json()).catch(() => null);

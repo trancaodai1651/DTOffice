@@ -13,25 +13,26 @@ import { KTV, KTV_H, KTV_W } from '../world/props/karaoke.js';
 import { CHORDS, SONGS, tune } from './karaoke-songs.js';
 import { napOn } from '../life/nap.js';
 import { fp } from '../interact/first-person.js';
-import { sessions, workers } from './workers.js';
+import { dn, sessions, workers } from './workers.js';
 import { asleep, free, quip } from './errands.js';
 import { chatSay } from '../ui/group-chat.js';
 import { toast } from '../ui/activity.js';
 import { sfx } from '../audio/sfx.js';
 import { lang, t as tr } from '../../i18n/index.js';
+import { gameWorkPending } from '../../shared/game-lifecycle.js';
 
 let K = null;      // a session in the box: { npc, singers: [{ w, e, at }], song, tn, stage: walk | menu | sing | score | leave, t0, score, songs, at, end }
 let ME = null;     // first person in the box: { pick, keys }
 let nextAt = 0, drawAt = 0, notes = [];
 const pick = (key) => { const l = tr(key, null, 'list'); return Array.isArray(l) ? l[Math.floor(Math.random() * l.length)] : l; };
-const nameOf = (w) => { const n = sessions.get(w.id)?.name || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
-const called = (w) => { const s = sessions.get(w.id); return !s || s.status !== 'rest' || !!s.bg?.length || !!w.want; };
+const nameOf = (w) => { const n = dn(sessions.get(w.id)) || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
+const called = (w) => gameWorkPending(sessions.get(w.id), w.want);
 const titleOf = (i) => SONGS[i].title[lang()] || SONGS[i].title.en;
 const wordsOf = (i, line) => (lang() === 'vi' ? SONGS[i].vi : SONGS[i].en)[line].split(/\s+/);
 // who could sing: resting, nothing else on (not out, not on a break, not carrying anything, not at tea)
 function who() {
   return [...workers.values()].filter((w) => { const s = sessions.get(w.id);
-    return !w.sub && s?.status === 'rest' && !s.bg?.length && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
+    return !w.sub && !gameWorkPending(s, w.want) && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
 }
 const secs = () => (K?.t0 ? (performance.now() - K.t0) / 1000 : 0);
 const beats = () => secs() / SONGS[K.song].beat;
@@ -80,7 +81,7 @@ function goIn(w, i) {
   const [x, z] = KTV.sing[i];
   const e = w.errand({ type: 'idle', spot: { x, z, face: KTV.face, node: 'BK', via: [KTV.out, KTV.in] }, look: KTV.at(0, -1), anim: 'idle', wait: i ? 2.2 : 0.4, hold: 0.4,
     anim2: 'idle', linger: 0.6, line: pick(i ? 'people.karaoke.join' : 'people.karaoke.invite') });
-  e.until = state.sim + 900;
+  e.until = Infinity;
   return { w, e, i };
 }
 /** A song now (?debug: __office.ktvSing()), else now and then on its own. Returns whether someone went in. */

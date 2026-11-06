@@ -9,10 +9,12 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+// An isolated production build can be packaged without replacing the running office's .next.
+const DIST = process.env.OFFICE_DIST_DIR || '.next';
 const OUT = path.join(ROOT, '.desktop'), OFFICE = path.join(OUT, 'office'), NODE = path.join(OUT, 'node');
 const step = (s) => console.log(`\n▸ ${s}`);
 
-if (!fs.existsSync(path.join(ROOT, '.next', 'BUILD_ID')) || process.argv.includes('--rebuild')) {
+if (!fs.existsSync(path.join(ROOT, DIST, 'BUILD_ID')) || process.argv.includes('--rebuild')) {
   step('next build');
   execFileSync(process.execPath, [path.join(ROOT, 'node_modules', 'next', 'dist', 'bin', 'next'), 'build'], { cwd: ROOT, stdio: 'inherit', env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1' } });
 }
@@ -21,14 +23,14 @@ step('the office → .desktop/office');
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OFFICE, { recursive: true });
 const SKIP_NEXT = new Set(['cache', 'dev', 'trace', 'trace-build', 'diagnostics', 'types']);
-for (const p of ['bin', 'server', 'hooks', 'src/i18n', 'src/shared', 'public', 'vscode-extension', 'menubar', '.next', 'next.config.mjs', 'package.json', 'package-lock.json', 'LICENSE']) {
+for (const p of ['bin', 'server', 'hooks', 'src/i18n', 'src/shared', 'public', 'vscode-extension', 'menubar', DIST, 'next.config.mjs', 'package.json', 'package-lock.json', 'LICENSE']) {
   const from = path.join(ROOT, p);
   if (!fs.existsSync(from)) continue;
-  fs.cpSync(from, path.join(OFFICE, p), {
+  fs.cpSync(from, path.join(OFFICE, p === DIST ? '.next' : p), {
     recursive: true,
     filter: (src) => {
-      const rel = path.relative(path.join(ROOT, '.next'), src);
-      return p !== '.next' || !rel || !SKIP_NEXT.has(rel.split(path.sep)[0]);
+      const rel = path.relative(path.join(ROOT, DIST), src);
+      return p !== DIST || !rel || !SKIP_NEXT.has(rel.split(path.sep)[0]);
     },
   });
 }

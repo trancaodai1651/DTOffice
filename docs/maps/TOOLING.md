@@ -5,8 +5,9 @@
 | Chức năng | Code/thư mục | Điểm vào | Kiểm tra liên quan |
 | --- | --- | --- | --- |
 | Desktop mở/đóng server | `src-tauri/src/main.rs`, `src-tauri/loading/index.html` | Tauri setup, `start_server`, resource Node/office | `scripts/verify-desktop.mjs`; mở/đóng app cần kiểm tra thực tế |
+| Codex Bot trên desktop | `src-tauri/loading/bot.html`, `src-tauri/src/main.rs`, `src-tauri/capabilities/`, `src/shared/desktop-bot.js`, `src/office/ui/settings.js` | Cửa sổ trong suốt, luôn nổi, kéo/ẩn/mở văn phòng; `/api/desktop-bot` chỉ loopback; Cài đặt → Khác → hiện lại | `unit/desktop-bot`; `e2e/personnel-graphics`; kiểm tra native trên Windows |
 | Cấu hình/build Rust | `src-tauri/tauri.conf.json`, `src-tauri/tauri.macos.conf.json`, `src-tauri/build.rs`, `src-tauri/Cargo.toml` | `npx tauri build` và cấu hình từng OS | desktop-release workflow |
-| Chuẩn bị server/Node desktop | `scripts/build-desktop.mjs`, `scripts/desktop-universal.mjs` | `npm run desktop:prepare`, Mac thêm `-- --universal` | `node scripts/verify-desktop.mjs`; Mac lipo/architecture checks |
+| Chuẩn bị server/Node desktop | `scripts/build-desktop.mjs`, `scripts/desktop-universal.mjs` | `npm run desktop:prepare`, `OFFICE_DIST_DIR` chọn build cách ly (đóng gói thành `.next`); Mac thêm `-- --universal` | `node scripts/verify-desktop.mjs`; Mac lipo/architecture checks |
 | Menu bar macOS | `menubar/MyOfficeBar.swift`, `bin/service.mjs` | install/swiftc, `/api/panel` | `tests/unit/menubar.test.mjs` |
 | Extension IDE | `vscode-extension/extension.js`, `vscode-extension/package.json`, `server/vsix.mjs` | VS Code activation, webview `/panel` | `tests/unit/vsix.test.mjs`, `tests/e2e/panel.spec.ts` |
 | Plugin/hook Claude | `.claude-plugin/plugin.json`, `hooks/hooks.json`, `hooks/send.mjs`, `hooks/status-line.mjs` | plugin metadata/hook install từ CLI | `tests/unit/loop-hook.test.mjs`, `tests/unit/cache-clock.test.mjs`, doctor |

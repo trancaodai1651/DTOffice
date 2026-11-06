@@ -92,6 +92,7 @@ export default {
   },
   cameraToolbar: {
     team: 'Phòng AI',
+    marketing: 'Phòng Marketing',
     label: 'Góc nhìn',
     home: 'Toàn cảnh',
     desks: 'Bàn làm việc',

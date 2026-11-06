@@ -18,6 +18,7 @@ const LOOK = {
   video: { shirt: '#2E86AB', hair: '#1C1C22', style: 'spiky', acc: null, outfit: 'shirt', skin: null },
 };
 let panel = null, open = '', info = null, jobs = [], seenDone = new Set(), primed = false, prefill = null;
+let newsDraft = '';
 function kept() { try { return JSON.parse(localStorage.getItem(KEEP) || '{}') || {}; } catch { return {}; } }
 function keep(v) { try { localStorage.setItem(KEEP, JSON.stringify({ ...kept(), ...v })); } catch { /* storage blocked */ } }
 const post = (url, b) => fetch(`${url}${q()}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then((x) => x.json()).catch(() => ({ ok: false, message: tr('specialists.unreachable') }));
@@ -76,17 +77,17 @@ function jobCard(j) {
 /* ---------- the news reader ---------- */
 function newsBody(body) {
   const pick = { agent: '', model: '', effort: '', ...kept().news };
-  const topic = el('textarea', 'gw-in'); topic.rows = 3; topic.maxLength = 500; topic.placeholder = tr('specialists.news.topicPh'); topic.setAttribute('aria-label', tr('specialists.news.topicPh'));
+  const topic = el('textarea', 'gw-in'); topic.rows = 3; topic.maxLength = 500; topic.value = newsDraft; topic.placeholder = tr('specialists.news.topicPh'); topic.setAttribute('aria-label', tr('specialists.news.topicPh'));
   topic.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) go.click(); });
   const [whereBox, where] = input(tr('specialists.news.where'), pick.dir || '', '');
-  const go = el('button', 'gd-go', tr('specialists.news.go')); go.type = 'button'; go.disabled = true;
-  topic.addEventListener('input', () => { go.disabled = !topic.value.trim(); });
+  const go = el('button', 'gd-go', tr('specialists.news.go')); go.type = 'button'; go.disabled = !topic.value.trim();
+  topic.addEventListener('input', () => { newsDraft = topic.value; go.disabled = !topic.value.trim(); });
   go.addEventListener('click', async () => {
     go.disabled = true; go.textContent = tr('specialists.sending');
     const r = await post('/api/specialists/news', { topic: topic.value, dir: where.value.trim(), agent: pick.agent, model: pick.model, effort: pick.effort });
     go.textContent = tr('specialists.news.go');
     if (!r.ok) { toast(r.message || tr('specialists.unreachable'), 6000); go.disabled = false; return; }
-    keep({ news: { agent: pick.agent, model: pick.model, effort: pick.effort, dir: where.value.trim() } }); topic.value = '';
+    keep({ news: { agent: pick.agent, model: pick.model, effort: pick.effort, dir: where.value.trim() } }); newsDraft = ''; topic.value = ''; draw();
   });
   // the report just finished, waiting for an answer: a video of it?
   const ready = jobs.find((j) => j.kind === 'news' && j.status === 'done' && !j.asked && !seenDone.has(`asked:${j.id}`));
@@ -159,7 +160,8 @@ async function load() {
   if (info?.ok) setJobs(info.jobs);
 }
 /** Open one of them: 'news' or 'video'. */
-export function openSpecialist(kind) {
+export function openSpecialist(kind, options = {}) {
+  if (kind === 'news' && typeof options.topic === 'string') newsDraft = options.topic.slice(0, 500);
   if (!panel) {
     panel = el('div', 'gd-panel sp-panel'); panel.setAttribute('role', 'dialog');
     document.body.append(panel);

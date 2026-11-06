@@ -1,7 +1,8 @@
 // Sun, sky light and the room lamps (per-room night lighting on the company floor).
 import * as THREE from 'three';
 import { HQ, PRO, small } from '../core/env.js';
-import { scene } from './renderer.js';
+import { renderer, scene } from './renderer.js';
+import { createShadowFocus } from './shadow-focus.js';
 
 /* ---------- lights ---------- */
 export const hemi = new THREE.HemisphereLight('#FFF4DC', '#A9B98A', 1.45);
@@ -9,6 +10,8 @@ export const sun = new THREE.DirectionalLight('#FFF0D6', 1.95);
 let sm;
 export let lamps;
 export let ROOM_LAMPS;
+let shadowFocus;
+export const updateShadowFocus = (position) => shadowFocus?.(position);
 
 export function setup() {
   scene.add(hemi);
@@ -18,6 +21,8 @@ export function setup() {
   sun.shadow.mapSize.set(sm, sm);
   Object.assign(sun.shadow.camera, HQ ? { left: -28, right: 28, top: 28, bottom: -28, near: 1, far: 90 } : PRO ? { left: -21, right: 21, top: 21, bottom: -21, near: 1, far: 70 } : { left: -17, right: 17, top: 17, bottom: -17, near: 1, far: 60 });
   if (PRO) { const tz = HQ ? 9 : 0.5; sun.position.set(13, 18, tz + 8.5); sun.target.position.set(3, 0, tz); scene.add(sun.target); }
+  scene.add(sun.target);
+  shadowFocus = createShadowFocus(sun, () => { renderer.shadowMap.needsUpdate = true; });
   sun.shadow.bias = -0.0004;
    sun.shadow.normalBias = 0.02;
   scene.add(sun);

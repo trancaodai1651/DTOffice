@@ -193,7 +193,7 @@ export default {
     conversations: 'Tiếp tục một cuộc trò chuyện (mang theo ngữ cảnh)',
     newIn: 'Cuộc trò chuyện mới trong thư mục',
     manageProjects: 'Thêm hoặc bỏ dự án',
-    teamOffer: 'Việc này hợp với {team} ({words}). Giao cho đội (PM sẽ phân việc cho từng vị trí) thay vì một phiên?',
+    teamOffer: 'Việc này hợp với {team} ({words}). Giao cho đội (quản lý của đội sẽ phân việc cho từng vị trí) thay vì một phiên?',
     teamGive: 'Giao cho đội',
     placeholder: 'Việc cần làm… (gõ hoặc bấm 🎤 để nói)',
     mic: 'Nói',

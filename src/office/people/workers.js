@@ -18,6 +18,7 @@ import { blocked, fp } from '../interact/first-person.js';
 import { sfx } from '../audio/sfx.js';
 import { t as tr } from '../../i18n/index.js';
 import { modelFamily } from '../../shared/model-name.js';
+import { sessionName } from '../../shared/session-name.js';
 
 /* ---------- workers ---------- */
 export const PALETTE = ['#6A8042', '#E8742A', '#3F7CC4', '#8C4FA8', '#D64550', '#2A9D8F', '#C9A227', '#5B6CD8', '#B5651D', '#C2577A', '#3E8E7E', '#7A6FD0'];
@@ -36,9 +37,9 @@ export const lunchHooks = {};
 const viaClock = (kind, w, then) => (clockHooks[kind] ? clockHooks[kind](w, then) : then());
 export function hash(s) { let h = 2166136261; for (const ch of String(s)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 export const colorOf = (s) => (s.desk >= 0 ? PALETTE[s.desk % PALETTE.length] : PALETTE[hash(s.name) % PALETTE.length]);   // (headquarters has more desks than colours)
-// What to call a session on screen: the chat's title (your rename, else Claude's), else its short name.
+// Display a stable person's name; the chat title remains session context.
 // The short name stays the identity: looks, colours and the timeline are keyed by it.
-export const dn = (s) => (s ? s.title || s.name : '');
+export const dn = sessionName;
 export const dnOf = (e) => dn(sessions.get(e.sess)) || e.name || tr('common.session');
 // Which agent a session runs, shown as its logo in the list (Claude Code today; Codex and Gemini when the server
 // reports them). The marks are the brands' own logos as published by Simple Icons (CC0 path data, v15.17.0); the
@@ -77,7 +78,7 @@ export const subs = new Map();      // subagent id -> Worker
 export const sessions = new Map();  // session id -> latest session object from the server
 export let Worker;
 export function addWorker(s, walkIn) {
-  const w = new Worker({ name: s.name, ...lookOf(s) }, { id: s.id });
+  const w = new Worker({ name: dn(s), ...lookOf(s) }, { id: s.id });
   if (s.desk >= 0) chairs[s.desk].color.set(colorOf(s));
   const home = w.homeSpot();
   if (walkIn) {

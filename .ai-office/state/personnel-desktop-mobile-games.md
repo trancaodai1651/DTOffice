@@ -1,0 +1,17 @@
+# Nhân sự, bot desktop, di động và kết thúc ván · 05/11/2026
+
+- Mục tiêu: nhận cả Claude/Codex, tên nhân sự độc lập tên chat, đồ họa phone/tablet, Codex Bot ngoài cửa sổ app và không đổi trò giữa ván khi chưa có việc.
+- Nhánh `main`, baseline `66a8970`; chưa commit/push. Có log tự sinh thay đổi trong SESSION-LOG.md, giữ nguyên do ứng dụng quản lý.
+- Đã sửa watcher Codex Desktop: khôi phục chat chính gần nhất mỗi dự án từ 7 ngày, giữ lúc desktop chạy; phiên CLI/child vẫn hết hạn; không đổi sid theo metadata tổ tiên; không phát lại các lượt cũ của fork.
+- Thêm `src/shared/session-name.js`, public `personnelName`; tên ổn định theo agent + sid, giữ vai trò; chat title vẫn ở ngữ cảnh/tooltip/tìm kiếm.
+- Thêm cửa sổ native `codex-bot`, HTML/CSS/SVG nhẹ trong `src-tauri/loading/bot.html`, IPC giới hạn, API loopback chỉ số lượng + i18n. Bỏ bot 3D cũ; nút hiện lại trong Cài đặt → Khác. Kéo bằng pointer capture và tọa độ màn hình, ổn định cả thao tác nhanh; không dùng vòng kéo OS vốn không ổn định trong kiểm tra Windows.
+- Thêm graphics-policy; Auto phone Low/tablet Medium, ngân sách 1.5 triệu pixel và thích ứng xuống 0.6×; không học từ chế độ nền/ẩn; HTML labels giữ sắc nét; không ghi đè lựa chọn thủ công.
+- Thêm game-lifecycle: chore giữ đến kết quả thật, bỏ timeout thắng giả của foosball/billiards; TV/karaoke không tự rời theo timeout; pickleball hết giờ đặt sân vẫn chờ số trận hoàn tất tăng; chỉ việc/duyệt quyền/phiên đóng ngắt. TV cho người nghỉ thông thường nhường ghế khi người dùng muốn chơi, giữ nguyên hoạt động khác.
+- `scripts/build-desktop.mjs` đóng gói build cách ly `OFFICE_DIST_DIR` thành `.next`, không đè build app đang chạy. Đồng bộ version 0.4.8.
+- Đã kiểm tra: unit cuối 217 tổng, 209 đạt/8 skip/0 lỗi; lint/typecheck, Next production, module-map và diff-check đạt; smoke API/hook/system/install đạt; cargo check/debug/release Windows đạt; Node/Next/sharp đóng gói và server 0.4.8 đạt qua verify-desktop.
+- Browser: 12 E2E đạt (phone/tablet DPR/xoay/sheets, tên riêng/title, API bot, khóa trò chơi, thắng đủ 5 bàn, ngắt khi có việc, TV/billiards hóa thân, pickleball). Sau đồng bộ tên ở HR/hóa thân, chạy lại 2 E2E liên quan đều đạt.
+- Native Windows: cửa sổ bot riêng trong suốt/luôn nổi, trạng thái vi, kéo trên desktop, ẩn, hiện lại từ Cài đặt và mở app đạt. IPC main bị chặn khi gọi hành động chỉ dành cho bot. Test native ở 4311, dữ liệu riêng; đã đóng helper của phiên này.
+- E2E cần chạy bằng Edge có sẵn và config tạm `test-results/ui-playwright.config.ts`: Playwright Chromium chưa cài, fake-claude.sh không chạy trực tiếp Windows. Config tạm dùng node.exe làm CLI rỗng cho test UI, không dùng để kiểm tra giao việc CLI.
+- Đã tạo bản cài `src-tauri/target/release/bundle/nsis/DT Office_0.4.8_x64-setup.exe` (154289003 byte), checksum ở `SHA256SUMS`; SHA256 `399e9309083e10c50df77d36d11406a36f96e043b2ae23e65d682af012abf516`. Nguồn watcher/helper và BUILD_ID khớp bản đóng gói. Bản local dùng zlib qua config tạm; LZMA mặc định nén rất chậm trên máy này. Không chạy prepare đồng thời với NSIS vì Windows giữ file tài nguyên.
+- Pickleball E2E bổ sung đã đạt (2.3 phút), gồm ra sân, điểm bóng theo test và chờ hết trận rồi về. Test đã xử lý hàng xin phép ra ngoài bằng nút Allow khi ready (gồm subagent demo); giữ nguyên luồng xin phép của sản phẩm.
+- Hoàn thành phần triển khai/kiểm tra/đóng gói; chưa cài đè, commit/push/tag/publish. macOS cần build/QA trên macOS. Không sửa/tắt app người dùng ở 4310. Bước dùng: mở bản cài Windows 0.4.8 để cập nhật app. Nếu muốn phát hành, chạy quy trình release và QA macOS riêng.

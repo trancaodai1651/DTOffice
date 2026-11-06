@@ -1,6 +1,6 @@
 // Personnel, freshness and explicit session selection, shared by 2D and the 3D office.
 import { $, el, HQ } from '../core/env.js';
-import { TEAM_SEATS, TEAM_GROUPS } from '../../shared/team-roles.js';
+import { MARKETING_ROLE_IDS, TEAM_SEATS, TEAM_GROUPS } from '../../shared/team-roles.js';
 import { getTeamPresence, liveTeamEnabled, onTeamPresence, teamSessionActivity } from '../people/ai-team.js';
 import { AGENT_NAME, sessions } from '../people/workers.js';
 import { t as tr } from '../../i18n/index.js';
@@ -8,7 +8,7 @@ import { t as tr } from '../../i18n/index.js';
 let selectedRole = null;
 let openTeamUi = null;
 export function setTeamOpener(open) { openTeamUi = open; }
-export const showRole = roleId => { if (liveTeamEnabled() && TEAM_SEATS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } };
+export const showRole = roleId => { if (liveTeamEnabled() && TEAM_SEATS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } else if (liveTeamEnabled() && MARKETING_ROLE_IDS.includes(roleId)) openTeamUi?.({}); };
 export const presenceStatus = p => tr(`team.presence.${p.freshness === 'loading' ? 'loading' : p.freshness === 'stale' ? 'stale' : p.activity}`);
 export function positionTeamEntry(lite) {
   const entry = document.querySelector('.team-presence-entry'); if (!entry) return;

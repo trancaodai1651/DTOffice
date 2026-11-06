@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { createCodexSessions, outputOf, readCodexLog, toolOf } from '../../server/codex-sessions.mjs';
+import { createCodexSessions, isCodexDesktopProcess, outputOf, readCodexLog, toolOf } from '../../server/codex-sessions.mjs';
 
 const line = (type, payload) => JSON.stringify({ timestamp: new Date().toISOString(), type, payload }) + '\n';
 function dayDir(home) {
@@ -88,5 +88,49 @@ test('a session ends when no codex runs any more', async () => {
   const sessions = createCodexSessions({ home: () => home, onEvent: (p) => got.push(p), procs: async () => [], pollMs: 1e9 });
   await sessions.poll();
   assert.deepEqual(got.map((p) => p.hook_event_name), ['SessionStart', 'SessionEnd']);
+  await sessions.poll();
+  assert.equal(got.length, 2, 'a closed unchanged file must not reappear every poll');
   fs.rmSync(home, { recursive: true, force: true });
+});
+
+test('Codex Desktop restores and retains the latest resting chat per project, without importing history', async (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-desktop-')), dir = dayDir(home), got = [];
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const make = (id, cwd, age, originator = 'Codex Desktop', source = 'vscode') => {
+    const file = path.join(dir, `rollout-${id}.jsonl`);
+    fs.writeFileSync(file, line('session_meta', { id, cwd, originator, source, cli_version: '0.166.0' }) + line('event_msg', { type: 'user_message', message: 'old private work' }));
+    const stamp = new Date(Date.now() - age); fs.utimesSync(file, stamp, stamp); return file;
+  };
+  make('older', '/same-project', 16 * 3600e3);
+  const latest = make('latest', '/same-project', 15 * 3600e3);
+  make('another-project', '/other-project', 14 * 3600e3);
+  make('child', '/same-project', 13 * 3600e3, 'Codex Desktop', { subagent: { thread_spawn: { parent_thread_id: 'latest' } } });
+  make('cli', '/cli-project', 12 * 3600e3, 'codex_cli_rs', 'cli');
+  const watcher = createCodexSessions({ home: () => home, onEvent: (p) => got.push(p), procs: async () => [{ args: 'C:\\Users\\me\\AppData\\Local\\OpenAI\\Codex\\bin\\codex.exe app-server' }] });
+  await watcher.poll(); await watcher.poll();
+  assert.deepEqual(watcher.list().map((s) => s.sid).sort(), ['another-project', 'latest']);
+  assert.equal(got.length, 2);
+  assert.ok(got.every((p) => p.hook_event_name === 'SessionStart' && p.codex_origin === 'Codex Desktop'));
+  fs.appendFileSync(latest, line('event_msg', { type: 'user_message', message: 'new work' }));
+  await watcher.poll();
+  assert.equal(got.at(-1).session_id, 'latest'); assert.equal(got.at(-1).prompt, 'new work');
+});
+
+test('a copied parent session_meta never merges a desktop fork into its parent', async (t) => {
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-fork-')), dir = dayDir(home), got = [];
+  t.after(() => fs.rmSync(home, { recursive: true, force: true }));
+  const watcher = createCodexSessions({ home: () => home, onEvent: (p) => got.push(p) });
+  await watcher.poll();
+  fs.writeFileSync(path.join(dir, 'rollout-fork.jsonl'), line('session_meta', { id: 'child', cwd: '/project', originator: 'Codex Desktop', source: { subagent: 'parent' } })
+    + line('session_meta', { id: 'parent', cwd: '/other', originator: 'codex_cli_rs' })
+    + JSON.stringify({ timestamp: new Date(Date.now() - 3600e3).toISOString(), type: 'turn_context', payload: { cwd: '/ancestor-project', model: 'ancestor-model' } }) + '\n'
+    + JSON.stringify({ timestamp: new Date(Date.now() - 3600e3).toISOString(), type: 'event_msg', payload: { type: 'user_message', message: 'copied ancestor work' } }) + '\n'
+    + line('event_msg', { type: 'user_message', message: 'child work' }));
+  await watcher.poll();
+  assert.ok(got.every((p) => p.session_id === 'child' && p.cwd === '/project'));
+  assert.equal(watcher.list()[0].sid, 'child');
+  assert.deepEqual(got.map((p) => p.hook_event_name), ['SessionStart', 'UserPromptSubmit']);
+  assert.equal(got.at(-1).prompt, 'child work');
+  assert.ok(isCodexDesktopProcess({ args: '/Applications/Codex.app/Contents/Resources/codex app-server' }));
+  assert.ok(!isCodexDesktopProcess({ args: 'codex app-server --listen stdio://' }), 'account helper is not desktop presence');
 });

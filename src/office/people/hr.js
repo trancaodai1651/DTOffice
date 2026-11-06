@@ -16,7 +16,7 @@ import { DESKS, dLocal, officeChair } from '../world/desks.js';
 import { DZ, LIFT_FRONT } from '../world/entrance.js';
 import { MEET } from '../world/furniture/meeting.js';
 import { DESK_SPOTS, faceTo } from './navigation.js';
-import { clockHooks, hash, sessions, workers } from './workers.js';
+import { clockHooks, dn, hash, sessions, workers } from './workers.js';
 import { staffKit } from './staff.js';
 import { birthday, gatheringNow } from './gatherings.js';
 import { later, line } from './errands.js';
@@ -83,7 +83,7 @@ function punch(w, name, kind, then, late = false) {
     w.after = () => { press(name, kind, late); w.anim = 'idle'; if (late) say(w, line('people.hr.late')); then(); };
   });
 }
-const nameOf = (w) => sessions.get(w.id)?.name || w.cfg?.name || '';
+const nameOf = (w) => dn(sessions.get(w.id)) || w.cfg?.name || '';
 function clockIn(w, then) {
   roll();
   if (!TERM || replay.on || w.sub || w.staff || log.has(w.id)) { then(); return; }
@@ -109,7 +109,7 @@ function infer() {
     let at = null;
     if (s.dayFirst && s.dayFirst.day === new Date().toLocaleDateString('sv')) at = new Date(s.dayFirst.at);
     if (!at || DEMO) { at = new Date(now); at.setHours(7, 35 + (hash(s.id) % 66), 0, 0); if (at > now) at = new Date(now); }
-    log.set(s.id, { at, name: s.name, out: null, inferred: true });
+    log.set(s.id, { at, name: dn(s), out: null, inferred: true });
   }
 }
 

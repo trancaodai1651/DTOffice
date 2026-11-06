@@ -18,7 +18,7 @@ import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import { HQ, PRO, el, officeNow } from '../../core/env.js';
 import { GY, boxAt, colorize, mergeAll, vmat } from '../terrace.js';
 import { wx } from '../../life/weather.js';
-import { quality } from '../../scene/quality.js';
+import { onQualityChange, quality } from '../../scene/quality.js';
 import { sfx } from '../../audio/sfx.js';
 import { parkedScooter } from './street-life.js';
 import { folk, stepper } from './street-folk.js';
@@ -497,10 +497,12 @@ export function buildShops(G, fronts) {
   if (!fronts.length) return { update() {}, night() {}, doors: () => [], walk: () => undefined, shop: null };
   // (on the 'low' quality the canvas is half the size, drawn scaled: a quarter of the memory, and of the upload each time
   // a shop opens or shuts; everything is still drawn in a cell's 1024 × 512)
-  const low = quality.level === 'low', PX = low ? 0.5 : 1, W = CELL * 2, H = ROW * Math.ceil(fronts.length / 2);
+  const low = quality.level === 'low', W = CELL * 2, H = ROW * Math.ceil(fronts.length / 2);
+  let PX = low ? 0.5 : 1;
   const canvas = document.createElement('canvas'); canvas.width = W * PX; canvas.height = H * PX;
-  const g = canvas.getContext('2d'), tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const g = canvas.getContext('2d');
+  const atlas = () => { const t = new THREE.CanvasTexture(canvas); t.name = 'shop-front-atlas'; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+  let tex = atlas();
   const qs = new URLSearchParams(location.search), asked = qs.has('debug') && qs.get('walkins') ? Number(qs.get('walkins')) : 0;
   const walkIns = () => asked || WALK_INS_AT[city] || WALK_INS;
   let city = null, set = [], night = false, built = null, stores = [], shut = [], now = 0;
@@ -888,6 +890,14 @@ export function buildShops(G, fronts) {
       return { ...o, x, z, face: o.face + S.rot, store: { key: S.key, name: S.ch.name, accent: S.ch.accent }, seatAt: seat && { x: seat[0], z: seat[1], y: GY + FL + o.seat.top, yaw: S.rot } };
     }) : [])),
   };
+  // Refresh printing when quality changes; preserve every room, shopper, open door and outing in progress.
+  onQualityChange((q) => {
+    const scale = q.level === 'low' ? 0.5 : 1;
+    if (scale === PX) return;
+    PX = scale; canvas.width = W * PX; canvas.height = H * PX;
+    const old = tex; tex = atlas(); faceM.map = faceM.emissiveMap = tex; faceM.needsUpdate = true;
+    draw(); old.dispose();
+  });
   return {
     update,
     night(on) { night = on; faceM.emissiveIntensity = on ? 0.55 : 0.06; if (poolMesh) poolMesh.visible = on; lastH = -1; },   // (brighter, and the bloom blurs the logos)

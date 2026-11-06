@@ -8,13 +8,14 @@ import { CHAIR_IDLE, DESKS, PODS, UNITS, chairs, unitOfDesk } from '../world/des
 import { canvasTex } from '../scene/blocks.js';
 import { DEPTS } from '../world/layout.js';
 import { DEPT_SIGNS } from '../world/pro/wing.js';
-import { TEAM_SEATS } from '../../shared/team-roles.js';
+import { MARKETING_ROLE_IDS, MARKETING_SEATS, TEAM_SEATS } from '../../shared/team-roles.js';
 import { PALETTE, addWorker, dn, dropSub, hash, leaving, leavingIds, sessions, spawnSub, subs, trimLeaving, workers, workerForSession } from '../people/workers.js';
 import { reconcileTeamPresence, teamConnection, teamDesk as residentDesk } from '../people/ai-team.js';
 import { queueUi } from '../ui/activity.js';
 import { expandOffice } from '../ui/expand.js';
 import { closeSession } from '../ui/session-drawer.js';
 import { t as tr } from '../../i18n/index.js';
+import { SPECIALIST_ROLES, syncSpecialists } from '../people/specialists.js';
 
 export let TOKEN;
 export function setConn(on) { const c = $('conn'); c.dataset.state = on ? 'on' : 'off'; c.lastElementChild.textContent = tr(on ? 'activity.live.on' : 'activity.live.off'); teamConnection(on); }
@@ -43,6 +44,11 @@ function remember(proj, u) {
 const near = (a, b) => { const A = UNITS[a], B = UNITS[b]; return A.pod != null && B.pod != null ? Math.abs(A.pod - B.pod) * 2 + (A.side === B.side ? 0 : 1) : Math.abs(a - b); };
 // the AI team's room: each member at the desk with its role's nameplate (TEAM_SEATS), whatever project it works on
 function teamDesk(s, used) {
+  if (MARKETING_ROLE_IDS.includes(s.role)) {   // (the marketing department: its own desks, on the left of the wing)
+    const desks = UNITS.filter((u) => u.mk).flatMap((u) => u.desks); if (!desks.length) return -1;
+    const mine = desks[MARKETING_SEATS.indexOf(s.role)] ?? -1;
+    return mine >= 0 && !used.has(mine) ? mine : desks.find((d) => !used.has(d)) ?? -1;
+  }
   const room = UNITS.find((u) => u.team); if (!room) return -1;
   if (!TEAM_SEATS.includes(s.role)) return -1;
   const k = TEAM_SEATS.indexOf(s.role), mine = k >= 0 ? room.desks[k] : -1;
@@ -52,7 +58,7 @@ function teamDesk(s, used) {
 function proDesk(s) {
   if (deskOf.has(s.id)) {
     const was = deskOf.get(s.id);
-    if (!s.role || was < 0 || UNITS[unitOfDesk[was]]?.team) return was;
+    if (!s.role || was < 0 || UNITS[unitOfDesk[was]]?.team || UNITS[unitOfDesk[was]]?.mk) return was;
     deskOf.delete(s.id);   // (it turned out to be one of the AI team: to its desk in the team's room)
   }
   const used = new Set(deskOf.values()), proj = projOf(s);
@@ -60,7 +66,7 @@ function proDesk(s) {
   const order = (u) => (UNITS[u].desks.length > 4 ? SEAT_ORDER.slice(0, UNITS[u].desks.length) : UNITS[u].desks.map((_, k) => k));
   const free = (u) => order(u).map((k) => UNITS[u].desks[k]).filter((d) => !used.has(d));
   const empty = (u) => free(u).length === UNITS[u].desks.length;
-  const all = UNITS.map((_, u) => u).filter((u) => !UNITS[u].team), mine = all.filter((u) => rowTeam.get(u) === proj);   // (the AI team's room is the team's alone)
+  const all = UNITS.map((_, u) => u).filter((u) => !UNITS[u].team && !UNITS[u].mk), mine = all.filter((u) => rowTeam.get(u) === proj);   // (the AI team's room is the team's alone)
   const claim = (u) => { rowTeam.set(u, proj); remember(proj, u); return free(u)[0]; };
   let d = -1;
   const room = mine.find((u) => free(u).length);   // 1. its area, a desk free
@@ -90,7 +96,7 @@ export function updateTeamTags() {
     // both halves of a pod with one project: one chip for the pod (on the first half), both carpets
     const twin = UNITS[u].pod != null ? u ^ 1 : -1, joined = twin >= 0 && here[twin].length && nameOf(twin) === nameOf(u);
     const people = joined ? [...here[u], ...here[twin]] : here[u];
-    const projs = [...new Set(people.map(projOf))], name = UNITS[u].team ? tr('team.title') : nameOf(u), chip = here[u].length && !(joined && twin < u);   // (the AI team's room: the team, whatever project)
+    const projs = [...new Set(people.map(projOf))], name = UNITS[u].team ? tr('team.title') : UNITS[u].mk ? tr('team.teams.marketing') : nameOf(u), chip = here[u].length && !(joined && twin < u);   // (the AI team's room: the team, whatever project)
     const key = here[u].length ? `${name}|${projs.length}|${people.length}|${chip}` : '';
     if (key === tg.key) return; tg.key = key; tg.o.visible = !!chip; if (tg.rug) tg.rug.visible = !!here[u].length;
     const dept = UNITS[u].dept; if (dept >= 0) DEPT_SIGNS[dept]?.(here[u].length ? name : '');   // the room's door plaque (the AI team's keeps its name)
@@ -116,8 +122,10 @@ export function upsertSession(s, walkIn = true, batch = false) {
   s.desk = d >= 0 ? d : proDesk(s);   // (a specialist's session too: the desk it works at, people/specialists.js)
   const had = sessions.has(s.id);
   sessions.set(s.id, s);
+  const specialist = SPECIALIST_ROLES.includes(s.role);
+  if (specialist) syncSpecialists();
   let w = workerForSession(s.id);
-  if (!w && d < 0 && !leavingIds.has(s.id)) w = addWorker(s, walkIn && had === false && state.connectedOnce);
+  if (!w && !specialist && d < 0 && !leavingIds.has(s.id)) w = addWorker(s, walkIn && had === false && state.connectedOnce);
   if (w) {
     if (w.kind !== 'team-resident') w.setName(short(dn(s), 26));
     const live = new Set((s.subs || []).map((x) => x.id));

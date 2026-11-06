@@ -33,7 +33,7 @@ export default {
   status: { run: 'Working', print: 'Printing PDF', done: 'Done', fail: 'Failed', stopped: 'Stopped' },
   stop: 'Stop', sending: 'Sending…', close: 'Close', back: 'Back',
   unreachable: "Couldn't reach the office.",
-  why: { empty: 'Write something first.', badDir: "Enter the folder's full path.", noInput: 'No such input folder on this computer.' },
+  why: { empty: 'Write something first.', badDir: "Enter the folder's full path.", noInput: 'No such input folder on this computer.', specialistBusy: 'This specialist is already working. Wait for that job to finish or stop it first.' },
   chat: {
     newsStart: '📰 {name} started reading the news: "{about}" (saved in {folder}).',
     newsDone: '📰 {name} finished the summary of "{about}": PDF in {folder}. For a video, press "Yes, make a video".',
@@ -44,5 +44,5 @@ export default {
     fail: '⚠️ {name} couldn\'t finish: {why}',
     stopped: '⏹️ {name} stopped.',
   },
-  bot: { name: 'Codex Bot', hi: "Beep! I'm Codex's bot.", working: 'Codex is on {n} jobs', idle: 'Codex is idle', limits: 'See Codex limits' },
+  bot: { name: 'Codex Bot', hi: "Beep! I'm Codex's bot.", working: 'Codex is on {n} jobs', waiting: 'Codex needs approval for {n} jobs', idle: 'Codex is idle', limits: 'See Codex limits', show: 'Show Codex Bot on desktop', hide: 'Hide bot', drag: 'Drag the bot to move · click its status to open Codex', offline: 'Connecting to the office' },
 };

@@ -79,7 +79,7 @@ function home() {
   // the first thing she offers: giving her a task for the AI Agent teams
   const work = el('button', 'gd-work'); work.type = 'button';
   work.append(el('b', null, tr('guide.work.title')), el('small', null, tr('guide.work.lead')));
-  work.addEventListener('click', () => { body.replaceChildren(workFlow({ back: () => { body.replaceChildren(...homeParts); ask.focus({ preventScroll: true }); }, openTeam: () => { close(); openTeam(); } })); });
+  work.addEventListener('click', () => { body.replaceChildren(workFlow({ back: () => { body.replaceChildren(...homeParts); ask.focus({ preventScroll: true }); }, openTeam: () => { close(); openTeam(); }, openSpecialist: (kind, options) => { close(); openSpecialist(kind, options); } })); });
   // and the specialists: the news reader, the video editor (ui/specialists.js)
   const spec = el('div', 'gd-specialists');
   for (const k of ['news', 'video']) {

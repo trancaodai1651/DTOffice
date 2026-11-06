@@ -9,6 +9,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { HQ, PRO, el, small, stage } from '../core/env.js';
 import { t as tr } from '../../i18n/index.js';
+import { autoGraphicsLevel, GRAPHICS_PRESETS, graphicsResolutionSteps } from '../../shared/graphics-policy.js';
 
 /* ---------- renderer ---------- */
 export let renderer;
@@ -20,7 +21,6 @@ export const fpCam = new THREE.PerspectiveCamera(70, 1, 0.05, 240);
 export let HOME;
 export let BASE_ZOOM;
 export let controls;
-let msaa;
 export let composer;
 export const renderPass = new RenderPass(scene, camera);
 export const bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.4, 0.55, 0.92);
@@ -38,14 +38,20 @@ export function resize() {
 }
 
 export function setup() {
-  try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); }
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  let choice = 'auto', saved = null;
+  try { choice = localStorage.getItem('office-quality') || 'auto'; saved = JSON.parse(localStorage.getItem('office-quality-auto') || 'null'); } catch { /* blocked or old storage */ }
+  const initialLevel = GRAPHICS_PRESETS[choice] ? choice : autoGraphicsLevel({ coarse, shortSide: Math.min(screen.width, screen.height), narrow: small.matches, saved });
+  let preset = GRAPHICS_PRESETS[initialLevel];
+  try { renderer = new THREE.WebGLRenderer({ antialias: !coarse || !preset.plain, alpha: true, powerPreference: coarse ? 'low-power' : 'high-performance' }); }
   catch (err) { stage.append(el('p', 'empty panel', tr('world.noWebgl'))); throw err; }
   // Without a GPU (a virtual machine, a CI runner, a browser that fell back to SwiftShader) every frame is drawn by the
   // CPU and takes seconds: then the office runs light, with no shadows or post effects, a quarter of the pixels and a few
   // frames a second, so the page stays usable.
   SOFTWARE_GL = (() => { const gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info'); return /SwiftShader|llvmpipe|softpipe|Software|Basic Render/i.test(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : ''); })();
-  renderer.setPixelRatio(SOFTWARE_GL ? 0.5 : Math.min(window.devicePixelRatio || 1, 2));
-  renderer.shadowMap.enabled = !SOFTWARE_GL;
+  if (SOFTWARE_GL) preset = GRAPHICS_PRESETS.low;
+  renderer.setPixelRatio(graphicsResolutionSteps({ width: stage.clientWidth, height: stage.clientHeight, pixelRatio: window.devicePixelRatio, prMax: preset.prMax, software: SOFTWARE_GL, coarse, auto: !GRAPHICS_PRESETS[choice] })[0]);
+  renderer.shadowMap.enabled = preset.shadows && !SOFTWARE_GL;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   stage.appendChild(renderer.domElement);
   labels.domElement.className = 'labels';
@@ -68,8 +74,7 @@ export function setup() {
    controls.maxAzimuthAngle = 1.45;
   controls.update();
   // Image pipeline: HDR render -> bloom (lamps, screens, city lights) -> ACES tone mapping; MSAA on desktop.
-  msaa = !small.matches;
-  composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: msaa ? 4 : 0 }));
+  composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: Math.min(preset.msaa, renderer.capabilities.maxSamples) }));
   composer.addPass(renderPass);
   composer.addPass(bloom);
   composer.addPass(new OutputPass());

@@ -108,8 +108,8 @@ function placeContent(id) {
     }
     case 'meeting': {
       const body = el('div'), box = el('div', 'pl-rows'), done = el('div', 'pl-rows');
-      for (const s of list) for (const x of s.subs || []) box.append(plRow({ ic: 'users', tone: 'blue', title: `${x.type}${x.desc ? ': ' + x.desc : ''}`, meta: tr('places.meeting.steps', { name: s.name, n: x.steps || 0 }), onClick: () => openSession(s.id, { tab: 'subs', agent: x.id }) }));
-      for (const s of list) for (const x of (s.doneSubs || []).slice(0, 2)) done.append(plRow({ ic: 'check', title: `${x.type}${x.desc ? ': ' + x.desc : ''}`, meta: tr('places.meeting.doneAt', { name: s.name, time: hhmm(x.endedAt) }), onClick: () => openSession(s.id, { tab: 'subs', agent: x.id }) }));
+      for (const s of list) for (const x of s.subs || []) box.append(plRow({ ic: 'users', tone: 'blue', title: `${x.type}${x.desc ? ': ' + x.desc : ''}`, meta: tr('places.meeting.steps', { name: dn(s), n: x.steps || 0 }), onClick: () => openSession(s.id, { tab: 'subs', agent: x.id }) }));
+      for (const s of list) for (const x of (s.doneSubs || []).slice(0, 2)) done.append(plRow({ ic: 'check', title: `${x.type}${x.desc ? ': ' + x.desc : ''}`, meta: tr('places.meeting.doneAt', { name: dn(s), time: hhmm(x.endedAt) }), onClick: () => openSession(s.id, { tab: 'subs', agent: x.id }) }));
       body.append(box.childElementCount ? box : plEmpty(tr('places.meeting.empty')));
       if (done.childElementCount) body.append(plGroup(tr('places.meeting.recent')), done);
       return { icon: 'users', title: tr('places.meeting.title'), sub: tr('places.meeting.sub'), body };
