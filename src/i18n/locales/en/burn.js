@@ -1,5 +1,6 @@
 // What eats your plan (ui/burn.js): where Claude Code's usage goes, from its own OpenTelemetry numbers (server/otel.mjs).
 export default {
+  currency: {"rate":"Estimated VND per USD (editable)","estimate":"API-equivalent value · not a subscription invoice","unknown":"Some models have no price; total includes known models only."},
   roles: { title: 'Coordinator and subagents, by model', note: 'The session itself and the subagents it sends out, each on the model it ran on. The model for subagents: Settings → More.' },
   title: 'What eats your plan',
   open: 'What eats your plan',

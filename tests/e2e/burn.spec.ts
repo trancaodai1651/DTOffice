@@ -31,7 +31,10 @@ function watchErrors(page: Page) {
 const otlp = (request: APIRequestContext, kind: 'metrics' | 'logs', data: unknown, headers: Record<string, string> = {}) =>
   request.post(`/v1/${kind}`, { headers: { 'Content-Type': 'application/json', ...headers }, data: JSON.stringify(data) });
 
-test.beforeEach(async ({ page }) => { await page.addInitScript(() => { try { localStorage.setItem('office-tips', 'seen'); localStorage.setItem('office-quality', 'low'); } catch { /* private mode */ } }); });
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => { try { localStorage.setItem('office-tips', 'seen'); localStorage.setItem('office-quality', 'low'); } catch { /* private mode */ } });
+  await page.addLocatorHandler(page.locator('.su-overlay'), async () => { await page.locator('.su-overlay .su-acts button').first().click(); });
+});
 
 test('before any numbers: an honest empty state that says what to do', async ({ page }) => {
   const errors = watchErrors(page);
@@ -93,12 +96,12 @@ test('fed like Claude Code feeds it: the panel ranks who eats the plan, and the 
   await expect(page.locator('#btn-plan')).toBeVisible({ timeout: 60_000 });
   // the plan card's line: today's cost and the two that eat most, a way into the panel
   await page.click('#btn-plan');
-  await expect(page.locator('#plan-burn')).toContainText('Today: $1.77 · MCP github 17%');
+  await expect(page.locator('#plan-burn')).toContainText('Today: $1.77 · ≈ 44.250 ₫ · MCP github 17%');
   await page.click('#plan-burn');
   const body = page.locator('#burn-body');
   await expect(page.locator('#dr-burn')).toBeVisible();
   await expect(page.locator('#pop-plan')).toBeHidden();
-  await expect(body.locator('.bn-total')).toHaveText('$1.77');
+  await expect(body.locator('.bn-total')).toHaveText('$1.77 · ≈ 44.250 ₫');
   await expect(body.locator('.bn-plan')).toHaveText('≈ 46% of your weekly limit');
   const rank = body.locator('.bn-rank li');
   await expect(rank.first()).toContainText('MCP');
@@ -110,13 +113,13 @@ test('fed like Claude Code feeds it: the panel ranks who eats the plan, and the 
   // the session rows, as shown, add up to the total shown
   const costs = await body.locator('.bn-sec').filter({ hasText: 'By session' }).locator('li small').allTextContents();
   expect(costs).toHaveLength(3);
-  expect(costs.reduce((a, c) => a + Number(c.replace(/[^\d.]/g, '')), 0)).toBeCloseTo(1.77, 2);
-  await expect(body.locator('.bn-sum')).toHaveText('The sessions add up to the total: $1.77.');
+  expect(costs.reduce((a, c) => a + Number(c.match(/\$([\d.]+)/)?.[1]), 0)).toBeCloseTo(1.77, 2);
+  await expect(body.locator('.bn-sum')).toHaveText('The sessions add up to the total: $1.77 · ≈ 44.250 ₫.');
   await page.screenshot({ path: test.info().outputPath('burn-today.png') });
   // 7 days: a column a day
   await page.click('#burn-range [data-range="7d"]');
   await expect(body.locator('.bn-days .bn-day')).toHaveCount(7);
-  await expect(body.locator('.bn-total')).toHaveText('$1.77');
+  await expect(body.locator('.bn-total')).toHaveText('$1.77 · ≈ 44.250 ₫');
   await page.screenshot({ path: test.info().outputPath('burn-7d.png') });
   // Escape closes it; the Mac drawer opening closes it too
   await page.keyboard.press('Escape');
@@ -140,7 +143,7 @@ test.describe('on a phone', () => {
     await expect(page.locator('#zchat')).toBeHidden();
     const sheet = page.locator('#dr-burn');
     await expect(sheet).toBeVisible();
-    await expect(sheet.locator('.bn-total')).toHaveText('$1,77');
+    await expect(sheet.locator('.bn-total')).toHaveText('$1.77 · ≈ 44.250 ₫');
     await expect(sheet.locator('.bn-plan')).toHaveText('≈ 46% hạn mức tuần');
     await expect(sheet).toContainText('Ai ăn nhiều nhất');
     const box = (await sheet.boundingBox())!;

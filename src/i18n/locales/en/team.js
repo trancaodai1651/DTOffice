@@ -1,5 +1,6 @@
 // The AI team (server/team.mjs, ui/team-sheet.js): 15 agents run by the CEO
 export default {
+  skills: {"title":"Skills by role","role":"Staff role","content":"Skill name and instructions (or SKILL.md content)","import":"Import skill file","save":"Save skill","saved":"Saved. Applies to the next assignment.","error":"Could not save. Maximum 20,000 characters; retry on the office host.","note":"Choose a Dev or Marketing role, import .md or paste instructions. Clear and save to remove. Applies to new assignments for that role."},
   title: 'AI Agent Dev team',
   teams: { dev: 'AI Agent Dev team', devSub: 'Software: plan, design, code, test, ship', marketing: 'AI Agent Marketing team', marketingSub: 'Marketing: research, strategy, brand, content, ads, social, analytics' },
   marketing: {

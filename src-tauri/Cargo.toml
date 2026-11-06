@@ -1,6 +1,6 @@
 [package]
 name = "my-office"
-version = "0.4.9"
+version = "0.4.10"
 description = "DT Office: a 3D workspace for Claude Code and Codex sessions"
 edition = "2021"
 

@@ -1580,7 +1580,7 @@ const team = createTeam({
     broadcast({ k: 'team', runs: team.list() });
   },
 });
-const teamOut = () => ({ ok: true, teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
+const teamOut = () => ({ ok: true, roleSkills: team.skills(), teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
   marketing: { roles: MARKETING_ROLES.map(({ id, group }) => ({ id, group })), groups: MARKETING_GROUPS }, roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
 
 /* ---------- "Ghi nhớ cho Claude": what you pin for a conversation (the session drawer's "Ghi nhớ" tab), said to Claude
@@ -2718,7 +2718,7 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === 'GET' && url.pathname === '/api/desktop-bot') {
     if (!isLoopback(req) || req.headers.origin || req.headers['x-forwarded-for']) { json(res, 403, { ok: false }); return; }
-    json(res, 200, { ...desktopBotSnapshot(sessions.values(), codexOn(), tr), lang: prefs.lang() });
+    json(res, 200, { ...desktopBotSnapshot(sessions.values(), codexOn() || agentOn('claude'), tr), lang: prefs.lang() });
     return;
   }
   if (req.method === 'POST' && url.pathname === '/hook/question') {
@@ -2947,6 +2947,7 @@ const server = http.createServer((req, res) => {
     if (!authorized(req, url) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
     if (!isLoopback(req) && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
     readJson(req, 40_000).then((b) => {
+      if (url.pathname === '/api/team/skills') { if (!isLoopback(req)) { json(res, 403, { ok: false }); return; } const ok = team.setSkill(String(b?.role || ''), b?.content); json(res, ok ? 200 : 400, { ok }); return; }
       if (url.pathname === '/api/team/stop') { json(res, 200, { ok: team.halt(String(b?.id || '')) }); return; }
       if (url.pathname === '/api/team/route') { const text = String(b?.text || '').slice(0, 4000), specialist = specialistRequest(text); json(res, 200, { ok: true, teams: specialist ? [] : routeTeams(text), specialist }); return; }   // the guide: which specialist or team a task needs
       if (url.pathname === '/api/team/resume') { const ok = team.resume(String(b?.id || '')); json(res, ok ? 200 : 409, ok ? { ok } : { ok, message: tr('team.cantResume') }); return; }

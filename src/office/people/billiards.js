@@ -13,7 +13,7 @@ import { BALL_R, BIL, CLOTH_Y, POCKETS, PX, PZ, cueMesh } from '../world/props/b
 import { napOn } from '../life/nap.js';
 import { fp } from '../interact/first-person.js';
 import { faceTo } from './navigation.js';
-import { dn, sessions, workers } from './workers.js';
+import { dn, sessions, workers, residents } from './workers.js';
 import { asleep, free, quip } from './errands.js';
 import { chatSay } from '../ui/group-chat.js';
 import { toast } from '../ui/activity.js';
@@ -31,11 +31,11 @@ let nextAt = 0, hud = null, guide = null, ghost = null;
 let RX = 0, RZ = 0;        // the walk round the table (its half size, in the table's frame)
 const pick = (key) => { const l = tr(key, null, 'list'); return Array.isArray(l) ? l[Math.floor(Math.random() * l.length)] : l; };
 const nameOf = (w) => { const n = dn(sessions.get(w.id)) || w.cfg.name || ''; return n.length > 11 ? `${n.slice(0, 10)}…` : n; };
-const called = (w) => gameWorkPending(sessions.get(w.id), w.want);
+const called = (w) => gameWorkPending(w.kind === 'team-resident' ? w.leisureSession : sessions.get(w.id), w.want);
 // who could play: resting, nothing else on (not out, not on a break, not carrying anything, not at tea)
 function who() {
-  return [...workers.values()].filter((w) => { const s = sessions.get(w.id);
-    return !w.sub && !gameWorkPending(s, w.want) && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
+  return [...workers.values(), ...residents.values()].filter((w) => { const s = w.kind === 'team-resident' ? w.leisureSession : sessions.get(w.id);
+    return !w.sub && !(w.kind === 'team-resident' && w.roaming) && !gameWorkPending(s, w.want) && (free(w) || asleep(w)) && !w.onBreak && !w.outing && !w.street && !w.carry && !w.doze && !w.mealBox && !w.shred; });
 }
 const W = (x, z) => [BIL.x + x, BIL.z + z];   // the table's frame -> the floor
 
@@ -254,9 +254,10 @@ function start(npc, ws) {
     const old = was.find((q) => q.w === p.w && q.arrived && p.w.chore === q.e);
     if (old) { Object.assign(p, { e: old.e, s: old.s, ws: old.ws, arrived: true }); return; }
     const ex = exits()[i];
+    if (p.w.kind === 'team-resident') p.w.roaming = true;
     p.s = p.ws = ex.s;
     p.e = p.w.errand({ type: 'idle', spot: { x: ex.x, z: ex.z, face: ex.face, node: ex.node }, look: [BIL.x, BIL.z], anim: 'idle', wait: i ? 2.4 : 0.4, hold: 0.4, anim2: 'idle', linger: 0.8,
-      line: i ? pick('people.billiards.join') : pick('people.billiards.invite') });
+      line: i ? pick('people.billiards.join') : pick('people.billiards.invite'), done: w => { if (w.kind === 'team-resident') { w.roaming = false; w.lounging = false; } } });
     p.e.until = Infinity;
   });
 }

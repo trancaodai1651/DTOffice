@@ -3,6 +3,8 @@
 [Chọn nhóm khác](../FEATURE-MAP.md). Đường dẫn tính từ root; `unit/X` = `tests/unit/X.test.mjs`,
 `e2e/X` = `tests/e2e/X.spec.ts`. Danh sách từng module nằm ở `docs/ARCHITECTURE.md` → Module map.
 
+Từ 0.4.10: `ui/role-skills.js` nhập/lưu skill theo vị trí Dev/Marketing; `shared/api-money.js` định dạng USD/VND và ước tính API Codex theo model, tỷ giá chỉnh ở burn. Bida xét cả workers và residents theo trạng thái đã đồng bộ (`ai-team.js` → `leisureSession`), giữ roaming đến khi về bàn. Bot native (`src-tauri/loading/bot.html`) mở laptop/gõ khi một trong hai CLI làm việc. Kiểm tra: `unit/api-money`, `unit/desktop-bot`, `unit/team`, `e2e/staff-tools`.
+
 | Chức năng | Code chính | Điểm vào / luồng | Test liên quan |
 | --- | --- | --- | --- |
 | Trang và layout | `app/layout.tsx`, `app/page.tsx`, `src/components/office/` | route `/`, static markup và DOM id | `e2e/office`; build/typecheck |

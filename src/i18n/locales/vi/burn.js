@@ -1,4 +1,5 @@
 export default {
+  currency: {"rate":"Tỷ giá quy đổi VND / USD (ước tính, có thể sửa)","estimate":"Giá trị API quy đổi · không phải hóa đơn gói đăng ký","unknown":"Có model chưa có bảng giá; tổng chỉ gồm model đã biết."},
   roles: { title: 'Người điều phối và subagent, theo model', note: 'Phiên chính và các subagent nó giao việc, mỗi bên chạy model nào tốn bao nhiêu. Đổi model cho subagent: Cài đặt → Thêm.' },
   title: 'Cái gì đang ăn gói',
   open: 'Cái gì đang ăn gói',

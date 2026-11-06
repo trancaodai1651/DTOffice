@@ -146,11 +146,11 @@ engine switches to demo mode and talks to no API.
 | `life/trophies.js` | 121 | The trophy cabinet and the opening plaque. |
 | `life/weather.js` | 90 | Real weather outside (Open-Meteo). |
 | `life/your-turn.js` | 37 | "Your turn": sessions that finished or wait for you. |
-| `net/live.js` | 184 | The live connection: sessions, desks, teams, events. |
-| `people/accountant.js` | 258 | The accountant (company floor): her desk in the director's office, the day's API cost on her screen, the report to the director at 17:30, and a word with whoever spends the most when the plan's limit gets near. |
-| `people/ai-team.js` | 69 | … |
+| `net/live.js` | 189 | The live connection: sessions, desks, teams, events. |
+| `people/accountant.js` | 259 | … |
+| `people/ai-team.js` | 74 | … |
 | `people/bedding.js` | 64 | Nap bedding: blanket, pillow, folding it away. |
-| `people/billiards.js` | 485 | Pool in the lounge (company floor; the table: world/props/billiards.js). |
+| `people/billiards.js` | 486 | Pool in the lounge (company floor; the table: world/props/billiards.js). |
 | `people/breaks.js` | 87 | Lunch and the afternoon coffee queue. |
 | `people/chibi-rig.js` | 902 | Office characters, two looks on one rig:   toy   (A) designer-toy chibi, ~2 heads: big round head, low wide-set bean eyes, stubby legs, chunky sneakers, matte vinyl. |
 | `people/comnha.js` | 195 | Cơm nhà: lunch brought from home, warmed at the pantry's two microwaves at noon (company floor; the corner: world/props/microwave.js; who brought some today, and what: src/shared/comnha.js). |
@@ -170,7 +170,7 @@ engine switches to demo mode and talks to no API.
 | `people/karaoke-songs.js` | 51 | The karaoke box's songs (people/karaoke.js): words written for the office, nobody else's. |
 | `people/karaoke.js` | 343 | Karaoke in the box on the dev floor (company floor; the booth: world/props/karaoke.js). |
 | `people/look.js` | 9 | Which character look (A / B) this viewer chose. |
-| `people/navigation.js` | 272 | The walking graph, desk spots and stations people go to. |
+| `people/navigation.js` | 275 | The walking graph, desk spots and stations people go to. |
 | `people/nhau.js` | 231 | An evening at the quán nhậu across the street (world/backdrops/street-nhau.js). |
 | `people/outings.js` | 606 | Going out: before lunch a GrabFood rider brings the team's lunch to the kerb and whoever is resting goes down for it; now and then someone resting pops down to the convenience store across the street and comes back with what that chain is known for (Circle K's mì ly, GS25's tokbokki, 7-Eleven's onigiri…); late at night, whoever is still there goes down to the Circle K for a cup of noodles. |
 | `people/payday.js` | 124 | Payday (the 5th, the 10th or the month's last day: world/backdrops/street-atm.js isPayday). |
@@ -190,9 +190,9 @@ engine switches to demo mode and talks to no API.
 | `scene/quality.js` | 74 | Graphics quality: Auto (the default), Low, Medium or High, each viewer's own choice (Settings → Display). |
 | `scene/renderer.js` | 96 | Renderer, cameras, orbit controls, post-processing and environment light. |
 | `scene/shadow-focus.js` | 31 | … |
-| `ui/activity.js` | 303 | The activity column and the session list. |
+| `ui/activity.js` | 304 | … |
 | `ui/ai-accounts.js` | 278 | The other AI tools' accounts, in the plan card under Claude's (server/codex-accounts.mjs, antigravity-accounts.mjs): Codex and Antigravity IDE, each with its accounts (usage, the one in use, out until when), adding one, using another, and switching by itself when the one in use runs out. |
-| `ui/burn.js` | 294 | What eats your plan: where Claude Code's usage goes, by model, MCP server, skill, plugin, subagent, project and session; and Codex's (its own session files, server/codex-burn.mjs): tokens by model, team member, project, session and day. |
+| `ui/burn.js` | 300 | … |
 | `ui/cache-words.js` | 53 | How a session's prompt cache reads on screen ("Đồng hồ bộ nhớ đệm", src/shared/cache-clock.js; the cups on the desks are world/props/cups.js): the line under the session drawer's folder, the one under the chat's "Gửi tới" and in its list of conversations, list mode's cards, and the switch in Settings → More for the "about to go cold" notification. |
 | `ui/camera-bar.js` | 62 | The camera toolbar. |
 | `ui/chat-avatars.js` | 72 | Round photos for the group chat (group-chat-view.js): each person's own chibi, head and shoulders, drawn once by the office's renderer (the way Settings draws its portraits: same materials, light and tone mapping) and kept as a data URL. |
@@ -219,6 +219,7 @@ engine switches to demo mode and talks to no API.
 | `ui/pins.js` | 63 | "Ghi nhớ cho Claude" (server: /api/pins, /hook/start): what you want a conversation to keep in mind, said to Claude again each time Claude Code compacts it. |
 | `ui/portraits.js` | 64 | Portraits of the two character looks for Settings → Characters: two people in each look, drawn by the office's own renderer (same materials, light and tone mapping, so they match what you will see) into a canvas, the first time the tab opens. |
 | `ui/projects.js` | 72 | Your projects: the folders work is given in (the guide, 📋 Giao việc, the AI Agent teams). |
+| `ui/role-skills.js` | 23 | … |
 | `ui/session-account.js` | 54 | "Change account" in a session's drawer (on this computer only): the accounts of the plan card, each with what it has left. |
 | `ui/session-drawer.js` | 398 | The session drawer: chat, steps, subagents. |
 | `ui/settings.js` | 136 | Settings popover: backdrop, floor plan, look, time, toggles. |
@@ -228,7 +229,7 @@ engine switches to demo mode and talks to no API.
 | `ui/stuck.js` | 97 | Stuck sessions ("Ngắt vòng lặp kẹt", server/loops.mjs): the card in the group chat (what repeats, Stop, a hint for Claude) and the row in Settings → More (on or off, after how many failures, after how many minutes of spending with nothing edited). |
 | `ui/task-sheet.js` | 210 | "Giao việc": giving Claude work from the group chat (server/tasks.mjs runs it on the Mac). |
 | `ui/team-roster.js` | 89 | Personnel, freshness and explicit session selection, shared by 2D and the 3D office. |
-| `ui/team-sheet.js` | 197 | "Đội AI Agent Dev" (server/team.mjs): you are the CEO. |
+| `ui/team-sheet.js` | 216 | "Đội AI Agent Dev" (server/team.mjs): you are the CEO. |
 | `ui/ticks.js` | 25 | The page's clocks, in 2D and 3D alike: the time in the top bar, the open session's header, the Mac's readings. |
 | `ui/timelapse.js` | 156 | A 15-second clip of the office to share: square (1080 × 1080) for a feed or vertical (1080 × 1920) for Reels, TikTok and Shorts, the camera turning slowly round the floor, people at four times their pace, the day running into the evening (a clock in the corner from 8:00 to 23:00, the lights coming on at six), a title at the start and the day's numbers over the last two and a half seconds, with an original lo-fi tune under it (clip-music.js; it can be turned off). |
 | `ui/tips.js` | 115 | The first visit: a short tour of what you can click. |
@@ -283,10 +284,10 @@ engine switches to demo mode and talks to no API.
 | `world/furniture/rocket.js` | 22 | The deploy rocket on its launch pad. |
 | `world/furniture/room-pieces.js` | 107 | Wall clock, framed art, bookshelf, sofa corner and the globe. |
 | `world/furniture/server-racks.js` | 65 | Server racks with LEDs and fans that follow the Mac's CPU. |
-| `world/layout.js` | 50 | The floor plans (cozy, pro, hq): where the shared furniture stands, and the headquarters wing. |
+| `world/layout.js` | 54 | The floor plans (cozy, pro, hq): where the shared furniture stands, and the headquarters wing. |
 | `world/pro/floor.js` | 347 | The company floor: rooms, partitions and furniture. |
 | `world/pro/pieces.js` | 142 | Company floor building pieces: floor finishes, walls, glass, chairs, dining sets. |
-| `world/pro/wing.js` | 150 | Headquarters' wing: in front of the company floor, a corridor along it, a corridor down the middle and four department rooms of two pods each (the desks, pods' screens and carpets come from the shared code). |
+| `world/pro/wing.js` | 163 | Headquarters' wing: in front of the company floor, a corridor along it, a corridor down the middle and four department rooms of two pods each (the desks, pods' screens and carpets come from the shared code). |
 | `world/props/aquarium.js` | 44 | The aquarium. |
 | `world/props/arcade.js` | 62 | The arcade cabinet and its little game. |
 | `world/props/billiards.js` | 124 | The pool table (company floor), on the lounge's right side between the sofa and the arcade: a 7-foot table (green cloth with its spots, cushions, walnut rails inlaid with pearl diamonds, six leather pockets, turned legs), a rug under it, chalk on the rail, and a round cue stand by the arcade. |

@@ -18,6 +18,9 @@
   .float { animation: float 3.4s ease-in-out infinite; transform-origin: 75px 85px; }
   .eye { fill: #afc8ff; } .arm { transform-box: fill-box; transform-origin: top center; }
   body[data-state="work"] .arm { animation: wave .7s ease-in-out infinite alternate; }
+  .laptop { display: none; } body[data-busy="true"] .laptop { display: block; }
+  body[data-busy="true"] .arm { animation: typing .28s ease-in-out infinite alternate; }
+  @keyframes typing { to { transform: translateY(3px) rotate(8deg); } }
   body[data-state="wait"] .eye { fill: #ffd281; }
   #status { max-width: 100%; min-height: 30px; text-align: center; border-radius: 14px; background: #202840ed; padding: 6px 10px; box-shadow: 0 2px 5px #11162930; }
   #status:focus-visible, #robot:focus-visible, #hide:focus-visible { outline: 2px solid #a9bbff; outline-offset: -2px; }
@@ -42,6 +45,7 @@
       <rect x="61" y="111" width="28" height="19" rx="5" fill="#202840"/>
       <path class="eye" d="m65 115 7 6-7 6-2-3 4-3-4-3zM76 124h8v3h-8z"/>
     </g>
+    <g class="laptop"><path d="M40 117h72l-5 34H45z" fill="#172338" stroke="#a2b7db" stroke-width="2"/><path d="M34 151h84l-7 6H41z" fill="#8da8cf"/><path d="m65 128 7 6-7 6m14 0h12" fill="none" stroke="#9be7c4" stroke-width="3"/></g>
   </svg>
 </button>
 <button id="status" type="button">Codex Bot</button>
@@ -74,11 +78,13 @@
       const data = await invoke('status'); words = data.words;
       document.documentElement.lang = data.lang || 'vi';
       document.body.dataset.state = data.waiting ? 'wait' : data.working ? 'work' : 'idle';
+      document.body.dataset.busy = data.working ? 'true' : 'false';
       robot.setAttribute('aria-label', `${words.name} · ${words.drag}`); robot.title = words.drag;
-      status.textContent = data.status; status.title = words.limits;
+      status.textContent = data.status; status.title = Object.entries(data.agents || {}).map(([a, s]) => `${a === 'claude' ? 'Claude' : 'Codex'}: ${s.working} ● · ${s.waiting} ◷`).join('\n');
       hide.title = words.hide; hide.setAttribute('aria-label', words.hide); hide.hidden = false;
     } catch {
       document.body.dataset.state = 'offline';
+      document.body.dataset.busy = 'false';
       if (words) status.textContent = words.offline;
     } finally { setTimeout(poll, 4000); }
   }

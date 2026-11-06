@@ -22,6 +22,8 @@
 - Từ 0.4.8: `personnelName`/`session-name.js` là tên nhân sự ổn định theo agent + sid, title chat chỉ là ngữ cảnh; resident giữ tên vai trò. Codex Bot là cửa sổ native `codex-bot` trong `src-tauri/loading/bot.html`, không dựng lại trong cảnh 3D. Trò chơi giữ chore đến kết quả thật; `gameWorkPending` phân biệt việc/duyệt quyền với hành động nghỉ. Đóng gói build cách ly bằng `OFFICE_DIST_DIR`; bản cài luôn mang thư mục `.next`.
 - Từ 0.4.9: yêu cầu đọc tin qua guide/task/chat dùng `specialist-request.js` trước luồng DEV; nhân sự chuyên trách gắn task/SID lưu bền, SID chính xác ưu tiên thư mục và tên vai trò không theo chat title. Xe NPC/xe người lái dùng chung `traffic-space.js`; cột đèn theo `street-fixtures.js`, tránh nhân bản lịch đặt cột ở tree/wire. PC GPU thật Auto tối thiểu Medium, điện thoại/tablet vẫn thích ứng riêng.
 
+- Từ 0.4.10: skill theo role lưu ngoài repo ở data-dir/role-skills.json, gắn lúc launch việc mới; không tự sửa việc đang chạy. USD/VND dùng `api-money.js`, tỷ giá minh họa có chỉnh; giá API Codex quy đổi không phải tiền thuê bao. Bida dùng `leisureSession` của resident đã đồng bộ, bật roaming trong ván và tắt sau khi về bàn. Bot nổi đếm cả Claude/Codex.
+
 ## Tra cứu theo nhu cầu
 
 - [Chỉ mục](INDEX.md) · [Trạng thái bàn giao](STATE.md) · [Bản đồ chức năng](../docs/FEATURE-MAP.md).

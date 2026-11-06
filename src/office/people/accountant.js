@@ -1,3 +1,4 @@
+import { apiMoney } from '../../shared/api-money.js';
 // The accountant (company floor): her desk in the director's office, the day's API cost on her screen, the report to the
 // director at 17:30, and a word with whoever spends the most when the plan's limit gets near.
 import * as THREE from 'three';
@@ -28,7 +29,7 @@ const FROM = 480, TO = 1065, REPORT_AT = 1050, WARN = 80;
 const minutes = () => { const d = officeNow(); return d.getHours() * 60 + d.getMinutes(); };
 const today = () => officeNow().toDateString();
 function say(w, key, vars, ms = 4500) { const text = tr(key, vars); w.say('idle', text); setTimeout(() => { if (w.lastSay?.text === text) w.hush(); }, ms); }
-const usd = (v) => `$${v >= 100 ? Math.round(v) : v.toFixed(2)}`;
+const usd = apiMoney;
 const projOf = (s) => s?.git?.repo || String(s?.dir || '').split('/').filter(Boolean).pop() || tr('activity.live.otherProject');
 
 // a moment the office is busy with something together (people/rounds.js waits for these too)

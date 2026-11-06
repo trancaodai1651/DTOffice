@@ -1,5 +1,6 @@
 // The AI team (server/team.mjs, ui/team-sheet.js): 15 agents run by the CEO
 export default {
+  skills: {"title":"Skill theo vị trí","role":"Vị trí nhân sự","content":"Tên skill và hướng dẫn (hoặc nội dung SKILL.md)","import":"Nhập file skill","save":"Lưu skill","saved":"Đã lưu. Áp dụng từ việc tiếp theo.","error":"Không lưu được skill. Tối đa 20.000 ký tự; thử lại trên máy chạy văn phòng.","note":"Chọn vị trí Dev hoặc Marketing, nhập file .md hoặc dán hướng dẫn. Để trống rồi lưu để gỡ. Áp dụng cho từng việc mới của đúng vị trí."},
   residentWaiting: 'Đang chờ giao việc; nhân sự này chưa có phiên CLI chạy.',
   residentConnected: 'Đã gắn với một phiên CLI thật của Đội AI Agent Dev.',
   residentLabel: 'Chờ việc',

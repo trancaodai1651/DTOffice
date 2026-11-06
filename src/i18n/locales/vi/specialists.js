@@ -44,5 +44,5 @@ export default {
     fail: '⚠️ {name} không làm xong: {why}',
     stopped: '⏹️ {name} đã dừng.',
   },
-  bot: { name: 'Codex Bot', hi: 'Bíp! Em là bot của Codex.', working: 'Codex đang làm {n} việc', waiting: 'Codex chờ duyệt {n} việc', idle: 'Codex đang rảnh', limits: 'Xem hạn mức Codex', show: 'Hiện Codex Bot trên desktop', hide: 'Ẩn bot', drag: 'Kéo bot để di chuyển · bấm trạng thái để mở Codex', offline: 'Đang kết nối văn phòng' },
+  bot: { name: 'Codex Bot', hi: 'Bíp! Em là bot của Codex.', working: 'Claude + Codex đang làm {n} việc', waiting: 'Claude + Codex chờ duyệt {n} việc', idle: 'Claude + Codex đang rảnh', limits: 'Xem văn phòng Claude và Codex', show: 'Hiện Codex Bot trên desktop', hide: 'Ẩn bot', drag: 'Kéo bot để di chuyển · bấm trạng thái để mở văn phòng', offline: 'Đang kết nối văn phòng' },
 };

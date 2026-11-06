@@ -5,6 +5,7 @@
 import { $, el, HQ } from '../core/env.js';
 import { liveTeamEnabled } from '../people/ai-team.js';
 import { createTeamRoster } from './team-roster.js';
+import { roleSkillsEditor } from './role-skills.js';
 import { openSession } from './session-drawer.js';
 import { goView } from './camera-bar.js';
 import { openLayoutSettings } from './settings.js';
@@ -152,6 +153,7 @@ export async function openTeamSheet(host, options = {}) {
   await loadInfo();
 }
 function buildTaskInfo(sheet, t, r) {
+  sheet.append(roleSkillsEditor(t));
   sheet.append(el('p', 'zc-task-note', tr('team.sub')));
   const about = el('details', 'tm-about');
   about.append(el('summary', null, tr('team.flowTitle')), flow(t.stages));

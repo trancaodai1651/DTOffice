@@ -8,6 +8,24 @@ import path from 'node:path';
 import { ROLES, STAGES, GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS, MARKETING_STAGES, createTeam, membersOf, rolePrompt, rolesOf, routeTeams, verdictOf } from '../../server/team.mjs';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'office-team-'));
+
+test('role skills persist and reach only the assigned role at launch', () => {
+  const dataDir = tmp(), prompts = [];
+  const options = { dataDir, lang: () => 'vi', start: (_r, _s, prompt, role) => { prompts.push({ prompt, role }); return { ok: true, task: { id: role } }; }, stop() {} };
+  try {
+    const first = createTeam(options);
+    assert.equal(first.setSkill('pm', 'PM-SKILL-ONLY: clarify acceptance criteria'), true);
+    assert.equal(first.setSkill('invalid', 'bad'), false);
+    assert.equal(first.setSkill('pm', 'x'.repeat(20001)), false);
+    const team = createTeam(options);
+    assert.match(team.skills().pm, /PM-SKILL-ONLY/);
+    team.begin({ dir: dataDir, goal: 'Build a dashboard', agent: 'codex' });
+    assert.ok(prompts.some(p => p.role === 'pm' && p.prompt.includes('PM-SKILL-ONLY')));
+    assert.ok(prompts.filter(p => p.role !== 'pm').every(p => !p.prompt.includes('PM-SKILL-ONLY')));
+    assert.equal(team.setSkill('pm', ''), true);
+    assert.equal(createTeam(options).skills().pm, undefined);
+  } finally { fs.rmSync(dataDir, { recursive: true, force: true }); }
+});
 // a team whose sessions are stand-ins: at most `max` at once (the office's own limit), each ended by hand
 function harness({ max = 3 } = {}) {
   const dir = tmp(), started = [], events = [];

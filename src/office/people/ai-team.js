@@ -42,6 +42,7 @@ export function reconcileTeamPresence() {
       }
       const s = sessions.get(p.primarySessionId), confirmed = p.freshness === 'fresh';
       w.primarySessionId = p.primarySessionId;
+      w.leisureSession = { status: confirmed && ['idle', 'rest'].includes(p.activity) ? 'rest' : 'work', bg: p.sessionIds.flatMap(id => sessions.get(id)?.bg || []) };
       if (!w.roaming) w.anim = confirmed && p.activity === 'work' ? 'type' : confirmed && p.activity === 'wait' ? 'hand' : 'read';   // (away from the desk: people/team-brief.js)
       w.tagEl.dataset.devState = confirmed ? p.sessionIds.length ? 'session' : 'idle' : p.freshness;
       w.tagEl.classList.toggle('tag--wait', confirmed && p.activity === 'wait');

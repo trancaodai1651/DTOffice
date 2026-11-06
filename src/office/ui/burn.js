@@ -1,3 +1,4 @@
+import { apiMoney, apiEstimate, exchangeRate } from '../../shared/api-money.js';
 // What eats your plan: where Claude Code's usage goes, by model, MCP server, skill, plugin, subagent, project and session;
 // and Codex's (its own session files, server/codex-burn.mjs): tokens by model, team member, project, session and day.
 // From Claude Code's own OpenTelemetry numbers (server/otel.mjs, summed by src/shared/burn.js), today or over the last 7
@@ -17,8 +18,7 @@ let range = 'today', agent = 'claude', last = null, lastAt = 0, timer = 0, drawn
 const isCodex = (d) => d?.agent === 'codex';
 
 /* ---------- numbers in words ---------- */
-const cents = (n, d) => Number(n).toLocaleString(locale(), { minimumFractionDigits: d, maximumFractionDigits: d });   // ($0.30, not $0.3)
-const usd = (n) => (n > 0 && n < 0.01 ? tr('burn.less', { usd: `$${cents(0.01, 2)}` }) : `$${cents(n, n >= 100 ? 0 : 2)}`);
+const usd = apiMoney;
 const pct = (x) => `${num(x * 100, x > 0 && x < 0.095 ? 1 : 0)}%`;
 const points = (p) => `${num(p, p < 9.95 ? 1 : 0)}%`;   // (percentage points of the weekly limit)
 const toks = (n) => (n >= 1e6 ? tr('burn.tokM', { n: num(n / 1e6, 1) }) : n >= 1e3 ? tr('burn.tokK', { n: num(n / 1e3, n >= 1e4 ? 0 : 1) }) : num(n));
@@ -175,6 +175,9 @@ function renderCodex(d) {
   if (now === drawn && body.firstElementChild) return;
   drawn = now;
   const out = [];
+  const priced = d.by.model.map(m => ({ ...m, cost: apiEstimate(m.name, m) })), costs = el('ol', 'bn-list');
+  for (const m of priced) costs.append(row('', modelName(m.name), m.share, m.cost == null ? '—' : usd(m.cost)));
+  out.push(sec(tr('burn.currency.estimate'), costs, el('strong', null, usd(priced.reduce((n, m) => n + (m.cost || 0), 0))), ...(priced.some(m => m.cost == null) ? [el('p', 'bn-note', tr('burn.currency.unknown'))] : [])));
   // the plan's own windows (5 h, week), as Codex last said them
   if (d.windows?.length) {
     const w = el('ol', 'bn-list');
@@ -264,6 +267,9 @@ export function closeBurn() { if (!drB || drB.hidden) return; drB.hidden = true;
 
 export function setup() {
   drB = $('dr-burn');
+  const rateLabel = el('label', 'bn-note', tr('burn.currency.rate')), rate = el('input'); rate.type = 'number'; rate.min = '1'; rate.max = '1000000'; rate.value = String(exchangeRate()); rate.setAttribute('aria-label', tr('burn.currency.rate'));
+  rate.addEventListener('change', () => { const n = Number(rate.value); if (!Number.isFinite(n) || n < 1 || n > 1000000) { rate.value = String(exchangeRate()); return; } try { localStorage.setItem('office-usd-vnd', String(n)); } catch { /* private storage */ } drawn = ''; render(); });
+  rateLabel.append(rate); $('burn-body').before(rateLabel);
   drB.querySelector('[data-close]').addEventListener('click', closeBurn);
   $('burn-range').addEventListener('click', (e) => {
     const b = e.target.closest('[data-range]'); if (!b || b.dataset.range === range) return;

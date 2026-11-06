@@ -1,3 +1,4 @@
+import { apiMoney } from '../../shared/api-money.js';
 // The activity column and the session list.
 import { state } from '../core/state.js';
 import { $, el, fmtBytes, fmtClock, hhmm, nowMs } from '../core/env.js';
@@ -227,7 +228,7 @@ function onListClick(ev) {
   const b = ev.target.closest('[data-sess]'); if (!b) return; if (b.dataset.agent) openFromRow(b); else toggleSession(b.dataset.sess);
 }
 export const fmtTok = (n) => (n >= 1e6 ? `${num(n / 1e6, 1)}M` : `${Math.round(n / 1000)}k`);
-export const fmtUsd = (v) => `$${v >= 100 ? Math.round(v) : v.toFixed(2)}`;
+export const fmtUsd = apiMoney;
 const KPIS = [['prompts', 'clipboard'], ['read', 'file'], ['edit', 'pencil'], ['cmd', 'terminal'], ['cost', 'coin']];   // labels: activity.kpi.<key>
 export function renderHud() {
   const list = [...sessions.values()];

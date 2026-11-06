@@ -44,5 +44,5 @@ export default {
     fail: '⚠️ {name} couldn\'t finish: {why}',
     stopped: '⏹️ {name} stopped.',
   },
-  bot: { name: 'Codex Bot', hi: "Beep! I'm Codex's bot.", working: 'Codex is on {n} jobs', waiting: 'Codex needs approval for {n} jobs', idle: 'Codex is idle', limits: 'See Codex limits', show: 'Show Codex Bot on desktop', hide: 'Hide bot', drag: 'Drag the bot to move · click its status to open Codex', offline: 'Connecting to the office' },
+  bot: { name: 'Codex Bot', hi: "Beep! I follow Claude and Codex.", working: 'Claude + Codex are on {n} jobs', waiting: 'Claude + Codex need approval for {n} jobs', idle: 'Claude + Codex are idle', limits: 'Open the Claude and Codex office', show: 'Show Codex Bot on desktop', hide: 'Hide bot', drag: 'Drag the bot to move · click its status to open the office', offline: 'Connecting to the office' },
 };

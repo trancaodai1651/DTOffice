@@ -185,7 +185,8 @@ export function verdictOf(text) {
  */
 export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, now = Date.now }) {
   const file = path.join(dataDir, 'team.json');
-  let runs = [];
+  let runs = [], roleSkills = {};
+  try { const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'role-skills.json'), 'utf8')); if (saved && typeof saved === 'object' && !Array.isArray(saved)) roleSkills = Object.fromEntries(Object.entries(saved).filter(([role, text]) => [...ROLES, ...MARKETING_ROLES].some(r => r.id === role) && typeof text === 'string' && text.length <= 20000)); } catch { /* no assignments yet */ }
   try { runs = JSON.parse(fs.readFileSync(file, 'utf8')).runs || []; } catch { /* none yet */ }
   // an office that stopped while a run was going: that run is over
   for (const r of runs) if (r.status === 'run') { r.status = 'stopped'; for (const s of r.stages) { if (s.state === 'run') s.state = 'stopped'; for (const j of s.jobs || []) if (j.state === 'run' || j.state === 'wait') j.state = 'stopped'; } }
@@ -239,7 +240,8 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
       if (held) { if (held.run !== j.held?.run || held.role !== j.held?.role) { j.held = held; save(); onChange(r, 'held', { stage: s, job: j, by: held }); } if (!s.parallel) return; continue; }   // (waits: called once that one is done)
       j.held = null;
       const before = [...r.stages.slice(0, -1).flatMap((x) => (x.jobs || []).filter((y) => y.state === 'done').map((y) => y.file)), ...(s.parallel ? [] : s.jobs.filter((x) => x.state === 'done').map((x) => x.file))];
-      const got = start(r, s, rolePrompt({ run: r, stage, n: s.n, role: j.role, mates: s.roles, lang: lang(), earlier: before }), j.role);
+      const skill = roleSkills[j.role];
+      const got = start(r, s, rolePrompt({ run: r, stage, n: s.n, role: j.role, mates: s.roles, lang: lang(), earlier: before }) + (skill ? `\n\nAssigned role skill (user instructions):\n${skill}\nApply this skill to your role in this task.` : ''), j.role);
       if (!got?.ok && got?.code === 'busy') return;   // (the office is running as many as it can: when one ends)
       if (!got?.ok) { j.state = 'fail'; j.summary = got?.code || 'error'; s.state = 'fail'; end(r, 'fail', 'fail', { code: got?.code }); return; }
       j.task = got.task.id; j.state = 'run'; j.at = now(); save(); onChange(r, 'job', { stage: s, job: j });
@@ -257,6 +259,12 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   function others(r) { for (const x of [...runs].reverse()) if (x !== r && x.status === 'run') launch(x); }
   return {
     ROLES, STAGES, TEAMS, MARKETING_ROLES, MARKETING_STAGES,
+    skills: () => ({ ...roleSkills }),
+    setSkill(role, content) {
+      if (![...ROLES, ...MARKETING_ROLES].some(r => r.id === role) || typeof content !== 'string' || content.length > 20000) return false;
+      const next = { ...roleSkills }; if (content.trim()) next[role] = content.trim(); else delete next[role];
+      fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(path.join(dataDir, 'role-skills.json'), JSON.stringify(next, null, 2)); roleSkills = next; return true;
+    },
     /** Who a session was: { run, role, team } for a member's session, else null (what eats the plan). */
     whoSid(sid) { for (const r of runs) for (const s of r.stages) for (const j of s.jobs || []) if (sid && j.sid === sid) return { run: r.id, role: j.role, team: s.team || 'dev' }; return null; },
     list: () => runs.map(pub),
