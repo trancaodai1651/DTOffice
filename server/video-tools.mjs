@@ -83,20 +83,28 @@ export function validateVideoPlan(plan) {
   if (duration > 600) throw Error('Video exceeds ten minutes');
   return { size, duration };
 }
-const wrap = (text, columns = 30) => String(text || '').split('\n').flatMap(line => {
-  const out = []; let current = ''; for (const word of line.split(/\s+/)) { if (current && current.length + word.length + 1 > columns) { out.push(current); current = ''; } current += `${current ? ' ' : ''}${word}`; } out.push(current); return out;
-}).join('\n');
+// Rasterise once with the image runtime shipped by the app. Some upstream Intel
+// FFmpeg builds omit drawtext; overlay works on every bundled architecture.
+export async function captionImage(text, w, h) {
+  const sharp = (await import('sharp')).default, font = fontFile();
+  if (!font) throw Error('No font with Vietnamese support was found');
+  if (!String(text || '').trim()) return sharp({ create: { width: 1, height: 1, channels: 4, background: '#00000000' } }).png().toBuffer();
+  const escaped = String(text).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+  const pad = Math.max(8, Math.round(w / 54)), size = Math.round(w / (w > h ? 32 : 18));
+  const data = await sharp({ text: { text: `<span foreground="white">${escaped}</span>`, font: `${process.platform === 'linux' ? 'DejaVu Sans' : 'Arial'} ${size}`, fontfile: font, width: w - 4 * pad, align: 'center', wrap: 'word-char', rgba: true, spacing: Math.round(size / 4) } }).png().toBuffer();
+  const fit = await sharp(data).resize({ width: w - 4 * pad, height: h - 4 * pad, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
+  const meta = await sharp(fit).metadata();
+  return sharp({ create: { width: Math.min(w, meta.width + 2 * pad), height: Math.min(h, meta.height + 2 * pad), channels: 4, background: { r: 0, g: 0, b: 0, alpha: .6 } } }).composite([{ input: fit, gravity: 'centre' }]).png().toBuffer();
+}
 export async function renderVideo(dir, plan) {
   const root = path.resolve(dir); fs.mkdirSync(root, { recursive: true });
-  const { size: [w, h] } = validateVideoPlan(plan), ff = requireTool('ffmpeg'), font = fontFile();
-  if (!font) throw Error('No font with Vietnamese support was found');
+  const { size: [w, h] } = validateVideoPlan(plan), ff = requireTool('ffmpeg');
   const work = fs.mkdtempSync(path.join(root, '.render-')), sources = [];
   for (const [i, scene] of plan.scenes.entries()) {
-    fs.writeFileSync(path.join(work, `caption-${i}.txt`), wrap(scene.text, w > h ? 55 : 30));
-    const caption = `drawtext=fontfile='${font.replaceAll('\\', '/').replaceAll(':', '\\:')}':textfile=caption-${i}.txt:expansion=none:fontcolor=white:fontsize=${Math.round(w / (w > h ? 32 : 18))}:line_spacing=16:box=1:boxcolor=black@0.6:boxborderw=20:x=(w-text_w)/2:y=(h-text_h)/2:fix_bounds=1`;
+    fs.writeFileSync(path.join(work, `caption-${i}.png`), await captionImage(scene.text, w, h));
     const input = scene.type === 'title' ? ['-f', 'lavfi', '-i', `color=c=0x${(scene.color || '#17253b').slice(1)}:s=${w}x${h}:r=30:d=${scene.duration}`] : [...(scene.type === 'image' ? ['-loop', '1'] : ['-stream_loop', '-1']), '-i', localFile(root, scene.file)];
-    const filter = `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1,fps=30,${caption}`;
-    await run(ff, ['-hide_banner', '-y', '-threads', '2', '-filter_threads', '1', ...input, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-t', String(scene.duration), '-map', '0:v:0', '-map', '1:a:0', '-vf', filter, '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-shortest', `scene-${i}.mp4`], work);
+    const filter = `[0:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},setsar=1,fps=30[base];[base][2:v]overlay=(W-w)/2:(H-h)/2:format=auto,format=yuv420p[out]`;
+    await run(ff, ['-hide_banner', '-y', '-threads', '2', '-filter_complex_threads', '1', ...input, '-f', 'lavfi', '-i', 'anullsrc=r=48000:cl=stereo', '-loop', '1', '-i', `caption-${i}.png`, '-t', String(scene.duration), '-map', '[out]', '-map', '1:a:0', '-filter_complex', filter, '-c:v', 'libx264', '-threads', '2', '-preset', 'veryfast', '-crf', '21', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '128k', '-shortest', `scene-${i}.mp4`], work);
     if (scene.type !== 'title') sources.push({ file: scene.file, source: scene.source, license: scene.license });
   }
   fs.writeFileSync(path.join(work, 'concat.txt'), plan.scenes.map((_, i) => `file 'scene-${i}.mp4'`).join('\n'));

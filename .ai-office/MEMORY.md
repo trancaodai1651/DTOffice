@@ -24,7 +24,7 @@
 
 - Từ 0.4.10: skill theo role lưu ngoài repo ở data-dir/role-skills.json, gắn lúc launch việc mới; không tự sửa việc đang chạy. USD/VND dùng `api-money.js`, tỷ giá minh họa có chỉnh; giá API Codex quy đổi không phải tiền thuê bao. Bida dùng `leisureSession` của resident đã đồng bộ, bật roaming trong ván và tắt sau khi về bàn. Bot nổi đếm cả Claude/Codex.
 
-- Từ 0.4.11: bộ cài mang FFmpeg/ffprobe ở `office/vendor/ffmpeg/<platform-arch>`, Mac có hai CPU; verifier phải render clip thật. `video-tools.mjs` tải HTTPS bằng OS CA và render manifest/ffprobe, không tự động hóa Chrome. Video thiếu/hỏng không done. `/api/team` có `role` = giao riêng một người; không role = cả đội. Prompt nội bộ/skill dài gửi stdin, không cắt 4000 như văn bản người dùng.
+- Từ 0.4.11: bộ cài mang FFmpeg/ffprobe ở `office/vendor/ffmpeg/<platform-arch>`, Mac có hai CPU; verifier phải render clip thật. `video-tools.mjs` tải HTTPS bằng OS CA và render manifest/ffprobe, không tự động hóa Chrome. Video thiếu/hỏng không done. Từ 0.4.12 caption qua Sharp/Pango + overlay, không dựa vào drawtext (FFmpeg Intel upstream không có filter này). `/api/team` có `role` = giao riêng một người; không role = cả đội. Prompt nội bộ/skill dài gửi stdin, không cắt 4000 như văn bản người dùng.
 
 ## Tra cứu theo nhu cầu
 

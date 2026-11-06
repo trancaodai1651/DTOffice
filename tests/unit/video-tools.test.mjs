@@ -3,8 +3,21 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { validateVideoPlan, localFile, publicMediaUrl, verifyVideo } from '../../server/video-tools.mjs';
+import { validateVideoPlan, localFile, publicMediaUrl, verifyVideo, captionImage } from '../../server/video-tools.mjs';
 import { findMediaTool, mediaEnvironment } from '../../server/media-tools.mjs';
+
+test('Vietnamese captions render literal markup, wrap and fit without FFmpeg drawtext', async () => {
+  const sharp = (await import('sharp')).default;
+  for (const text of ['Tiếng Việt <b> & "100%" · vàng\nDòng thứ hai', 'Nhân sự được giao việc '.repeat(50)]) {
+    const png = await captionImage(text, 320, 568), meta = await sharp(png).metadata();
+    assert.equal(meta.format, 'png'); assert.equal(meta.channels, 4);
+    assert.ok(meta.width <= 320 && meta.height <= 568);
+    const pixels = await sharp(png).raw().toBuffer();
+    assert.ok(pixels.some((n, i) => i % 4 !== 3 && n > 200), 'caption has visible white glyphs');
+  }
+  const blank = await sharp(await captionImage('', 320, 568)).raw().toBuffer();
+  assert.equal(blank[3], 0);
+});
 
 test('video manifest requires licensed media, bounded durations and valid output dimensions', () => {
   assert.deepEqual(validateVideoPlan({ scenes: [{ type: 'title', duration: 5, text: 'Tiếng Việt' }] }), { size: [1080, 1920], duration: 5 });
