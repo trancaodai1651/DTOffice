@@ -33,6 +33,7 @@
 - Checksum kèm: `src-tauri/target/release/bundle/nsis/SHA256SUMS-0.4.14.txt`.
 
 ## Bàn giao
+- Cập nhật tiếp nối: code `367ff07` đã được push và tích hợp vào public/latest v0.4.15 (Windows + macOS Universal); xem [bàn giao phát hành](lite-personnel-training-release.md). Các dòng 0.4.14 local dưới đây giữ kết quả của nhiệm vụ gốc.
 - Đã hoàn tất code, kiểm tra, commit chức năng và build Windows cục bộ. Commit bàn giao đi sau 367ff07 chỉ sửa tài liệu.
 - Không push/tag/publish trong nhiệm vụ này; macOS chưa build trên Windows. Người dùng cài bộ cài mới để nhận chức năng.
 - Cách dùng: Giao việc → quản lý Dev/Marketing → CLI/model/effort → Giao; hoặc nút quản lý trong bảng đội AI.

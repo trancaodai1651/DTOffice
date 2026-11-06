@@ -37,6 +37,8 @@
 
 - Từ 0.4.15: 2D nhúng roster 38 vị trí (Dev15/Marketing21/news/video), giao việc và mở SID thật; chưa làm thì không tạo phiên giả. `role-training.mjs` đọc `skills/{dev,marketing,specialists}/` và chèn mặc định trước skill cá nhân lúc launch. `lite.js` lazy import panel giao việc để tránh chu kỳ core/env. Hướng dẫn viên không boot; guide.css còn dùng chung form chuyên trách. Chế độ `office-stream` gây làm mờ, có banner giải thích và nút tắt.
 
+- Kho có thể chuyển giữa Windows/Mac/Linux: post media chỉ dùng đường dẫn tương đối; kiểm cả path.posix/path.win32 và loại drive-relative C:x, không chỉ path.isAbsolute của host. Fixture đa hệ ở unit/asset-library.
+
 ## Tra cứu theo nhu cầu
 
 

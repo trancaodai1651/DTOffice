@@ -24,6 +24,14 @@
 
 ## Phát hành / tham chiếu
 - Nhánh `main`; gốc `19d800e`, trước đó `367ff07` (0.4.14 local), remote trước nhiệm vụ `ac0d697` (0.4.13 public).
-- Build production cách ly `.next-workspace` và smoke 0.4.15 trên Windows: đạt. Đang commit/tag/push; sau đó theo dõi Desktop release, CI, checksum và latest.json.
+- Build production cách ly `.next-workspace` và smoke 0.4.15 trên Windows: đạt. Đã push code `bdc890e` + sửa cross-platform `ef6a5cd`, tag `v0.4.15` trỏ `ef6a5cd`.
 - Không stage/sửa `.ai-office/SESSION-LOG.md` do app tự quản lý.
-- CI đầu phát hiện bộ lọc post media chỉ dùng path.isAbsolute của host: Linux/Mac không loại C:/x.jpg. Đã sửa dùng cả posix/win32, loại drive-relative và thêm fixture đa hệ; cần CI chạy lại trước publish.
+- CI đầu phát hiện bộ lọc post media chỉ dùng path.isAbsolute của host: Linux/Mac không loại C:/x.jpg. Đã sửa dùng cả posix/win32, loại drive-relative và thêm fixture đa hệ. Full unit local chạy lại đạt.
+- [CI 42235898883](https://github.com/trancaodai1651/DTOffice/actions/runs/42235898883) đạt toàn bộ Node20/22 + Windows/Linux/Mac + browser smoke.
+- [Desktop 42235928153](https://github.com/trancaodai1651/DTOffice/actions/runs/42235928153), attempt 2: Windows/Mac build + ký updater, verifier Mac ARM + Intel, publish đều đạt. Lần đầu thiếu hosted ARM runner; chạy lại riêng Mac thành công, giữ Windows artifact.
+- Đã phát hành public/latest [v0.4.15](https://github.com/trancaodai1651/DTOffice/releases/tag/v0.4.15): EXE Windows x64, DMG/app archive Universal, 2 sig, latest.json và SHA256SUMS.
+- Đã tải lại 7 asset công khai: dung lượng/digest GitHub và 6 checksum đều khớp; endpoint `releases/latest/download/latest.json` giống manifest đã phát hành, version 0.4.15, đủ Windows x64 + Mac x64/ARM, URL/signature đúng gói.
+- Bằng chứng cục bộ ignored: `test-results/releases/v0.4.15/`, `.cache/release-0415-public-verification.log`; script `.cache/verify-release-0415.ps1`.
+- Cargo test `published_installers_have_valid_signatures --ignored`: đạt (26.34s), kiểm chữ ký bằng public key thật trong config và trusted signed version 0.4.15 cho cả 3 target, không thực thi installer. Log `.cache/release-0415-signature-verification.log`.
+- App từ 0.4.13 kiểm sau mở/6 giờ/online; kiểm ngay tại Cài đặt → Khác → Cập nhật ứng dụng. Đồng ý mới tải/cài. Không chạy installer hoặc dừng app thật trong nhiệm vụ này.
+- Hoàn tất, không còn lỗi hoặc việc dở trong phạm vi. Commit bàn giao sau tag chỉ sửa tài liệu/bộ nhớ, giữ nguyên gói đã ký.
