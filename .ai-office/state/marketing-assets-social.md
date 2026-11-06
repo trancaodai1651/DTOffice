@@ -30,3 +30,8 @@
 - Chạy E2E team-presence/team-office ở CI/macOS.
 - Thử thật: liên kết thư mục ảnh → giao Asset Manager; giao Product Photo làm bộ ảnh Shopee (cần sharp: agent tự `npm i sharp` trong thư mục tạm); thêm tài khoản → Đăng nhập → Đăng.
 - Có thể thêm: hẹn giờ nhắc đăng theo `when`, đăng hàng loạt.
+
+## Tích hợp tiếp · Codex · 06/11/2026
+- Các thay đổi trên đã được giữ và tích hợp vào commit `367ff07` cùng sửa giao quản lý/phân công và CLI login.
+- Kiểm tra tích hợp: 254 unit đạt, 8 bỏ qua; 9 kịch bản E2E giao việc/đọc báo/hiện diện nhân sự đạt.
+- Trạng thái build Windows 0.4.14 và checksum xem `department-managers-cli-login.md`; chưa push/phát hành trong nhiệm vụ này.
