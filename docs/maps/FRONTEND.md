@@ -1,5 +1,11 @@
 # Giao diện và văn phòng
 
+Từ 0.4.15: `ui/lite.js` giao việc ngay trong 2D, nhúng `team-roster.js`: 38 vị trí Dev/Marketing/đọc báo/video,
+chỉ mở SID thật, không tạo phiên giả cho người chưa làm việc. Hiện đầy đủ subagent của phiên.
+`settings.js`/`streamer.css` giải thích chế độ làm mờ và cho tắt ngay. `role-skills.js` xem skill mặc định
+và sửa phần bổ sung cho cả 38 vị trí. `main.js` không boot hướng dẫn viên; giữ `guide.css` cho form chuyên trách dùng chung.
+Test: `e2e/lite-workspace`, `e2e/team-presence`, `e2e/specialists-routing`, `e2e/staff-tools`.
+
 Từ 0.4.14: `ui/team-sheet.js` có nút quản lý Dev/Marketing; chọn pm/cto/cmo gọi quy trình đội.
 `ui/task-sheet.js` cho chọn quản lý phòng hoặc một phiên ở bước CLI/model, mặc định theo route nội dung;
 SID giữ CLI của phiên gốc. Test `e2e/department-delegation`, ảnh UI nằm trong output test.

@@ -337,7 +337,7 @@ test('the marketing context and the built-in skills reach marketing members only
   const { builtinSkills } = await import('../../server/team.mjs');
   for (const role of ['social', 'creator', 'librarian', 'photo', 'cmo']) assert.ok(builtinSkills(role).length > 200, `${role} is trained`);
   assert.match(builtinSkills('editor'), /Work standards/, 'every marketing position gets the team standards');
-  assert.equal(builtinSkills('frontend'), '', 'the dev team has none');
+  assert.match(builtinSkills('frontend'), /Default skill: frontend/, 'Dev roles now ship their own training');
   const dataDir = tmp(), prompts = [];
   try {
     const team = createTeam({ dataDir, lang: () => 'vi', context: (r, role, t) => (t.id === 'marketing' ? `LIBRARY-FOR-${role}` : ''), start: (_r, _s, prompt, role) => { prompts.push({ prompt, role }); return { ok: true, task: { id: role } }; }, stop() {} });

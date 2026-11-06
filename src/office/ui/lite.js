@@ -17,8 +17,9 @@ import { closePlace } from '../interact/place-cards.js';
 import { exitFp, fp } from '../interact/first-person.js';
 import { t as tr } from '../../i18n/index.js';
 import { modelFamily } from '../../shared/model-name.js';
-import { positionTeamEntry } from './team-roster.js';
-import { liveTeamEnabled } from '../people/ai-team.js';
+import { positionTeamEntry, createTeamRoster } from './team-roster.js';
+import { SPECIALIST_ROLE_IDS } from '../../shared/team-roles.js';
+import { liveTeamEnabled, onTeamPresence } from '../people/ai-team.js';
 import { TEAM_SEATS } from '../../shared/team-roles.js';
 
 export let lite = false;
@@ -27,6 +28,11 @@ const GROUPS = ['wait', 'work', 'rest'];
 const fold = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
 const project = (s) => s.git?.repo || String(s.dir || '').split('/').filter(Boolean).pop() || '';
 const statusOf = (s) => (s.status === 'wait' ? 'wait' : s.status === 'rest' ? 'rest' : 'work');
+// Load action panels on demand: importing the chat here would create a boot-time cycle through core/env.
+const giveWork = () => import('./group-chat-view.js').then(m => m.openTask());
+const giveRole = roleId => SPECIALIST_ROLE_IDS.includes(roleId)
+  ? import('./specialists.js').then(m => m.openSpecialist(roleId))
+  : import('./group-chat-view.js').then(m => m.openTeam({ roleId }));
 
 // what it is doing now, in words of the work (not of the office: no lift, no shop)
 function nowOf(s) {
@@ -76,8 +82,8 @@ function row(s) {
 }
 // the subagents a working session has out, under its row
 function subRows(s) {
-  if (!s.subs?.length || s.status === 'rest') return [];
-  return s.subs.slice(0, 4).map((x) => {
+  if (!s.subs?.length) return [];
+  return s.subs.map((x) => {
     const r = el('div', 'v2-subrow');
     r.append(el('span', 'v2-sub-arrow', '↳'), el('b', null, x.type || 'agent'), ...(modelFamily(x.model) ? [el('i', 'v2-sub-model', modelFamily(x.model))] : []), el('span', null, x.last ? verb(x.last) : x.desc || ''));
     return r;
@@ -89,6 +95,7 @@ function build() {
   const box = $('lite'); if (!box || head) return;
   head = el('div', 'v2-head');
   const title = el('div', 'v2-h1'); title.append(el('h2', null, tr('lite.title')));
+  const assign = el('button', 'v2-assign', tr('lite.giveWork')); assign.type = 'button'; assign.id = 'btn-lite-assign'; assign.addEventListener('click', giveWork); title.append(assign);
   tabs = el('div', 'v2-tabs'); tabs.setAttribute('role', 'tablist');
   for (const k of ['all', ...GROUPS]) {
     const t = el('button', 'v2-tab'); t.type = 'button'; t.setAttribute('role', 'tab'); t.dataset.f = k; t.setAttribute('aria-selected', String(k === filter));
@@ -103,6 +110,13 @@ function build() {
   head.append(title, bar);
   permHost = el('div', 'v2-perms'); listEl = el('div', 'v2-list'); emptyEl = el('p', 'v2-empty'); emptyEl.hidden = true;
   box.replaceChildren(head, permHost, listEl, emptyEl);
+  if (liveTeamEnabled()) {
+    const staff = el('details', 'v2-personnel'); staff.id = 'lite-personnel'; staff.open = true;
+    staff.append(el('summary', null, tr('lite.personnel')));
+    const roster = createTeamRoster({ idPrefix: 'lite-role-', onSession: openSession, onGoal: giveRole });
+    staff.append(roster.element); head.after(staff);
+    onTeamPresence(() => { staff.hidden = !liveTeamEnabled(); });
+  }
 }
 export function setLite(on) {
   // opened in 2D: the 3D world is built now, a few seconds (the toast gets a frame to show first)

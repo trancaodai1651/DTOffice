@@ -1,4 +1,6 @@
 export default {
+  privacyActive: 'Đang ẩn nội dung khi quay màn hình — đường dẫn và hội thoại bị làm mờ.',
+  revealContent: 'Tắt làm mờ',
   updates: {
     title: 'Cập nhật ứng dụng', auto: 'Tự kiểm tra bản mới', check: 'Kiểm tra cập nhật', checking: 'Đang kiểm tra…',
     current: 'Phiên bản đang dùng: {version}', upToDate: 'Bạn đang dùng bản mới nhất ({version}).', available: 'Có DT Office {version}',

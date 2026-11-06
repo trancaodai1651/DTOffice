@@ -208,7 +208,7 @@ engine switches to demo mode and talks to no API.
 | `ui/icons.js` | 85 | Stroke icons (24 px grid) and the icon helper. |
 | `ui/image-view.js` | 28 | Images in the feed: a session that read, wrote or edited an image gets a thumbnail on that line (activity.js), and a click opens it here, large, over the office (the server serves it by id: GET /api/image). |
 | `ui/library-panel.js` | 132 | "Phòng Kho dữ liệu": the marketing department's asset library (server/asset-library.mjs) and the Social Media agent's accounts (server/social-accounts.mjs), in the team's sheet. |
-| `ui/lite.js` | 157 | The 2D view: every session as a row, no 3D (a page that opens in it builds no 3D world until asked, core/world-boot.js; switched to later, the office keeps a frame a second behind it). |
+| `ui/lite.js` | 171 | The 2D view: every session as a row, no 3D (a page that opens in it builds no 3D world until asked, core/world-boot.js; switched to later, the office keeps a frame a second behind it). |
 | `ui/look-switch.js` | 22 | Switching the character look. |
 | `ui/mac-drawer.js` | 724 | The Mac drawer: memory, CPU, dev servers, plan limits, cleanup. |
 | `ui/memory-view.js` | 59 | "Bộ nhớ dự án" (server/memory.mjs): what a project remembers from its sessions, over the 📋 sheet. |
@@ -220,16 +220,16 @@ engine switches to demo mode and talks to no API.
 | `ui/pins.js` | 63 | "Ghi nhớ cho Claude" (server: /api/pins, /hook/start): what you want a conversation to keep in mind, said to Claude again each time Claude Code compacts it. |
 | `ui/portraits.js` | 64 | Portraits of the two character looks for Settings → Characters: two people in each look, drawn by the office's own renderer (same materials, light and tone mapping, so they match what you will see) into a canvas, the first time the tab opens. |
 | `ui/projects.js` | 72 | Your projects: the folders work is given in (the guide, 📋 Giao việc, the AI Agent teams). |
-| `ui/role-skills.js` | 23 | … |
+| `ui/role-skills.js` | 24 | … |
 | `ui/session-account.js` | 54 | "Change account" in a session's drawer (on this computer only): the accounts of the plan card, each with what it has left. |
 | `ui/session-drawer.js` | 398 | The session drawer: chat, steps, subagents. |
-| `ui/settings.js` | 136 | Settings popover: backdrop, floor plan, look, time, toggles. |
+| `ui/settings.js` | 141 | Settings popover: backdrop, floor plan, look, time, toggles. |
 | `ui/setup.js` | 103 | The first run (server/setup.mjs): which CLIs the office connects to, Claude Code, Codex or both. |
 | `ui/specialists.js` | 202 | Talking to the specialists (server/specialists.mjs): a panel like the guide's, with their face. |
 | `ui/stranded.js` | 159 | "Việc bỏ quên" in the Mac drawer: the worktrees and checkouts of the repositories the office knows that still hold work (files not committed, commits not pushed, stashes), and worktrees with nothing left in them that could go. |
 | `ui/stuck.js` | 97 | Stuck sessions ("Ngắt vòng lặp kẹt", server/loops.mjs): the card in the group chat (what repeats, Stop, a hint for Claude) and the row in Settings → More (on or off, after how many failures, after how many minutes of spending with nothing edited). |
 | `ui/task-sheet.js` | 190 | "Giao việc": giving Claude work from the group chat (server/tasks.mjs runs it on the Mac). |
-| `ui/team-roster.js` | 93 | Personnel, freshness and explicit session selection, shared by 2D and the 3D office. |
+| `ui/team-roster.js` | 95 | Personnel, freshness and explicit session selection, shared by 2D and the 3D office. |
 | `ui/team-sheet.js` | 240 | "Đội AI Agent Dev" (server/team.mjs): you are the CEO. |
 | `ui/ticks.js` | 25 | The page's clocks, in 2D and 3D alike: the time in the top bar, the open session's header, the Mac's readings. |
 | `ui/timelapse.js` | 156 | A 15-second clip of the office to share: square (1080 × 1080) for a feed or vertical (1080 × 1920) for Reels, TikTok and Shorts, the camera turning slowly round the floor, people at four times their pace, the day running into the evening (a clock in the corner from 8:00 to 23:00, the lights coming on at six), a title at the start and the day's numbers over the last two and a half seconds, with an original lo-fi tune under it (clip-music.js; it can be turned off). |

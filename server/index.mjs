@@ -23,6 +23,8 @@ import { MAIN, SUB, modelsOf, withModels, hasSplit, withSplit } from './models.m
 import { createCodexAccounts } from './codex-accounts.mjs';
 import { createSetup, pickAgents } from './setup.mjs';
 import { departmentRequest } from '../src/shared/department-request.js';
+import { defaultRoleSkills } from './role-training.mjs';
+import { SPECIALIST_ROLE_IDS } from '../src/shared/team-roles.js';
 import { agentModels, pickRun } from './agent-models.mjs';
 import { createMemory, wrap as wrapMemory } from './memory.mjs';
 import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS } from './team.mjs';
@@ -1540,6 +1542,7 @@ function teamRole(s, sid, p) {
 const SPECIALIST_ROLES = ['news', 'video'];
 const specialists = createSpecialists({
   dataDir: DATA_DIR, lang: () => prefs.lang(),
+  getSkill: role => team.skills()[role] || '',
   start: (o) => tasks.start(o), stop: (id) => tasks.stop(id),
   onChange: (j, what) => {
     const name = roleName(j.kind), about = clip(oneLine(j.topic || j.brief || ''), 120);
@@ -1596,7 +1599,7 @@ const team = createTeam({
     broadcast({ k: 'team', runs: team.list() });
   },
 });
-const teamOut = () => ({ ok: true, workspace: library.root(), roleSkills: team.skills(), teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
+const teamOut = () => ({ ok: true, workspace: library.root(), roleSkills: team.skills(), defaultSkills: defaultRoleSkills(), specialists: SPECIALIST_ROLE_IDS.map(id => ({ id })), teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
   marketing: { roles: MARKETING_ROLES.map(({ id, group }) => ({ id, group })), groups: MARKETING_GROUPS }, roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
 
 // Both the task sheet (including an existing CLI conversation) and the department sheet use the same workflow.

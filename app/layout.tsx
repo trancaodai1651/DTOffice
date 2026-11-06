@@ -5,10 +5,10 @@ import { getLang, getT } from '@/i18n/server';
 // One stylesheet per area of the screen, in cascade order (later files override earlier ones).
 import '@/styles/fonts.css';
 import '@/styles/base.css';
+import '@/styles/guide.css'; // shared dialog styling still used by the news/video specialists
 import '@/styles/topbar.css';
 import '@/styles/topbar-plan.css';
 import '@/styles/setup.css';
-import '@/styles/guide.css';
 import '@/styles/sidebars.css';
 import '@/styles/activity.css';
 import '@/styles/sessions.css';

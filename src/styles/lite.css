@@ -1,3 +1,23 @@
+.v2-assign { padding: 8px 12px; background: var(--accent, #1264df); color: white; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; font-weight: 600; }
+.v2-personnel { margin: 12px 0 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--side); padding: 12px; }
+.v2-personnel > summary { cursor: pointer; font-weight: 700; }
+.v2-personnel .tm-roster { max-height: 48vh; overflow: auto; padding-top: 10px; }
+.v2-personnel .tm-roster-groups { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.v2-personnel .tm-person-detail { max-height: 340px; overflow: auto; }
+.v2-h1 { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.v2-h1 h2 { flex: 1 1 260px; }
+.v2-h1 .team-presence-entry { margin-top: 0; }
+#lite-personnel .tm-group { background: var(--card-2, #1b2430); color: var(--ink); border: 1px solid var(--line); }
+#lite-personnel .tm-group h3 { color: var(--muted); }
+#lite-personnel .tm-person-button { all: unset; box-sizing: border-box; width: 100%; min-height: 52px; display: grid; gap: 4px; padding: 9px 10px; background: var(--side); color: var(--ink); border: 1px solid var(--line-2); border-radius: 8px; cursor: pointer; font: inherit; font-size: 13px; overflow-wrap: anywhere; }
+#lite-personnel .tm-person-button[aria-expanded="true"] { border-color: var(--accent-line); }
+#lite-personnel .tm-person-button:focus-visible, #lite-personnel .zc-task-tool:focus-visible { outline: 2px solid var(--accent-line); outline-offset: 2px; }
+#lite-personnel .tm-person-status, #lite-personnel .tm-person-detail { color: var(--muted); }
+#lite-personnel .tm-person-status.is-work { color: var(--green, #66d69a); }
+#lite-personnel .tm-person-status.is-wait { color: var(--amber); }
+#lite-personnel .tm-session > b { color: var(--ink); }
+#lite-personnel .zc-task-tool { display: inline-block; padding: 8px 12px; min-height: 36px; border: 1px solid var(--line-2); border-radius: 7px; background: var(--card-3); color: var(--ink); cursor: pointer; font: inherit; }
+.tm-default-skill { max-height: 240px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; font: .78rem/1.5 monospace; padding: 12px; border: 1px solid var(--line); border-radius: 8px; }
 /* The 2D view (ui/lite.js): the sessions as rows, no 3D. Quiet on purpose: one colour for state (the dot), the rest
    in greys; numbers in the mono face so the columns line up. */
 .is-lite #stage, .is-lite .toolbar, .is-lite #btn-full, .is-lite .chips { display: none !important; }   /* (3D | 2D in the top bar turns it back) */

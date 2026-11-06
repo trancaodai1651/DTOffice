@@ -1,5 +1,10 @@
 # Server, CLI và logic dùng chung
 
+Từ 0.4.15: `server/role-training.mjs` đọc `server/skills/{dev,marketing,specialists}/` (_team.md + <role>.md),
+38 vị trí có workflow mặc định; `team.mjs`/`specialists.mjs` chèn vào prompt thật, rồi nối skill cá nhân.
+`GET /api/team` trả `defaultSkills`, `roleSkills`, `specialists`; `/api/team/skills` nhận cả news/video.
+Xóa skill cá nhân vẫn giữ mặc định, không đổi việc đang chạy. Test `unit/role-training`, `unit/team`, `e2e/staff-tools`.
+
 Từ 0.4.14: `/api/tasks` có `assignment=dev|marketing|session`; giveDepartmentWork dùng chung `/api/team`,
 giữ CLI/account theo SID và model/effort. PM/CTO/CMO là manager delegation, các role khác direct.
 `shared/department-request.js` nhận lệnh giao quản lý rõ ràng; `cli-environment.mjs` giữ auth/provider, bỏ nested flags;

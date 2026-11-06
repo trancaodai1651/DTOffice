@@ -1,6 +1,6 @@
 // Personnel, freshness and explicit session selection, shared by 2D and the 3D office.
 import { $, el, HQ } from '../core/env.js';
-import { MARKETING_ROLE_IDS, MARKETING_ROSTER, TEAM_SEATS, TEAM_GROUPS } from '../../shared/team-roles.js';
+import { MARKETING_ROLE_IDS, MARKETING_ROSTER, TEAM_SEATS, TEAM_GROUPS, SPECIALIST_ROLE_IDS } from '../../shared/team-roles.js';
 import { getMarketingPresence, getTeamPresence, liveTeamEnabled, onTeamPresence, teamSessionActivity } from '../people/ai-team.js';
 import { AGENT_NAME, sessions } from '../people/workers.js';
 import { t as tr } from '../../i18n/index.js';
@@ -15,7 +15,7 @@ export function positionTeamEntry(lite) {
   if (lite) document.querySelector('.v2-h1')?.append(entry); else $('chips').before(entry);
 }
 
-export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
+export function createTeamRoster({ roleId, onSession, onGoal, onRoom, idPrefix = 'tm-role-' }) {
   if (roleId) selectedRole = roleId;
   const element = el('section', 'tm-roster'), summary = el('p', 'tm-presence-summary'), notice = el('p', 'tm-presence-notice'), list = el('div', 'tm-roster-groups');
   notice.setAttribute('aria-live', 'polite');
@@ -24,9 +24,10 @@ export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
   function draw() {
     if (!element.isConnected && lastKey) return;
     const people = getTeamPresence(), data = people.map(p => ({ ...p, sessions: p.sessionIds.map(id => sessions.get(id)).filter(Boolean), activities: p.sessionIds.map(id => sessions.has(id) ? teamSessionActivity(sessions.get(id)) : 'unknown') }));
-    const key = JSON.stringify([selectedRole, missing, data, getMarketingPresence()]); if (key === lastKey) return; lastKey = key;
+    const key = JSON.stringify([selectedRole, missing, data, getMarketingPresence(), [...sessions.values()].filter(s => SPECIALIST_ROLE_IDS.includes(s.role))]); if (key === lastKey) return; lastKey = key;
     const fresh = people[0]?.freshness || 'loading';
-    summary.textContent = `${tr('team.presence.members', { n: TEAM_SEATS.length })} · ${tr('team.presence.teamSessions', { n: fresh === 'fresh' ? people.reduce((n,p) => n + p.sessionIds.length, 0) : '—' })}`;
+    const specialistData = SPECIALIST_ROLE_IDS.map(roleId => { const mine = [...sessions.values()].filter(s => s.role === roleId); const activities = mine.map(teamSessionActivity); return { roleId, sessionIds: mine.map(s => s.id), sessions: mine, freshness: fresh, activity: activities.includes('wait') ? 'wait' : activities.includes('work') ? 'work' : mine.length ? 'rest' : 'idle' }; });
+    summary.textContent = `${tr('team.presence.members', { n: TEAM_SEATS.length + MARKETING_ROLE_IDS.length + SPECIALIST_ROLE_IDS.length })} · ${tr('team.presence.teamSessions', { n: fresh === 'fresh' ? [...people, ...getMarketingPresence(), ...specialistData].reduce((n,p) => n + p.sessionIds.length, 0) : '—' })}`;
     notice.textContent = fresh === 'stale' ? tr('team.presence.disconnected') : fresh === 'loading' ? tr('team.presence.loading') : '';
     notice.hidden = !notice.textContent;
     const focus = element.contains(document.activeElement) ? document.activeElement.dataset.focus : null;
@@ -35,16 +36,17 @@ export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
     // the dev team by group, then the marketing department by group (its own people: getMarketingPresence)
     const mkData = getMarketingPresence().map(p => ({ ...p, sessions: p.sessionIds.map(id => sessions.get(id)).filter(Boolean) }));
     const groups = [...TEAM_GROUPS.map(([group, start, end]) => [tr(`team.groups.${group}`), group, data.slice(start, end)]),
-      ...MARKETING_ROSTER.map(([group, ids]) => [`📣 ${tr(`team.marketing.groups.${group}`)}`, group, ids.map(id => mkData.find(p => p.roleId === id) || { roleId: id, sessionIds: [], sessions: [], activity: 'idle', freshness: people[0]?.freshness || 'loading' })])];
+      ...MARKETING_ROSTER.map(([group, ids]) => [`📣 ${tr(`team.marketing.groups.${group}`)}`, group, ids.map(id => mkData.find(p => p.roleId === id) || { roleId: id, sessionIds: [], sessions: [], activity: 'idle', freshness: people[0]?.freshness || 'loading' })]),
+      [tr('team.specialistsTitle'), 'specialists', specialistData]];
     for (const [title, group, members] of groups) {
       const col = el('div', `tm-group is-${group}`); col.append(el('h3', null, title));
       for (const p of members) {
         const name = tr(`team.roles.${p.roleId}.name`), row = el('div', 'tm-person'), button = el('button', 'tm-person-button');
-        button.type = 'button'; button.dataset.role = p.roleId; button.dataset.team = MARKETING_ROLE_IDS.includes(p.roleId) ? 'marketing' : 'dev'; button.dataset.focus = `role:${p.roleId}`;
-        button.setAttribute('aria-expanded', String(selectedRole === p.roleId)); button.setAttribute('aria-controls', `tm-role-${p.roleId}`);
+        button.type = 'button'; button.dataset.role = p.roleId; button.dataset.team = SPECIALIST_ROLE_IDS.includes(p.roleId) ? 'specialists' : MARKETING_ROLE_IDS.includes(p.roleId) ? 'marketing' : 'dev'; button.dataset.focus = `role:${p.roleId}`;
+        button.setAttribute('aria-expanded', String(selectedRole === p.roleId)); button.setAttribute('aria-controls', `${idPrefix}${p.roleId}`);
         button.append(el('span', 'tm-person-name', name), el('span', `tm-person-status is-${p.freshness === 'fresh' ? p.activity : p.freshness}`, `${presenceStatus(p)}${p.sessionIds.length ? ` · ${tr('team.presence.sessions', { n: p.sessionIds.length })}` : ''}`));
         button.addEventListener('click', () => { selectedRole = selectedRole === p.roleId ? null : p.roleId; missing = false; draw(); });
-        const detail = el('div', 'tm-person-detail'); detail.id = `tm-role-${p.roleId}`; detail.hidden = selectedRole !== p.roleId;
+        const detail = el('div', 'tm-person-detail'); detail.id = `${idPrefix}${p.roleId}`; detail.hidden = selectedRole !== p.roleId;
         detail.setAttribute('role', 'region'); detail.setAttribute('aria-label', name);
         if (!detail.hidden) {
           detail.append(el('p', null, tr(`team.roles.${p.roleId}.duty`)));
@@ -75,13 +77,13 @@ export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
   const see = el('button', 'zc-task-tool', tr(HQ ? 'team.presence.viewRoom' : 'team.presence.switchHq')); see.type = 'button'; see.addEventListener('click', onRoom);
   if (!HQ || !document.body.classList.contains('is-lite')) room.append(see);
   if (!HQ || document.body.classList.contains('is-lite')) room.prepend(note);
-  element.append(room); draw();
+  if (onRoom) element.append(room); draw();
   const dispose = onTeamPresence(draw);
   return { element, dispose, focus: () => (element.querySelector(`[data-role="${selectedRole}"]`) || element.querySelector('button'))?.focus({ preventScroll: true }) };
 }
 
 export function setup() {
-  const bar = el('div', 'team-presence-entry'), button = el('button', null, tr('team.presence.entry', { n: TEAM_SEATS.length }));
+  const bar = el('div', 'team-presence-entry'), button = el('button', null, tr('team.allPersonnel', { n: TEAM_SEATS.length + MARKETING_ROLE_IDS.length + SPECIALIST_ROLE_IDS.length }));
   button.type = 'button'; button.id = 'btn-team-presence'; button.addEventListener('click', () => openTeamUi?.());
   bar.append(button); $('chips').before(bar);
   const update = () => {

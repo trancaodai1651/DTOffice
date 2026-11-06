@@ -3,7 +3,7 @@ import path from 'node:path';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { test, expect } from '@playwright/test';
 
-test.use({ channel: 'msedge' });
+test.use(process.platform === 'win32' ? { channel: 'msedge' } : {});
 test.describe.configure({ mode: 'serial' });
 const PORT = (Number(process.env.E2E_PORT) || 4399) + 54, BASE = `http://127.0.0.1:${PORT}`;
 let server: ChildProcess | null = null, workspace = '';

@@ -20,6 +20,7 @@
 // run their members one at a time, so two of them never edit the same file at once; the others side by side, as many as
 // the office runs at a time (server/tasks.mjs), the rest waiting their turn.
 import fs from 'node:fs';
+import { TRAINED_ROLES, defaultRoleSkill } from './role-training.mjs';
 import { MANAGERS } from '../src/shared/department-request.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
@@ -157,12 +158,10 @@ const FOCUS = {
   analytics: 'Give KPIs and targets, the tracking plan (UTM, pixels, events) and how to measure and report; check every deliverable is measurable.',
 };
 const roleOf = (id) => ALL_ROLES.find((r) => r.id === id);
-/** The office's own training for a marketing role: server/skills/marketing/_team.md (every position) and <role>.md. */
+/** Versioned role training; keep the optional marketing directory for existing integrations and tests. */
 export const MK_SKILLS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'skills', 'marketing');
 export function builtinSkills(role, dir = MK_SKILLS_DIR) {
-  if (!MARKETING_ROLES.some((r) => r.id === role)) return '';
-  const read = (f) => { try { return fs.readFileSync(path.join(dir, f), 'utf8').trim(); } catch { return ''; } };
-  return [read('_team.md'), read(`${role}.md`)].filter(Boolean).join('\n\n');
+  return defaultRoleSkill(role, dir);
 }
 const fileOf = (run, n, key, role) => path.posix.join('.ai-office', 'team', run.id, `${n}-${key}-${role}.md`);
 
@@ -218,7 +217,7 @@ export function verdictOf(text) {
 export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, now = Date.now, context = () => '' }) {
   const file = path.join(dataDir, 'team.json');
   let runs = [], roleSkills = {};
-  try { const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'role-skills.json'), 'utf8')); if (saved && typeof saved === 'object' && !Array.isArray(saved)) roleSkills = Object.fromEntries(Object.entries(saved).filter(([role, text]) => [...ROLES, ...MARKETING_ROLES].some(r => r.id === role) && typeof text === 'string' && text.length <= 20000)); } catch { /* no assignments yet */ }
+  try { const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'role-skills.json'), 'utf8')); if (saved && typeof saved === 'object' && !Array.isArray(saved)) roleSkills = Object.fromEntries(Object.entries(saved).filter(([role, text]) => TRAINED_ROLES.includes(role) && typeof text === 'string' && text.length <= 20000)); } catch { /* no assignments yet */ }
   try { runs = JSON.parse(fs.readFileSync(file, 'utf8')).runs || []; } catch { /* none yet */ }
   // an office that stopped while a run was going: that run is over
   for (const r of runs) if (r.status === 'run') { r.status = 'stopped'; for (const s of r.stages) { if (s.state === 'run') s.state = 'stopped'; for (const j of s.jobs || []) if (j.state === 'run' || j.state === 'wait') j.state = 'stopped'; } }
@@ -306,7 +305,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
     ROLES, STAGES, TEAMS, MARKETING_ROLES, MARKETING_STAGES,
     skills: () => ({ ...roleSkills }),
     setSkill(role, content) {
-      if (![...ROLES, ...MARKETING_ROLES].some(r => r.id === role) || typeof content !== 'string' || content.length > 20000) return false;
+      if (!TRAINED_ROLES.includes(role) || typeof content !== 'string' || content.length > 20000) return false;
       const next = { ...roleSkills }; if (content.trim()) next[role] = content.trim(); else delete next[role];
       fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(path.join(dataDir, 'role-skills.json'), JSON.stringify(next, null, 2)); roleSkills = next; return true;
     },
@@ -320,7 +319,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
       goal = String(goal || '').trim().slice(0, 4000);
       if (!goal) return { ok: false, code: 'empty' };
       role = String(role || '');
-      if (role && ![...ROLES, ...MARKETING_ROLES].some(r => r.id === role)) return { ok: false, code: 'badRole' };
+      if (role && !ALL_ROLES.some(r => r.id === role)) return { ok: false, code: 'badRole' };
       // Selecting a department manager is a delegation, not a one-person "direct" job.
       const manager = MANAGERS[role];
       if (manager) { lead = role; teams = [manager]; role = ''; }

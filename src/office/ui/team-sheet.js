@@ -122,7 +122,7 @@ export async function openTeamSheet(host, options = {}) {
   sheet.append(head);
   const info = el('div', 'tm-task-info');
   const roster = createTeamRoster({ roleId: options.roleId, onSession: id => { closeTeamSheet(false); options.onDismiss?.(); openSession(id); const heading = $('ds-name'); heading.tabIndex = -1; heading.focus(); },
-    onGoal: role => { options.roleId = role; const target = current.querySelector('[data-assignment-role]'); if (target) { target.value = role; target.dispatchEvent(new Event('change')); } const goal = current.querySelector('.tm-form textarea'); if (goal) { goal.scrollIntoView({ block: 'center' }); goal.focus(); } else info.scrollIntoView({ block: 'center' }); },
+    onGoal: role => { if (role === 'news' || role === 'video') { closeTeamSheet(false); import('./specialists.js').then(m => m.openSpecialist(role)); return; } options.roleId = role; const target = current.querySelector('[data-assignment-role]'); if (target) { target.value = role; target.dispatchEvent(new Event('change')); } const goal = current.querySelector('.tm-form textarea'); if (goal) { goal.scrollIntoView({ block: 'center' }); goal.focus(); } else info.scrollIntoView({ block: 'center' }); },
     onRoom: event => { event.stopPropagation(); closeTeamSheet(false); options.onDismiss?.(); if (HQ) goView('team'); else openLayoutSettings(); } });
   disposeRoster = roster.dispose; sheet.append(roster.element, info); host.append(sheet);
   const disabled = [];

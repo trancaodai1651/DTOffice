@@ -1,0 +1,50 @@
+import path from 'node:path';
+import { test, expect } from '@playwright/test';
+test.use(process.platform === 'win32' ? { channel: 'msedge' } : {});
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('office-quality', 'low'); localStorage.setItem('office-tips', 'seen'); localStorage.setItem('office-stream', 'on');
+    Object.defineProperty(window, 'EventSource', { value: class { close() {} } });
+  });
+});
+
+test('2D explains blur, reveals content, lists all 38 positions and actual sessions without constructing 3D', async ({ page, request }) => {
+  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
+  await page.goto('/?debug&view=2d'); await page.waitForFunction('window.__office');
+  await expect(page.locator('#privacy-mode-notice')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/is-stream/);
+  await page.locator('#btn-reveal-content').click(); await expect(page.locator('body')).not.toHaveClass(/is-stream/);
+  expect(await page.evaluate(() => localStorage.getItem('office-stream'))).toBe('off');
+  const staff = page.locator('#lite-personnel'); await expect(staff.locator('.tm-person-button')).toHaveCount(38);
+  await page.evaluate(() => (window as unknown as { __office: { emit: (x: object) => void } }).__office.emit({ k: 'snap', sessions: [], feed: [], stats: {} }));
+  await staff.locator('[data-role="frontend"]').click(); await expect(staff.locator('#lite-role-frontend')).toContainText('No work session yet');
+  expect(await page.locator('#stage canvas').count()).toBe(0);
+  await page.evaluate(() => (window as unknown as { __office: { emit: (x: object) => void } }).__office.emit({ k: 'sess', s: { id: 'real-session', sid: 'true-cli-id', role: 'frontend', agent: 'codex', name: 'Frontend Agent', dir: 'C:/workspace/project', status: 'work', subs: [], counts: {}, lastAt: Date.now() } }));
+  await expect(staff.locator('#lite-role-frontend .tm-session')).toHaveCount(1);
+  await expect(staff.locator('#lite-role-frontend')).toContainText('Codex');
+  await staff.locator('[data-focus="session:real-session"]').click(); await expect(page.locator('#dr-session')).toBeVisible();
+  await page.locator('#dr-session [data-close]').click();
+  await staff.locator('[data-role="news"]').click(); await staff.locator('#lite-role-news [data-focus="goal:news"]').click();
+  await expect(page.locator('.sp-panel')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await page.locator('#btn-lite-assign').click(); await expect(page.locator('.zc-task')).toBeVisible();
+  await expect(page.locator('#btn-guide')).toHaveCount(0); expect(await page.locator('#stage canvas').count()).toBe(0);
+  const info = await (await request.get('/api/team')).json(); expect(Object.keys(info.defaultSkills)).toHaveLength(38);
+  await page.locator('.zc-task .zc-task-head button').click(); await page.locator('#btn-chat').click();
+  await staff.locator('[data-role="news"]').click();
+  await staff.locator('.tm-roster').evaluate(el => { el.scrollTop = 0; });
+  await page.screenshot({ path: path.resolve(process.env.E2E_OUT || 'test-results', 'lite-workspace.png'), fullPage: true });
+  await page.locator('#btn-team-presence').click();
+  await page.getByText('Skills by role', { exact: true }).click();
+  const skills = page.locator('.tm-about').filter({ has: page.locator('.tm-default-skill') });
+  await expect(skills.locator('select option')).toHaveCount(38);
+  await skills.locator('select').selectOption('news');
+  await expect(skills.locator('.tm-default-skill')).toContainText('primary sources');
+  await page.keyboard.press('Escape');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: path.resolve(process.env.E2E_OUT || 'test-results', 'lite-workspace-phone.png'), fullPage: true });
+  const overflow = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('#lite, #lite *')].filter(e => e.getBoundingClientRect().right > innerWidth + 1 && e.getBoundingClientRect().width > 0).slice(0, 10).map(e => `${e.tagName}.${e.className}: ${Math.round(e.getBoundingClientRect().right)}`));
+  expect(overflow).toEqual([]);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  expect(errors).toEqual([]);
+});

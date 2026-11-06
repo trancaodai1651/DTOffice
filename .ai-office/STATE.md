@@ -1,5 +1,7 @@
 # Trạng thái bàn giao · 06/11/2026
 
+- Codex · 06/11: [2D giao việc, 38 nhân sự/Skill và phát hành 0.4.15](state/lite-personnel-training-release.md) — code và QA xong; đang commit/push, build và xác minh release Windows + macOS Universal.
+
 - Codex · 06/11: [Quản lý phòng phân công + CLI login](state/department-managers-cli-login.md) — hoàn thành Windows 0.4.14 local; commit `367ff07`, 254 unit + 9 E2E đạt, bundled/hash/chữ ký updater đạt; chưa push/publish.
 
 - Claude Code → Codex · 06/11: [Marketing: Kho dữ liệu, tài khoản MXH, Content Creator/Asset Manager/Product Photo](state/marketing-assets-social.md) — đã tích hợp trong `367ff07`; kiểm tra và build chung với nhiệm vụ quản lý phòng phía trên.

@@ -115,7 +115,6 @@ import * as uiStuck from './ui/stuck.js';
 import * as uiModels from './ui/models.js';
 import * as uiCacheWords from './ui/cache-words.js';
 import * as uiTips from './ui/tips.js';
-import * as uiGuide from './ui/guide.js';
 import * as interactFirstPerson from './interact/first-person.js';
 import * as netLive from './net/live.js';
 import * as uiTicks from './ui/ticks.js';
@@ -244,7 +243,6 @@ const MODULES = [
   uiModels,
   uiCacheWords,
   uiTips,
-  uiGuide,   // (the guide: her corner and her topics, ui/guide.js)
   uiSpecialists,   // (the news reader and the video editor: ui/specialists.js)
   interactFirstPerson,
   netLive,
@@ -267,7 +265,7 @@ const MODULES = [
 // what the 2D list needs (its rows, the top bar and drawers, the group chat, the live connection or the demo)
 const LIST = new Set([coreEnv, uiEventText, uiIcons, peopleWorkers, peopleAiTeam, uiLite, uiActivity, uiSessionDrawer, uiMacDrawer, uiBurn, uiVault, uiTopbar,
   interactPlaceCards, uiSettings, uiUpdates, uiGroupChat, uiGroupChatView, uiStuck, uiModels, uiCacheWords, netLive, lifeYourTurn, audioSfx, uiPermissions,
-  uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiGuide, uiTeamRoster, uiSpecialists]);
+  uiPhone, uiNotify, demoDemo, replayReplay, replayTimeline, uiTicks, uiTeamRoster, uiSpecialists]);
 const done = new Set();
 let started = false;
 export function startOffice() {

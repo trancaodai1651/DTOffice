@@ -1,7 +1,7 @@
 // Settings popover: backdrop, floor plan, look, time, toggles.
 import { state } from '../core/state.js';
 import { needWorld } from '../core/world-boot.js';
-import { $, LAYOUT, PLANS, STATIC } from '../core/env.js';
+import { $, el, LAYOUT, PLANS, STATIC } from '../core/env.js';
 import { bubbleText } from './event-text.js';
 import { labels } from '../scene/renderer.js';
 import { subs, workers } from '../people/workers.js';
@@ -60,6 +60,7 @@ let btnPlan;
 export function togglePlan(open = popPlan.hidden) { popPlan.hidden = !open; btnPlan.setAttribute('aria-expanded', String(open)); if (open) { togglePop(false); renderLimits(); renderAi(); } }
 function setStreamer(v) {
   state.streamer = v; document.body.classList.toggle('is-stream', v); state.boardDirty = true; for (const n of stickyNotes) if (n) n.key = '';
+  const notice = $('privacy-mode-notice'); if (notice) notice.hidden = !v;
   try { localStorage.setItem('office-stream', v ? 'on' : 'off'); } catch { /* storage blocked */ }
   for (const w of [...workers.values(), ...subs.values()]) if (w.lastSay) { w.sayKey = ''; w.say(w.lastSay.type, w.lastSay.e ? bubbleText(w.lastSay.e) : w.lastSay.text, w.lastSay.kind); }
   queueUi(); renderFeed(); if (state.selectedId) { renderSessionHead(); if (tab === 'chat') renderChat(false); }
@@ -127,6 +128,10 @@ export function setup() {
     const tg = e.target.closest('[data-tgl]'); if (tg) setToggle(tg.dataset.tgl, tg.getAttribute('aria-checked') !== 'true');
   });
   document.body.classList.toggle('is-stream', state.streamer);
+  const notice = el('aside', 'privacy-mode-notice'); notice.id = 'privacy-mode-notice'; notice.hidden = !state.streamer; notice.setAttribute('role', 'status');
+  const reveal = el('button', null, tr('settings.revealContent')); reveal.type = 'button'; reveal.id = 'btn-reveal-content';
+  reveal.addEventListener('click', () => { setStreamer(false); syncToggles(); });
+  notice.append(el('span', null, tr('settings.privacyActive')), reveal); $('app').append(notice);
   // graphics: the picked button, and which level Auto is using now
   const syncQuality = () => {
     for (const b of document.querySelectorAll('[data-quality]')) b.setAttribute('aria-pressed', String(b.dataset.quality === quality.choice));

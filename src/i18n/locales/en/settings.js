@@ -1,4 +1,6 @@
 export default {
+  privacyActive: 'Screen recording privacy is on — paths and conversations are blurred.',
+  revealContent: 'Show content',
   updates: {
     title: 'App updates', auto: 'Check for updates automatically', check: 'Check for updates', checking: 'Checking…',
     current: 'Installed version: {version}', upToDate: 'You have the latest version ({version}).', available: 'DT Office {version} is available',

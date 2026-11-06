@@ -15,6 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { findMediaTool } from './media-tools.mjs';
 import { renderVideo, verifyVideo } from './video-tools.mjs';
 import { createT } from '../src/i18n/index.js';
+import { defaultRoleSkill } from './role-training.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const SKILLS_DIR = path.join(HERE, 'skills', 'video');
@@ -110,9 +111,9 @@ export function videoPrompt({ brief, source, input = '', news = null, out, ffmpe
 
 /**
  * @param {{ dataDir: string, lang: () => string, start: (o: object) => { ok: boolean, task?: object, code?: string }, stop: (taskId: string) => void,
- *   onChange?: (job: object, what: string) => void, home?: string, now?: () => number, ffmpeg?: () => string | null, browser?: () => string | null }} o
+ *   onChange?: (job: object, what: string) => void, home?: string, now?: () => number, ffmpeg?: () => string | null, browser?: () => string | null, getSkill?: (role: string) => string }} o
  */
-export function createSpecialists({ dataDir, lang, start, stop, onChange = () => {}, home = os.homedir(), now = Date.now, ffmpeg = findFfmpeg, browser = findBrowser }) {
+export function createSpecialists({ dataDir, lang, start, stop, onChange = () => {}, home = os.homedir(), now = Date.now, ffmpeg = findFfmpeg, browser = findBrowser, getSkill = () => '' }) {
   const file = path.join(dataDir, 'specialists.json');
   let jobs = []; const recover = [];
   try { jobs = JSON.parse(fs.readFileSync(file, 'utf8')).jobs || []; } catch { /* none yet */ }
@@ -136,7 +137,8 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
   }).catch(error => { j.status = 'fail'; j.summary = createT(lang())('specialists.video.exportFailed', { why: error.message }); save(); onChange(pub(j), 'fail'); });
 
   function run(j, prompt, args) {
-    const got = start({ dir: j.dir, text: prompt, agent: j.agent, model: j.model, effort: j.effort, role: j.kind === 'news' ? 'news' : 'video', ask: j.topic || j.brief || '', args, perm: 'specialist' });
+    const training = defaultRoleSkill(j.kind), custom = getSkill(j.kind);
+    const got = start({ dir: j.dir, text: `${prompt}\n\nDefault role training:\n${training}${custom ? `\n\nAdditional role instructions:\n${custom}` : ''}`, agent: j.agent, model: j.model, effort: j.effort, role: j.kind === 'news' ? 'news' : 'video', ask: j.topic || j.brief || '', args, perm: 'specialist' });
     if (!got?.ok) { j.status = 'fail'; j.summary = got?.code || 'error'; j.end = now(); }
     else { j.task = got.task.id; j.status = 'run'; }
     jobs.unshift(j); jobs = jobs.slice(0, 40); save(); onChange(pub(j), got?.ok ? 'start' : 'fail');

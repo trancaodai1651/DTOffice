@@ -1,10 +1,14 @@
 // The AI team (server/team.mjs, ui/team-sheet.js): 15 agents run by the CEO
 export default {
+  allPersonnel: 'Tất cả nhân sự AI · {n} vị trí',
+  specialistsTitle: 'Nhân sự chuyên trách',
+  defaultSkill: 'Skill mặc định theo vị trí (luôn được áp dụng)',
+  customSkill: 'Skill bổ sung của bạn',
   managerDev: 'Quản lý phòng Dev',
   managerMarketing: 'Quản lý phòng Marketing',
   delegates: 'phân công nhân sự phù hợp',
   assignment: 'Nhân sự thực hiện', wholeTeam: 'Cả đội (trưởng nhóm phân công)',
-  skills: {"title":"Skill theo vị trí","role":"Vị trí nhân sự","content":"Tên skill và hướng dẫn (hoặc nội dung SKILL.md)","import":"Nhập file skill","save":"Lưu skill","saved":"Đã lưu. Áp dụng từ việc tiếp theo.","error":"Không lưu được skill. Tối đa 20.000 ký tự; thử lại trên máy chạy văn phòng.","note":"Chọn vị trí Dev hoặc Marketing, nhập file .md hoặc dán hướng dẫn. Để trống rồi lưu để gỡ. Áp dụng cho từng việc mới của đúng vị trí."},
+  skills: {"title":"Skill theo vị trí","role":"Vị trí nhân sự","content":"Tên skill và hướng dẫn (hoặc nội dung SKILL.md)","import":"Nhập file skill","save":"Lưu skill","saved":"Đã lưu. Áp dụng từ việc tiếp theo.","error":"Không lưu được skill. Tối đa 20.000 ký tự; thử lại trên máy chạy văn phòng.","note":"Mỗi vị trí có skill mặc định đi kèm app. Chọn Dev, Marketing hoặc chuyên trách để xem; nhập thêm hướng dẫn riêng bên dưới. Xóa và lưu chỉ bỏ phần bổ sung, không xóa skill mặc định. Áp dụng cho việc mới."},
   residentWaiting: 'Đang chờ giao việc; nhân sự này chưa có phiên CLI chạy.',
   residentConnected: 'Đã gắn với một phiên CLI thật của Đội AI Agent Dev.',
   residentLabel: 'Chờ việc',

@@ -2,6 +2,7 @@
 // listed by the server (server/team.mjs): management, analysis and design, engineering, quality, operations. The
 // room's 16th desk is the CEO's.
 export const TEAM_SEATS = ['cto', 'pm', 'po', 'ba', 'architect', 'uiux', 'frontend', 'backend', 'app', 'ai', 'qa', 'reviewer', 'security', 'devops', 'database'];
+export const SPECIALIST_ROLE_IDS = ['news', 'video'];
 // Group boundaries in the same ordered catalog; the roster is available before API metadata loads.
 export const TEAM_GROUPS = [ ['lead', 0, 3], ['design', 3, 6], ['dev', 6, 10], ['quality', 10, 12], ['ops', 12, 15] ];
 // The marketing department's desks (server/team.mjs MARKETING_ROLES), in the order of the department's desks on the HQ

@@ -40,7 +40,9 @@
     ".next-e2e/types/**/*.ts",
     ".next-e2e/dev/types/**/*.ts",
     ".next-managers/types/**/*.ts",
-    ".next-managers/dev/types/**/*.ts"
+    ".next-managers/dev/types/**/*.ts",
+    ".next-workspace/types/**/*.ts",
+    ".next-workspace/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
