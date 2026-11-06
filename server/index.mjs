@@ -22,6 +22,7 @@ import { createVault } from './vault.mjs';
 import { MAIN, SUB, modelsOf, withModels, hasSplit, withSplit } from './models.mjs';
 import { createCodexAccounts } from './codex-accounts.mjs';
 import { createSetup, pickAgents } from './setup.mjs';
+import { departmentRequest } from '../src/shared/department-request.js';
 import { agentModels, pickRun } from './agent-models.mjs';
 import { createMemory, wrap as wrapMemory } from './memory.mjs';
 import { createTeam, routeTeams, ROLES as TEAM_ROLES, STAGES as TEAM_STAGES, GROUPS as TEAM_GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS } from './team.mjs';
@@ -31,6 +32,8 @@ import { desktopBotSnapshot } from '../src/shared/desktop-bot.js';
 import { updateReadiness } from '../src/shared/update-readiness.js';
 import { sessionName } from '../src/shared/session-name.js';
 import { createSpecialists, openPath, ffmpegInstall } from './specialists.mjs';
+import { createLibrary, postText } from './asset-library.mjs';
+import { createSocial } from './social-accounts.mjs';
 import { createAntigravityAccounts, makeDb, windowsOf } from './antigravity-accounts.mjs';
 import { report as promptReport } from './prompt-report.mjs';
 import { testCounts, testRunner } from './testrun.mjs';
@@ -753,7 +756,7 @@ async function stopBgSession(s) {
 const agentOn = (a) => { const l = prefs.get('agents'); return !Array.isArray(l) || l.includes(a); };
 const tasksOut = (local) => ({ ok: true, models: agentModels(codexHome()), memoryOn: memoryOn(), allowed: local || !!prefs.get('phoneTasks'), running: tasks.list(), bg: bgOut(), codex: agentOn('codex') && !!findCodex(), claude: agentOn('claude') && !!findClaude(),
   projects: knownDirs.filter((d) => fs.existsSync(d)).map((d) => ({ dir: tilde(d), name: path.basename(d), memory: memory.count(d) })),
-  sessions: [...sessions.values()].filter((s) => s.sid && s.cwd).map((s) => ({ id: s.id, sid: s.sid, name: sessionName(s), dir: tilde(s.cwd), status: s.status, cache: cacheOut(s), agent: s.agent || 'claude', memory: memory.count(s.cwd) })) });
+  sessions: [...sessions.values()].filter((s) => s.sid && s.cwd).map((s) => ({ id: s.id, sid: s.sid, name: sessionName(s), dir: tilde(s.cwd), status: s.status, cache: cacheOut(s), agent: s.agent || 'claude', role: s.role || '', memory: memory.count(s.cwd) })) });
 
 /* ---------- what eats the plan (server/otel.mjs): Claude Code's own telemetry, received at /v1/metrics and /v1/logs
    ----------
@@ -795,6 +798,8 @@ function burnOut(range) {
 async function giveWork(b, who) {
   const request = specialistRequest(b?.text);
   if (request) return giveSpecialistWork(request, b);
+  const department = b?.assignment !== 'session' && (['dev', 'marketing'].includes(b?.assignment) ? { team: b.assignment, lead: b.assignment === 'marketing' ? 'cmo' : 'pm' } : departmentRequest(b?.text));
+  if (department) return giveDepartmentWork({ ...b, goal: b?.text, teams: [department.team], lead: department.lead });
   // who it goes to: a conversation the office knows (carried on itself, the very one), or a project folder (a new
   // conversation there, or the one you started there); one way for both the chat's "Gửi tới" and 📋 Giao việc
   const s = b?.sid && [...sessions.values()].find((x) => x.sid === String(b.sid) && x.cwd);
@@ -1554,11 +1559,21 @@ function giveSpecialistWork(request, b = {}) {
   const r = specialists.news({ topic: request.topic, agent, ...pickRun(agent, { model: b.model, effort: b.effort }, codexHome()) });
   return r.ok ? [200, { ...r, specialist: 'news' }] : fail(r.code);
 }
+/* ---------- "Kho dữ liệu" and the Social Media agent's accounts (server/asset-library.mjs, server/social-accounts.mjs):
+   the marketing department's workspace, its products and image sets, the posts queued, and the accounts they go out on. */
+const library = createLibrary({ dataDir: DATA_DIR });
+const social = createSocial({ dataDir: DATA_DIR });
+const libraryOut = () => { library.ensure(); return { ok: true, ...library.out(), accounts: social.list(), platforms: social.PLATFORMS }; };   // (made the first time you open it)
+// what a marketing agent is told: the library, and (for those who need it) the accounts saved for publishing
+const marketingContext = (r, role) => [library.brief(), ...(['social', 'creator', 'cmo'].includes(role) ? [social.list().length
+  ? `SAVED ACCOUNTS (the CEO is logged in to each in its own browser profile; refer to them by id): ${social.list().map((a) => `${a.id} = ${a.platform} "${a.label}"`).join('; ')}`
+  : 'SAVED ACCOUNTS: none yet (the CEO adds them in the Social panel: Phòng Kho dữ liệu → Tài khoản mạng xã hội).'] : [])].join('\n');
 const team = createTeam({
   dataDir: DATA_DIR, lang: () => prefs.lang(),
+  context: (r, role, t) => (t.id === 'marketing' ? marketingContext(r, role) : ''),
   start: (r, s, prompt, role) => {
     memory.sync(r.dir);   // (the project's memory file, before the stage reads it)
-    return tasks.start({ dir: r.dir, text: prompt, agent: r.agent, model: r.model, effort: r.effort, role, team: r.id, ask: `${tr(`team.stages.${s.key}`)}: ${r.goal}`, system: r.agent === 'codex' ? memoryWords(r.dir) : '' });
+    return tasks.start({ dir: r.dir, text: prompt, agent: r.agent, model: r.model, effort: r.effort, role, team: r.id, ...(r.agent === 'claude' && r.account !== undefined ? { env: acctEnv(r.account) } : {}), ask: `${tr(`team.stages.${s.key}`)}: ${r.goal}`, system: r.agent === 'codex' ? memoryWords(r.dir) : '' });
   },
   stop: (id) => tasks.stop(id),
   onChange: (r, what, x = {}) => {
@@ -1581,8 +1596,23 @@ const team = createTeam({
     broadcast({ k: 'team', runs: team.list() });
   },
 });
-const teamOut = () => ({ ok: true, roleSkills: team.skills(), teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
+const teamOut = () => ({ ok: true, workspace: library.root(), roleSkills: team.skills(), teams: TEAMS.map(({ id, roles, lead, stages }) => ({ id, roles, lead: lead || '', stages: stages().map(({ key, roles: rs }) => ({ key, roles: rs })) })),
   marketing: { roles: MARKETING_ROLES.map(({ id, group }) => ({ id, group })), groups: MARKETING_GROUPS }, roles: TEAM_ROLES.map(({ id, group }) => ({ id, group })), groups: TEAM_GROUPS, stages: TEAM_STAGES.map(({ key, roles }) => ({ key, roles })), runs: team.list() });
+
+// Both the task sheet (including an existing CLI conversation) and the department sheet use the same workflow.
+function giveDepartmentWork(b) {
+  const s = b?.sid && [...sessions.values()].find(x => x.sid === String(b.sid) && x.cwd);
+  const forMarketing = MARKETING_ROLES.some(x => x.id === b?.role) || (!b?.role && (b?.lead === 'cmo' || (Array.isArray(b?.teams) && b.teams.length && b.teams.every(x => x === 'marketing'))));
+  const wanted = s?.cwd || b?.dir;
+  const dir = forMarketing && (!wanted || path.resolve(String(wanted)) === path.resolve(library.root())) ? library.ensure() : memoryDir(wanted);
+  if (!dir) return [400, { ok: false, code: 'noDir', message: tr('chat.task.noDir') }];
+  if (b?.images?.length) return [400, { ok: false, code: 'teamImages', message: tr('chat.task.teamImages') }];
+  const agent = s ? (s.agent === 'codex' ? 'codex' : 'claude') : b?.agent === 'codex' ? 'codex' : 'claude';
+  const code = agent === 'codex' ? 'noCodex' : 'noClaude';
+  if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) return [409, { ok: false, code, message: tr(`chat.task.why.${code}`) }];
+  const r = team.begin({ dir, goal: b?.goal, role: b?.role, lead: b?.lead, agent, ...(s && agent === 'claude' ? { account: acctOf(s) || '' } : {}), teams: Array.isArray(b?.teams) ? b.teams.map(String) : null, ...pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome()) });
+  return [r.ok ? 200 : 409, r.ok ? { ...r, delegated: true } : { ...r, message: tr(r.code === 'teamBusy' ? 'team.busy' : `chat.task.why.${r.code}`) }];
+}
 
 /* ---------- "Ghi nhớ cho Claude": what you pin for a conversation (the session drawer's "Ghi nhớ" tab), said to Claude
    again each time Claude Code compacts it, when what it was told along the way may be summed up away. The synchronous
@@ -2622,7 +2652,7 @@ if (codexOn()) codexSessions?.start();
 // Claude Code CLI signed in or out (`claude auth login` writes its sign-in there): asked again at once
 fs.watchFile(path.join(CLAUDE_DIR, '.credentials.json'), { interval: 4000, persistent: false }, () => setup?.recheck());
 // The first run (server/setup.mjs): Claude Code, Codex or both, installed when missing, Claude's hooks added
-const setup = createSetup({ root: ROOT, port: PORT, prefs, claude: () => findClaude(), codex: () => findCodex(), broadcast, log: (l) => console.log(l),
+const setup = createSetup({ root: ROOT, port: PORT, prefs, claude: () => findClaude(), codex: () => findCodex(), accountEnv: () => ({ ...process.env, ...(nowDir ? { CLAUDE_CONFIG_DIR: nowDir } : {}) }), broadcast, log: (l) => console.log(l),
   onAuth: (on) => { if (on) { usageWait = 0; fetchPlanUsage(true); } },   // (signed in to Claude Code CLI just now: its limits at once)
   onAgents: (agents) => {
     if (agents.includes('codex')) codexSessions?.start(); else codexSessions?.stop();
@@ -2949,6 +2979,31 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if ((url.pathname.startsWith('/api/library/') || url.pathname.startsWith('/api/social/')) && req.method === 'POST') {   // the asset library and the social accounts: on this computer only (they open its folders and browser)
+    if (!authorized(req, url) || !isLoopback(req) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
+    readJson(req, 20_000).then((b) => {
+      const what = url.pathname.split('/').pop(), id = String(b?.id || '');
+      const fail = (code, status = 400) => json(res, status, { ok: false, code, message: tr(`library.err.${code}`) });
+      if (url.pathname.startsWith('/api/library/')) {
+        if (what === 'root') { const r = library.setRoot(b?.dir); if (!r.ok) return fail(r.code); json(res, 200, libraryOut()); return; }
+        if (what === 'source') { const r = library.addSource({ dir: b?.dir, name: b?.name, category: b?.category, product: b?.product }); if (!r.ok) return fail(r.code); json(res, 200, libraryOut()); return; }
+        if (what === 'unsource') { library.removeSource(id); json(res, 200, libraryOut()); return; }
+        if (what === 'open') { const f = library.target(String(b?.what || '')); if (!f) return fail('noDir', 404); json(res, 200, { ok: openPath(f) }); return; }
+        if (what === 'posted') { const ok = library.markPosted(id, String(b?.platform || ''), String(b?.link || '')); json(res, ok ? 200 : 404, ok ? libraryOut() : { ok }); return; }
+        json(res, 404, { ok: false }); return;
+      }
+      if (what === 'add') { const r = social.add({ platform: b?.platform, label: b?.label, note: b?.note }); if (!r.ok) return fail(r.code); json(res, 200, libraryOut()); return; }
+      if (what === 'remove') { json(res, 200, { ...libraryOut(), ok: social.remove(id) }); return; }
+      if (what === 'login' || what === 'visit') { const r = social[what](id); if (!r.ok) return fail(r.code, 409); json(res, 200, libraryOut()); return; }
+      if (what === 'publish') {   // a queued post on one account: its posting page, the caption to copy, the media folder opened
+        const p = library.post(String(b?.post || '')); if (!p) return fail('noPost', 404);
+        const text = postText(p), r = social.publish(id, text); if (!r.ok) return fail(r.code, 409);
+        openPath(p.dir); json(res, 200, { ok: true, text, platform: r.platform }); return;
+      }
+      json(res, 404, { ok: false });
+    });
+    return;
+  }
   if (url.pathname.startsWith('/api/team') && req.method === 'POST') {   // a goal for the AI team (from a phone only when allowed), or stopping one
     if (!authorized(req, url) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
     if (!isLoopback(req) && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
@@ -2960,11 +3015,7 @@ const server = http.createServer((req, res) => {
       if (url.pathname !== '/api/team') { json(res, 404, { ok: false }); return; }
       const specialist = specialistRequest(b?.goal);
       if (specialist && !b?.role) { const [code, out] = giveSpecialistWork(specialist, b); json(res, code, out); return; }
-      const dir = memoryDir(b?.dir); if (!dir) { json(res, 400, { ok: false, code: 'noDir', message: tr('chat.task.noDir') }); return; }
-      const agent = b?.agent === 'codex' ? 'codex' : 'claude';
-      if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) { json(res, 409, { ok: false, code: agent === 'codex' ? 'noCodex' : 'noClaude', message: tr(`chat.task.why.${agent === 'codex' ? 'noCodex' : 'noClaude'}`) }); return; }
-      const r = team.begin({ dir, goal: b?.goal, role: b?.role, lead: b?.lead, agent, teams: Array.isArray(b?.teams) ? b.teams.map(String) : null, ...pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome()) });
-      json(res, r.ok ? 200 : 409, r.ok ? r : { ...r, message: tr(r.code === 'teamBusy' ? 'team.busy' : `chat.task.why.${r.code}`) });
+      const [code, out] = giveDepartmentWork(b); json(res, code, out);
     });
     return;
   }
@@ -3027,6 +3078,13 @@ const server = http.createServer((req, res) => {
           if (!mac && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
           chat.say('me', text, { now: true, long: true });
           const [code, out] = giveSpecialistWork(request, b); if (!out.ok) chat.system(out.message);
+          json(res, code, out); return;
+        }
+        const department = departmentRequest(text);
+        if (department && b.sticker == null) {
+          if (!mac && !prefs.get('phoneTasks')) { json(res, 403, { ok: false, code: 'notAllowed', message: tr('chat.task.notAllowed') }); return; }
+          const [code, out] = giveDepartmentWork({ ...b, goal: text, teams: [department.team], lead: department.lead });
+          if (!out.ok) chat.system(out.message);
           json(res, code, out); return;
         }
         chat.send({ text, sticker: Number.isInteger(b.sticker) ? b.sticker : null, replyTo: str(b.replyTo, 40) || null });
@@ -3333,6 +3391,7 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/api/cache') { json(res, 200, { ok: true, nudge: !!prefs.get('cacheNudge') }); return; }
   if (url.pathname === '/api/tasks') { json(res, 200, tasksOut(isLoopback(req))); return; }
   if (url.pathname === '/api/team') { json(res, 200, teamOut()); return; }
+  if (url.pathname === '/api/library') { json(res, 200, libraryOut()); return; }
   if (url.pathname === '/api/projects') { json(res, 200, projectsOut()); return; }
   if (url.pathname === '/api/specialists') { json(res, 200, specialistsOut()); return; }
   if (url.pathname === '/api/setup') { json(res, 200, isLoopback(req) ? { ok: true, ...setup.out() } : { ok: true, agents: setup.agents() }); return; }

@@ -13,6 +13,7 @@ import { toast } from './activity.js';
 import { expandOffice } from './expand.js';
 import { TOKEN } from '../net/live.js';
 import { projectPicker } from './projects.js';
+import { libraryPanel } from './library-panel.js';
 import { t as tr } from '../../i18n/index.js';
 
 const q = () => (TOKEN ? `?k=${encodeURIComponent(TOKEN)}` : '');
@@ -163,26 +164,44 @@ function buildTaskInfo(sheet, t, r, options = {}) {
     const mk = el('details', 'tm-about');
     mk.append(el('summary', null, `📣 ${tr('team.marketing.title', { n: t.marketing.roles.length })}`), el('p', 'zc-task-note', tr('team.marketing.sub')), marketingOrg(t.marketing), flow(mkTeam.stages));
     sheet.append(mk);
+    // "Phòng Kho dữ liệu": the library, the social accounts, the posts to publish (drawn the first time it is opened)
+    const lib = el('details', 'tm-about tm-library'), libFocus = { librarian: 'kho', photo: 'kho', social: 'posts', creator: 'posts' }[options.roleId] || (options.library || '');
+    lib.append(el('summary', null, `📦 ${tr('library.section')}`));
+    lib.addEventListener('toggle', () => { if (lib.open && !lib.querySelector('.lib-panel')) lib.append(libraryPanel({ focus: libFocus })); });
+    sheet.append(lib);
+    if (libFocus) lib.open = true;
   }
-  // the goal
-  const saved = kept(), dirs = [...r.projects.map((p) => [p.dir, p.name]), ...r.sessions.filter((s) => !r.projects.some((p) => p.dir === s.dir)).map((s) => [s.dir, s.dir.split(/[\\/]/).pop()])].filter((x, i, a) => a.findIndex((y) => y[0] === x[0]) === i);
+  // the goal (the marketing department may work in its asset library: no project of yours needed)
+  const saved = kept(), dirs = [...r.projects.map((p) => [p.dir, p.name]), ...r.sessions.filter((s) => !r.projects.some((p) => p.dir === s.dir)).map((s) => [s.dir, s.dir.split(/[\\/]/).pop()]), ...(t.workspace ? [[t.workspace, tr('library.workspace')]] : [])].filter((x, i, a) => a.findIndex((y) => y[0] === x[0]) === i);
   const can = (a) => (a === 'codex' ? r.codex : r.claude !== false);
   const allRoles = [...t.roles, ...(t.marketing?.roles || [])], selected = options.roleId || saved.role || '';
   const pick = { role: allRoles.some(x => x.id === selected) ? selected : '', dir: dirs.some((d) => d[0] === saved.dir) ? saved.dir : dirs[0]?.[0] || '', lead: ['cto', 'cmo'].includes(saved.lead) ? saved.lead : 'pm', agent: can(saved.agent) ? saved.agent : can('claude') ? 'claude' : 'codex', model: saved.model || '', effort: saved.effort || '' };
   const form = el('div', 'tm-form');
   const goal = el('textarea', 'zc-task-in'); goal.rows = 3; goal.maxLength = 4000; goal.placeholder = tr('team.goalPh');
   const fields = el('div', 'tm-fields'), go = el('button', 'zc-task-go', tr('team.go')); go.type = 'button';
+  // a marketing task with no project picked by hand: the asset library; back to a project for the dev team
+  let dirTouched = false;
+  const isMk = () => (pick.role ? (t.marketing?.roles || []).some((x) => x.id === pick.role) : pick.lead === 'cmo');
+  const autoDir = () => { if (dirTouched || !t.workspace) return; if (isMk()) pick.dir = t.workspace; else if (pick.dir === t.workspace) pick.dir = dirs.find((d) => d[0] !== t.workspace)?.[0] || pick.dir; };
+  autoDir();
+  const departments = el('div', 'zc-task-tools');
+  for (const [role, key] of [['pm', 'managerDev'], ['cmo', 'managerMarketing']]) {
+    if (role === 'cmo' && !(t.teams || []).some(x => x.id === 'marketing')) continue;
+    const button = el('button', 'zc-task-tool', tr(`team.${key}`)); button.type = 'button'; button.dataset.departmentManager = role;
+    button.addEventListener('click', () => { pick.role = role; pick.lead = role; autoDir(); drawFields(); goal.focus(); });
+    departments.append(button);
+  }
   function drawFields() {
-    const assignee = select(tr('team.assignment'), [['', tr('team.wholeTeam')], ...allRoles.map(x => [x.id, tr(`team.roles.${x.id}.name`)])], pick.role, v => { pick.role = v; drawFields(); });
+    const assignee = select(tr('team.assignment'), [['', tr('team.wholeTeam')], ...allRoles.map(x => [x.id, ['pm', 'cto', 'cmo'].includes(x.id) ? `${tr(`team.roles.${x.id}.name`)} · ${tr('team.delegates')}` : tr(`team.roles.${x.id}.name`)])], pick.role, v => { pick.role = v; autoDir(); drawFields(); });
     assignee.querySelector('select').dataset.assignmentRole = '1';
     const models = r.models?.[pick.agent] || [], m = models.find((x) => x.id === pick.model);
     if (pick.model && !m) pick.model = '';
     const efforts = m?.efforts || (pick.agent === 'codex' ? [...new Set(models.flatMap((x) => x.efforts))] : r.models?.claude?.[0]?.efforts || []);
     if (pick.effort && !efforts.includes(pick.effort)) pick.effort = '';
     fields.replaceChildren(
-      select(tr('team.project'), dirs.map(([d, n]) => [d, `${n} · ${d}`]), pick.dir, (v) => { pick.dir = v; }),
+      select(tr('team.project'), dirs.map(([d, n]) => [d, `${n} · ${d}`]), pick.dir, (v) => { pick.dir = v; dirTouched = true; }),
       assignee,
-      select(tr('team.giveTo'), [['pm', `${tr('team.roles.pm.name')} · ${tr('team.teams.dev')}`], ['cto', `${tr('team.roles.cto.name')} · ${tr('team.teams.dev')}`], ...((t.teams || []).some((x) => x.id === 'marketing') ? [['cmo', `${tr('team.roles.cmo.name')} · ${tr('team.teams.marketing')}`]] : [])], pick.lead, (v) => { pick.lead = v; }),
+      select(tr('team.giveTo'), [['pm', `${tr('team.roles.pm.name')} · ${tr('team.teams.dev')}`], ['cto', `${tr('team.roles.cto.name')} · ${tr('team.teams.dev')}`], ...((t.teams || []).some((x) => x.id === 'marketing') ? [['cmo', `${tr('team.roles.cmo.name')} · ${tr('team.teams.marketing')}`]] : [])], pick.lead, (v) => { pick.lead = v; autoDir(); drawFields(); }),
       select(tr('team.cli'), [['claude', 'Claude Code'], ['codex', 'Codex CLI']].filter(([a]) => can(a)), pick.agent, (v) => { pick.agent = v; pick.model = ''; pick.effort = ''; drawFields(); }),
       select(tr('team.model'), [['', tr('chat.task.modelDefault')], ...models.map((x) => [x.id, x.name])], pick.model, (v) => { pick.model = v; drawFields(); }),
       select(tr('team.effort'), [['', tr('chat.task.effortDefault')], ...efforts.map((e) => [e, effortName(e)])], pick.effort, (v) => { pick.effort = v; }),
@@ -199,7 +218,7 @@ function buildTaskInfo(sheet, t, r, options = {}) {
     go.disabled = !pick.dir || !goal.value.trim();
   });
   if (!dirs.length) form.append(el('p', 'zc-task-note', tr('team.noProject')));
-  else { drawFields(); form.append(goal, fields, el('p', 'zc-task-note', tr('team.note')), go); }
+  else { drawFields(); form.append(departments, goal, fields, el('p', 'zc-task-note', tr('team.note')), go); }
   // your projects, added or taken off right here: the form is drawn again with the new list
   const manage = el('details', 'zc-task-manage'); manage.append(el('summary', null, `📁 ${tr('team.manageProjects')}`));
   manage.addEventListener('toggle', () => {
@@ -207,7 +226,7 @@ function buildTaskInfo(sheet, t, r, options = {}) {
     let first = true;
     manage.append(projectPicker({ value: pick.dir, onPick: (p) => { if (p && dirs.some((d) => d[0] === p.dir)) { pick.dir = p.dir; drawFields(); } }, onList: (l) => {
       if (first) { first = false; return; }
-      dirs.splice(0, dirs.length, ...l.filter((p) => p.here).map((p) => [p.dir, p.name]));
+      dirs.splice(0, dirs.length, ...l.filter((p) => p.here).map((p) => [p.dir, p.name]), ...(t.workspace ? [[t.workspace, tr('library.workspace')]] : []));
       if (!dirs.some((d) => d[0] === pick.dir)) pick.dir = dirs[0]?.[0] || '';
       if (dirs.length && !form.contains(goal)) form.replaceChildren(goal, fields, el('p', 'zc-task-note', tr('team.note')), go);
       if (!dirs.length) form.replaceChildren(el('p', 'zc-task-note', tr('team.noProject')));

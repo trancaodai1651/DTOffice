@@ -9,6 +9,26 @@ import { ROLES, STAGES, GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS, MARKET
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'office-team-'));
 
+test('department managers delegate instead of becoming direct workers, on either CLI', () => {
+  for (const role of ['pm', 'cto', 'cmo']) for (const agent of ['claude', 'codex']) {
+    const h = harness({ max: 6 });
+    try {
+      const r = h.team.begin({ dir: h.dir, goal: 'Department assignment', role, agent, model: 'chosen-model', effort: 'high' });
+      assert.equal(r.ok, true); assert.equal(r.run.directRole, ''); assert.equal(r.run.lead, role);
+      assert.deepEqual(r.run.teams, [role === 'cmo' ? 'marketing' : 'dev']);
+      for (let i = 0; h.team.get(r.run.id).status === 'run' && i < 80; i++) {
+        const worker = h.started.find(x => !x.done); assert.ok(worker);
+        h.finish(worker.role, worker.role === 'pm' ? 'Plan\nROLES: frontend' : worker.role === 'cmo' ? 'Plan\nROLES: copywriter' : 'Completed\nVERDICT: PASS');
+      }
+      assert.equal(h.team.get(r.run.id).status, 'done');
+      assert.ok(h.started.some(x => x.role === (role === 'cmo' ? 'copywriter' : 'frontend')));
+      assert.ok(h.started.every(x => x.stage !== 'direct' && x.prompt.includes(agent === 'codex' ? 'Codex CLI' : 'Claude Code')));
+      assert.ok(h.started.every(x => x.prompt.includes('chosen-model')));
+      assert.ok(!h.started.some(x => x.role === (role === 'cmo' ? 'frontend' : 'copywriter')));
+    } finally { fs.rmSync(h.dir, { recursive: true, force: true }); }
+  }
+});
+
 test('a direct assignment runs exactly the chosen employee, applies their skill and does not launch a team', () => {
   const h = harness();
   h.team.setSkill('frontend', 'FRONTEND-DIRECT-SKILL');
@@ -235,8 +255,8 @@ test('the guide picks the team(s); a task for two teams goes from one to the nex
 });
 
 test('the marketing department: one agent per position, all in one department, under one manager', () => {
-  assert.equal(MARKETING_ROLES.length, 18);
-  assert.equal(new Set(MARKETING_ROLES.map((r) => r.id)).size, 18, 'one agent per position');
+  assert.equal(MARKETING_ROLES.length, 21);
+  assert.equal(new Set(MARKETING_ROLES.map((r) => r.id)).size, 21, 'one agent per position');
   assert.ok(MARKETING_ROLES.every((r) => MARKETING_GROUPS.includes(r.group)));
   assert.deepEqual(MARKETING_ROLES.filter((r) => r.group === 'mlead').map((r) => r.id), ['cmo'], 'one manager');
   assert.ok(!MARKETING_ROLES.some((r) => ROLES.some((d) => d.id === r.id)), 'no position shared with the dev team');
@@ -270,10 +290,14 @@ test('a task given to the Marketing Manager: it plans, assigns the right positio
   assert.equal(r.status, 'done');
 });
 
-test('the Marketing Manager named nobody: the three positions most goals need produce', () => {
+test('the Marketing Manager named nobody: the positions most goals need produce, Social Media queues', () => {
   const run = { teams: ['marketing'], ti: 0, lead: 'cmo', named: null };
-  assert.deepEqual(membersOf(run, MARKETING_STAGES[2]), ['copywriter', 'designer', 'social']);
-  assert.deepEqual(membersOf({ ...run, named: ['brand'] }, MARKETING_STAGES[2]), ['copywriter', 'designer', 'social'], 'no producer named');
+  const publish = MARKETING_STAGES.find((s) => s.key === 'mpublish');
+  assert.deepEqual(membersOf(run, MARKETING_STAGES[2]), ['creator', 'designer']);
+  assert.deepEqual(membersOf({ ...run, named: ['brand'] }, MARKETING_STAGES[2]), ['creator', 'designer'], 'no producer named');
+  assert.deepEqual(membersOf(run, publish), ['social']);
+  assert.deepEqual(membersOf({ ...run, named: ['seo'] }, publish), [], 'no post made: nobody to queue');
+  assert.deepEqual(membersOf({ ...run, named: ['social'] }, MARKETING_STAGES[2]), [], 'only posts to queue: no producer');
   assert.deepEqual(membersOf(run, { key: 'report' }), ['cmo']);
 });
 
@@ -282,4 +306,57 @@ test("the marketing department's desks hold every marketing position once", asyn
   assert.deepEqual([...MARKETING_ROLE_IDS].sort(), MARKETING_ROLES.map((r) => r.id).sort());
   assert.equal(MARKETING_SEATS[0], 'cmo', 'the manager at the head desk');
   assert.ok(MARKETING_SEATS.length <= 24, 'they fit the department: 2 pods + 4 pods');
+});
+
+test('posts for social networks: the creator writes, the photo designer makes the images, Social Media queues after the review', () => {
+  const h = harness({ max: 10 });
+  h.team.begin({ dir: h.dir, goal: 'Viết 3 bài Facebook, Instagram, Threads cho áo thun và làm bộ ảnh', lead: 'cmo' });
+  h.finish('cmo', 'Kế hoạch\nROLES: creator, photo, social'); h.finish('research'); h.finish('strategist');
+  assert.deepEqual(h.atWork(), ['mstrategy:content']);
+  h.finish('content');
+  assert.deepEqual(h.atWork(), ['mproduce:creator', 'mproduce:photo'], 'Social Media does not produce: it queues');
+  assert.match(h.started.find((x) => x.role === 'creator').prompt, /post package/i);
+  assert.match(h.started.find((x) => x.role === 'creator').prompt, /Your training/, 'the office skills reach the role');
+  h.finish('creator'); h.finish('photo');
+  h.finish('editor', 'VERDICT: PASS'); h.finish('analytics', 'VERDICT: PASS');
+  assert.deepEqual(h.atWork(), ['mpublish:social'], 'the reviewed posts go to Social Media');
+  assert.match(h.started.at(-1).prompt, /Do not open a browser and do not post/);
+  h.finish('social');
+  assert.deepEqual(h.atWork(), ['report:cmo']);
+});
+
+test('a marketing goal with no post skips the publishing stage', () => {
+  const h = harness({ max: 10 });
+  h.team.begin({ dir: h.dir, goal: 'Nghiên cứu SEO', lead: 'cmo' });
+  h.finish('cmo', 'ROLES: seo'); h.finish('research'); h.finish('strategist'); h.finish('content'); h.finish('seo');
+  h.finish('editor', 'VERDICT: PASS'); h.finish('analytics', 'VERDICT: PASS');
+  assert.deepEqual(h.atWork(), ['report:cmo'], 'straight to the report');
+});
+
+test('the marketing context and the built-in skills reach marketing members only', async () => {
+  const { builtinSkills } = await import('../../server/team.mjs');
+  for (const role of ['social', 'creator', 'librarian', 'photo', 'cmo']) assert.ok(builtinSkills(role).length > 200, `${role} is trained`);
+  assert.match(builtinSkills('editor'), /Work standards/, 'every marketing position gets the team standards');
+  assert.equal(builtinSkills('frontend'), '', 'the dev team has none');
+  const dataDir = tmp(), prompts = [];
+  try {
+    const team = createTeam({ dataDir, lang: () => 'vi', context: (r, role, t) => (t.id === 'marketing' ? `LIBRARY-FOR-${role}` : ''), start: (_r, _s, prompt, role) => { prompts.push({ prompt, role }); return { ok: true, task: { id: role } }; }, stop() {} });
+    team.begin({ dir: dataDir, goal: 'Viết bài', role: 'creator' });
+    team.begin({ dir: path.join(dataDir, 'app'), goal: 'Fix a bug', role: 'frontend' });   // (another project: not held by the creator's work)
+    assert.match(prompts.find((p) => p.role === 'creator').prompt, /LIBRARY-FOR-creator/);
+    assert.doesNotMatch(prompts.find((p) => p.role === 'frontend').prompt, /LIBRARY-FOR/);
+  } finally { fs.rmSync(dataDir, { recursive: true, force: true }); }
+});
+
+test('marketing tasks about products, image sets and shops go to the marketing team', () => {
+  for (const text of ['làm bộ ảnh sản phẩm cho shopee', 'nhân sự social đăng bài lên tiktok, threads', 'sắp xếp kho dữ liệu ảnh sản phẩm', 'viết bài đăng giới thiệu áo thun', 'lên ý tưởng content cho tiktok shop'])
+    assert.equal(routeTeams(text)[0].id, 'marketing', text);
+  assert.equal(routeTeams('sửa lỗi giao diện trang đăng nhập')[0].id, 'dev');
+});
+
+test("the asset room's desks: the asset manager and the product photo designer", async () => {
+  const { KHO_SEATS, MARKETING_ROSTER, MARKETING_ROLE_IDS } = await import('../../src/shared/team-roles.js');
+  assert.deepEqual(KHO_SEATS, ['librarian', 'photo']);
+  assert.deepEqual(MARKETING_ROSTER.flatMap(([, ids]) => ids).sort(), [...MARKETING_ROLE_IDS].sort(), 'the roster lists every position once');
+  for (const [group, ids] of MARKETING_ROSTER) for (const id of ids) assert.equal(MARKETING_ROLES.find((r) => r.id === id).group, group, `${id} in ${group}`);
 });

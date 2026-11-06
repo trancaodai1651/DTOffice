@@ -1,5 +1,9 @@
 # Trạng thái bàn giao · 06/11/2026
 
+- Codex · 06/11: [Quản lý phòng phân công + CLI login](state/department-managers-cli-login.md) — đang kiểm tra cuối và build desktop Windows 0.4.14; tích hợp Marketing/Kho đang có, không push/publish.
+
+- Claude Code · 06/11: [Marketing: Kho dữ liệu, tài khoản MXH, Content Creator/Asset Manager/Product Photo, sửa giao việc](state/marketing-assets-social.md) — xong code; lint/typecheck/unit 256 đạt, xem tay cổng 4311; E2E chưa chạy (lỗi môi trường); chưa commit.
+
 - Codex · 06/11: [Tự cập nhật desktop từ GitHub](state/desktop-auto-update.md) — đã phát hành public/latest v0.4.13; CI/Windows/Mac Intel+ARM đạt, checksum và chữ ký/signed-version thật đạt; code đã commit/push, cài lần đầu để nhận cập nhật trong app.
 
 - Codex · 06/11: [Video, FFmpeg kèm app, giao từng vị trí và phát hành](state/video-tools-role-release.md) — đã phát hành public/latest v0.4.12; FFmpeg offline, MP4 thật, giao từng nhân sự; CI/build/Mac Intel+ARM đạt, 3 bộ cài tải lại khớp SHA256, code đã commit/push.

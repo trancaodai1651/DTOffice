@@ -53,8 +53,11 @@ export function workFlow({ back, openTeam, openSpecialist }) {
     const picker = projectPicker({ value: pick.dir, onPick: (p) => { pick.dir = p?.dir || ''; next.disabled = !pick.dir; } });
     const prev = el('button', 'gw-prev', tr('guide.work.prev')); prev.type = 'button'; prev.addEventListener('click', stepTask);
     next.addEventListener('click', () => { if (pick.dir) stepTeam(); });
+    // a marketing task needs no project: the department's asset library ("Kho dữ liệu")
+    const kho = el('button', 'gw-prev gw-kho', tr('library.workspace')); kho.type = 'button';
+    kho.addEventListener('click', async () => { const t = await fetch(`/api/team${q()}`).then((x) => x.json()).catch(() => null); if (t?.workspace) { pick.dir = t.workspace; stepTeam(); } });
     const acts = el('div', 'gw-acts'); acts.append(prev, next);
-    body.replaceChildren(say(tr('guide.work.askProject')), picker, acts);
+    body.replaceChildren(say(tr('guide.work.askProject')), picker, kho, acts);
   }
   // 3. the team(s) she found, who it goes to, and how it runs
   async function stepTeam() {
@@ -71,7 +74,7 @@ export function workFlow({ back, openTeam, openSpecialist }) {
     const teamsBox = el('fieldset', 'gw-teams'); teamsBox.append(el('legend', null, tr('guide.work.teams')));
     for (const id of all) {
       const l = el('label', 'gw-team'), c = el('input'); c.type = 'checkbox'; c.checked = pick.teams.includes(id);
-      c.addEventListener('change', () => { pick.teams = all.filter((x) => (x === id ? c.checked : pick.teams.includes(x))); go.disabled = !pick.teams.length; });
+      c.addEventListener('change', () => { pick.teams = all.filter((x) => (x === id ? c.checked : pick.teams.includes(x))); go.disabled = !pick.teams.length; drawFields(); });
       l.append(c, el('span', null, tr(`team.teams.${id}`)), el('small', null, tr(`team.teams.${id}Sub`)));
       teamsBox.append(l);
     }
@@ -84,7 +87,8 @@ export function workFlow({ back, openTeam, openSpecialist }) {
       const efforts = m?.efforts || (pick.agent === 'codex' ? [...new Set(models.flatMap((x) => x.efforts))] : tasks.models?.claude?.[0]?.efforts || []);
       if (pick.effort && !efforts.includes(pick.effort)) pick.effort = '';
       fields.replaceChildren(
-        select(tr('team.giveTo'), [['pm', tr('team.roles.pm.name')], ['cto', tr('team.roles.cto.name')]], pick.lead, (v) => { pick.lead = v; }),
+        pick.teams[0] === 'marketing' ? select(tr('team.giveTo'), [['cmo', tr('team.roles.cmo.name')]], 'cmo', () => {})   // (the marketing department: its manager takes it)
+          : select(tr('team.giveTo'), [['pm', tr('team.roles.pm.name')], ['cto', tr('team.roles.cto.name')]], pick.lead === 'cto' ? 'cto' : 'pm', (v) => { pick.lead = v; }),
         select(tr('team.cli'), [['claude', 'Claude Code'], ['codex', 'Codex CLI']].filter(([a]) => can(a)), pick.agent, (v) => { pick.agent = v; pick.model = ''; pick.effort = ''; drawFields(); }),
         select(tr('team.model'), [['', tr('chat.task.modelDefault')], ...models.map((x) => [x.id, x.name])], pick.model, (v) => { pick.model = v; drawFields(); }),
         select(tr('team.effort'), [['', tr('chat.task.effortDefault')], ...efforts.map((e) => [e, effortName(e)])], pick.effort, (v) => { pick.effort = v; }),

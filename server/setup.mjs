@@ -6,6 +6,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFile, spawn } from 'node:child_process';
+import { standaloneEnvironment, authStatus, cliCommand } from './cli-environment.mjs';
 
 export const AGENTS = ['claude', 'codex'];
 const PKG = { claude: '@anthropic-ai/claude-code', codex: '@openai/codex' };
@@ -16,29 +17,34 @@ export function pickAgents(list) {
   return out.length ? out : null;
 }
 
-export function createSetup({ root, port, prefs, claude, codex, broadcast = () => {}, onAgents = () => {}, onAuth = () => {}, log = () => {}, env = process.env }) {
+export function createSetup({ root, port, prefs, claude, codex, broadcast = () => {}, onAgents = () => {}, onAuth = () => {}, log = () => {}, env = process.env, accountEnv = () => env, exec = execFile }) {
   const home = os.homedir(), WIN = process.platform === 'win32';
-  const claudeDir = () => env.CLAUDE_CONFIG_DIR || path.join(home, '.claude');
+  const claudeDir = () => accountEnv().CLAUDE_CONFIG_DIR || path.join(home, '.claude');
   const codexDir = () => String(env.CODEX_HOME || path.join(home, '.codex')).replace(/^~(?=$|[\\/])/, home);
   // Claude Code's sign-in, as Claude Code itself tells it (`claude auth status`, kept a minute): a .credentials.json can
   // be there with no account in it (only MCP servers' sign-ins), and the Claude desktop app signs in on its own, apart
   // from the CLI. Codex's: whether its auth.json is there (what is in it is Codex's own).
-  let auth = { at: 0, in: null, busy: false };
+  let auth = { at: 0, in: null, busy: false, dir: '' };
   // (the variables of a Claude Code the office was started from, when it was, say nothing about the CLI's own sign-in)
-  const cliEnv = () => Object.fromEntries(Object.entries(env).filter(([k]) => !/^(CLAUDE_CODE_|CLAUDECODE$|ANTHROPIC_BASE_URL$)/.test(k)));
+  const cliEnv = () => standaloneEnvironment(accountEnv());
   function claudeAuth(force = false) {
-    const bin = claude(); if (!bin || auth.busy || (!force && Date.now() - auth.at < 60_000)) return;
+    const bin = claude(), dir = claudeDir(); if (!bin || auth.busy) return;
+    if (dir !== auth.dir) auth = { at: 0, in: null, busy: false, dir };
+    if (!force && Date.now() - auth.at < 60_000) return;
     auth.busy = true;
     const file = typeof bin === 'string' ? bin : bin.file;
     const e = cliEnv();
-    execFile(file, ['auth', 'status'], { env: e, timeout: 20_000, windowsHide: true }, (err, out) => {
-      let now = null; try { now = !!JSON.parse(String(out)).loggedIn; } catch { /* an older Claude Code: no such command */ }
+    const cmd = cliCommand(file, ['auth', 'status']);
+    const checked = (err, out) => {
+      const now = authStatus(out);   // failed/unsupported check is unknown, never a false "logged out"
       const moved = now !== auth.in;
-      auth = { at: Date.now(), in: now, busy: false };
+      auth = { at: Date.now(), in: now, busy: false, dir };
       if (moved) { onAuth(now); send(); }
-    });
+    };
+    try { exec(cmd.file, cmd.args, { env: e, timeout: 20_000, windowsHide: true }, checked); }
+    catch (err) { checked(err, ''); }   // an invalid/unavailable executable must not crash the office or imply logout
   }
-  const signedIn = { claude: () => { claudeAuth(); return auth.in ?? (process.platform === 'darwin' || null); },
+  const signedIn = { claude: () => { claudeAuth(); return auth.dir === claudeDir() ? auth.in : null; },
     codex: () => fs.existsSync(path.join(codexDir(), 'auth.json')) };
   function hooksIn() {
     try { return fs.readFileSync(path.join(claudeDir(), 'settings.json'), 'utf8').includes(`127.0.0.1:${port}/event`); } catch { return false; }

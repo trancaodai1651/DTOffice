@@ -93,6 +93,7 @@ export default {
   cameraToolbar: {
     team: 'AI room',
     marketing: 'Marketing room',
+    kho: 'Asset room',
     label: 'View',
     home: 'Overview',
     desks: 'Desks',

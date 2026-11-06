@@ -1,14 +1,14 @@
 // Personnel, freshness and explicit session selection, shared by 2D and the 3D office.
 import { $, el, HQ } from '../core/env.js';
-import { MARKETING_ROLE_IDS, TEAM_SEATS, TEAM_GROUPS } from '../../shared/team-roles.js';
-import { getTeamPresence, liveTeamEnabled, onTeamPresence, teamSessionActivity } from '../people/ai-team.js';
+import { MARKETING_ROLE_IDS, MARKETING_ROSTER, TEAM_SEATS, TEAM_GROUPS } from '../../shared/team-roles.js';
+import { getMarketingPresence, getTeamPresence, liveTeamEnabled, onTeamPresence, teamSessionActivity } from '../people/ai-team.js';
 import { AGENT_NAME, sessions } from '../people/workers.js';
 import { t as tr } from '../../i18n/index.js';
 
 let selectedRole = null;
 let openTeamUi = null;
 export function setTeamOpener(open) { openTeamUi = open; }
-export const showRole = roleId => { if (liveTeamEnabled() && TEAM_SEATS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } else if (liveTeamEnabled() && MARKETING_ROLE_IDS.includes(roleId)) openTeamUi?.({ roleId }); };
+export const showRole = roleId => { if (liveTeamEnabled() && TEAM_SEATS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } else if (liveTeamEnabled() && MARKETING_ROLE_IDS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } };
 export const presenceStatus = p => tr(`team.presence.${p.freshness === 'loading' ? 'loading' : p.freshness === 'stale' ? 'stale' : p.activity}`);
 export function positionTeamEntry(lite) {
   const entry = document.querySelector('.team-presence-entry'); if (!entry) return;
@@ -24,7 +24,7 @@ export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
   function draw() {
     if (!element.isConnected && lastKey) return;
     const people = getTeamPresence(), data = people.map(p => ({ ...p, sessions: p.sessionIds.map(id => sessions.get(id)).filter(Boolean), activities: p.sessionIds.map(id => sessions.has(id) ? teamSessionActivity(sessions.get(id)) : 'unknown') }));
-    const key = JSON.stringify([selectedRole, missing, data]); if (key === lastKey) return; lastKey = key;
+    const key = JSON.stringify([selectedRole, missing, data, getMarketingPresence()]); if (key === lastKey) return; lastKey = key;
     const fresh = people[0]?.freshness || 'loading';
     summary.textContent = `${tr('team.presence.members', { n: TEAM_SEATS.length })} · ${tr('team.presence.teamSessions', { n: fresh === 'fresh' ? people.reduce((n,p) => n + p.sessionIds.length, 0) : '—' })}`;
     notice.textContent = fresh === 'stale' ? tr('team.presence.disconnected') : fresh === 'loading' ? tr('team.presence.loading') : '';
@@ -32,11 +32,15 @@ export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
     const focus = element.contains(document.activeElement) ? document.activeElement.dataset.focus : null;
     const scroll = element.closest('.tm-sheet'), top = scroll?.scrollTop;
     list.replaceChildren();
-    for (const [group, start, end] of TEAM_GROUPS) {
-      const col = el('div', `tm-group is-${group}`); col.append(el('h3', null, tr(`team.groups.${group}`)));
-      for (const p of data.slice(start, end)) {
+    // the dev team by group, then the marketing department by group (its own people: getMarketingPresence)
+    const mkData = getMarketingPresence().map(p => ({ ...p, sessions: p.sessionIds.map(id => sessions.get(id)).filter(Boolean) }));
+    const groups = [...TEAM_GROUPS.map(([group, start, end]) => [tr(`team.groups.${group}`), group, data.slice(start, end)]),
+      ...MARKETING_ROSTER.map(([group, ids]) => [`📣 ${tr(`team.marketing.groups.${group}`)}`, group, ids.map(id => mkData.find(p => p.roleId === id) || { roleId: id, sessionIds: [], sessions: [], activity: 'idle', freshness: people[0]?.freshness || 'loading' })])];
+    for (const [title, group, members] of groups) {
+      const col = el('div', `tm-group is-${group}`); col.append(el('h3', null, title));
+      for (const p of members) {
         const name = tr(`team.roles.${p.roleId}.name`), row = el('div', 'tm-person'), button = el('button', 'tm-person-button');
-        button.type = 'button'; button.dataset.role = p.roleId; button.dataset.focus = `role:${p.roleId}`;
+        button.type = 'button'; button.dataset.role = p.roleId; button.dataset.team = MARKETING_ROLE_IDS.includes(p.roleId) ? 'marketing' : 'dev'; button.dataset.focus = `role:${p.roleId}`;
         button.setAttribute('aria-expanded', String(selectedRole === p.roleId)); button.setAttribute('aria-controls', `tm-role-${p.roleId}`);
         button.append(el('span', 'tm-person-name', name), el('span', `tm-person-status is-${p.freshness === 'fresh' ? p.activity : p.freshness}`, `${presenceStatus(p)}${p.sessionIds.length ? ` · ${tr('team.presence.sessions', { n: p.sessionIds.length })}` : ''}`));
         button.addEventListener('click', () => { selectedRole = selectedRole === p.roleId ? null : p.roleId; missing = false; draw(); });

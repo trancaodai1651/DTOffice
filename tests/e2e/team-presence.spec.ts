@@ -24,7 +24,8 @@ test('live HQ has 15 stable people at night with zero execution; snapshot, mult-
   await page.waitForFunction('window.__office.teamRoster.size === 15');
   expect(await page.evaluate('window.__office.sessions.size')).toBe(0);
   await page.locator('#btn-team-presence').click();
-  await expect(page.locator('.tm-person-button')).toHaveCount(15);
+  await expect(page.locator('.tm-person-button[data-team="dev"]')).toHaveCount(15);
+  await expect(page.locator('.tm-person-button[data-team="marketing"]')).toHaveCount(21);
   await expect(page.locator('.tm-presence-summary')).toContainText('— team sessions');
   await expect(page.locator('[data-role="frontend"]')).toContainText('Syncing');
   await emit(page, snap());
@@ -72,7 +73,8 @@ test('2D roster survives API errors, stale data, keyboard/mobile and switches to
   expect(await page.evaluate('window.__office.teamRoster.size')).toBe(0);
   await expect(page.locator('#stage canvas')).toHaveCount(0);
   await page.locator('#btn-team-presence').click();
-  await expect(page.locator('.tm-person-button')).toHaveCount(15);
+  await expect(page.locator('.tm-person-button[data-team="dev"]')).toHaveCount(15);
+  await expect(page.locator('.tm-person-button[data-team="marketing"]')).toHaveCount(21);
   await expect(page.getByText('Could not load task information. Try again.')).toBeVisible();
   expect(await page.evaluate('document.activeElement?.tagName')).not.toBe('TEXTAREA');
   await emit(page, snap([s('cached')]));

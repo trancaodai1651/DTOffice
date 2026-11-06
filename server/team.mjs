@@ -20,8 +20,10 @@
 // run their members one at a time, so two of them never edit the same file at once; the others side by side, as many as
 // the office runs at a time (server/tasks.mjs), the rest waiting their turn.
 import fs from 'node:fs';
+import { MANAGERS } from '../src/shared/department-request.js';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 
 /** The 15 roles, by group, and what each does (said to the model in English; their names on screen are the page's). */
 export const ROLES = [
@@ -44,7 +46,10 @@ export const ROLES = [
 export const GROUPS = ['lead', 'design', 'dev', 'quality', 'ops'];
 /** "Đội AI Agent Marketing": one department, one agent per position, run by its Marketing Manager (CMO). You give the goal
  *  to the manager; it plans with Research and Strategy and names (a "ROLES:" line) the positions the goal needs: only
- *  those are called after. Deliverables are files in the project (marketing/<run>/); nothing is posted, sent or paid for. */
+ *  those are called after. Deliverables are files in the project (marketing/<run>/) and in the asset library
+ *  (server/asset-library.mjs: products, image sets, the posts queued for Social Media); the agents post, send and pay for
+ *  nothing: the CEO publishes a queued post from the Social panel, on an account saved there (server/social-accounts.mjs).
+ *  Each position also learns the office's skills for it (server/skills/marketing/). */
 export const MARKETING_ROLES = [
   { id: 'cmo', group: 'mlead', duty: 'Marketing Manager: receives the goal from the CEO, sets the objective, budget split and KPIs, assigns each part to the right position, keeps everyone on one message, and reports to the CEO.' },
   { id: 'research', group: 'mstrategy', duty: 'Market research: the market and its size, competitors, customer segments, insights and the evidence behind them (say what is assumed).' },
@@ -52,26 +57,32 @@ export const MARKETING_ROLES = [
   { id: 'brand', group: 'mstrategy', duty: 'Brand: brand identity, voice and tone, key messages and the guidelines everyone else must follow.' },
   { id: 'product', group: 'mstrategy', duty: 'Product marketing: value proposition, features turned into benefits, pricing and offer framing, launch plan, sales enablement.' },
   { id: 'content', group: 'mcontent', duty: 'Content strategy: content pillars, the editorial calendar, formats per channel, and the creative brief each producer works from.' },
+  { id: 'creator', group: 'mcontent', duty: 'Social content creator: finds the content ideas (angles, hooks, series, trends that fit the brand) from the products in the asset library, writes each social post ready to publish (hook, body, CTA, hashtags, which photo or video goes with it) and hands it to Social Media as a post package in the library\'s bai-dang/.' },
   { id: 'copywriter', group: 'mcontent', duty: 'Copywriting: headlines, ad copy, landing page and website copy, posts, scripts and CTAs, in the brand voice.' },
   { id: 'designer', group: 'mcontent', duty: 'Graphic design: visual concepts, key visuals, layouts and specifications for banners, posts and print (as briefs, mockups or SVG/HTML when possible).' },
   { id: 'motion', group: 'mcontent', duty: 'Video and motion content: short-video ideas, scripts, storyboards, shot lists and editing notes for TikTok, Reels, YouTube.' },
   { id: 'seo', group: 'mchannel', duty: 'SEO: keyword research, search intent, on-page optimisation, content outlines for search, technical SEO checks.' },
   { id: 'ads', group: 'mchannel', duty: 'Performance ads: paid campaigns on Google, Meta, TikTok: structure, audiences, budgets, bids, ad sets and A/B tests. Never spends money.' },
-  { id: 'social', group: 'mchannel', duty: 'Social media: channel plan and posting calendar for Facebook, TikTok, Instagram, Zalo, LinkedIn; community replies and engagement.' },
+  { id: 'social', group: 'mchannel', duty: 'Social media and publishing: runs the office\'s saved accounts on Facebook, Instagram, Threads, TikTok (and the Shopee / TikTok Shop listings), the posting calendar and the queue of posts in the asset library (bai-dang/): picks the account and time of each post and gets it ready for the CEO to publish with one click; community replies and engagement.' },
   { id: 'email', group: 'mchannel', duty: 'Email and CRM: segments, automated journeys, newsletters, email copy and subject lines, retention and loyalty. Never sends.' },
   { id: 'pr', group: 'mchannel', duty: 'PR and communications: press releases, media list, story angles, crisis lines and Q&A.' },
   { id: 'kol', group: 'mchannel', duty: 'KOL, influencers and affiliates: selection criteria, brief, collaboration plan and costs, partnerships and community.' },
   { id: 'events', group: 'mchannel', duty: 'Events and activation: online and offline events, webinars, promotions and trade marketing, run sheets and checklists.' },
+  { id: 'librarian', group: 'massets', duty: 'Asset manager ("Kho dữ liệu"): keeps the asset library in order: the product photos and videos (from the folders the CEO links) filed by category and product, each product\'s facts sheet, the catalogue (kho.md), names without accents, nothing lost or duplicated; tells the others what exists and what is missing.' },
+  { id: 'photo', group: 'massets', duty: 'Product photo designer: turns a product\'s photos from the asset library into finished image sets for each platform (Facebook, Instagram, TikTok, Threads posts; Shopee and TikTok Shop listings): crops and sizes to each platform\'s specs, cleans and evens the light, white-background main images, detail and benefit images with short text; saves them by category and product in bo-anh/.' },
   { id: 'editor', group: 'mquality', duty: 'Editor and brand compliance: checks every deliverable for accuracy, brand voice, spelling, claims that cannot be backed and advertising law/platform policy.' },
   { id: 'analytics', group: 'mquality', duty: 'Marketing analytics: KPIs and targets, tracking plan (UTM, pixels, events), dashboards and how results will be measured and reported.' },
 ];
-export const MARKETING_GROUPS = ['mlead', 'mstrategy', 'mcontent', 'mchannel', 'mquality'];
-const MK_MAKERS = ['copywriter', 'designer', 'motion', 'seo', 'ads', 'social', 'email', 'pr', 'kol', 'events'];
+export const MARKETING_GROUPS = ['mlead', 'mstrategy', 'mcontent', 'mchannel', 'massets', 'mquality'];
+// who produces (side by side, each its own files); Social Media comes after the review, to queue what passed (mpublish)
+const MK_MAKERS = ['creator', 'copywriter', 'designer', 'photo', 'motion', 'librarian', 'seo', 'ads', 'email', 'pr', 'kol', 'events'];
+const MK_POSTS = ['social', 'creator', 'photo'];   // (any of these named: the posts go to Social Media's queue)
 export const MARKETING_STAGES = [
   { key: 'mplan', roles: ['cmo', 'research', 'strategist'], always: ['cmo', 'research', 'strategist'], parallel: true, task: 'Plan the goal, each from your own role: read first what the project already holds about the product, the brand and past marketing (README, docs, marketing/). Do not produce the final content in this stage.' },
   { key: 'mstrategy', roles: ['brand', 'product', 'content'], always: ['content'], parallel: true, task: 'Turn the plan into the message and the brief, each from your own role: what we say, to whom, in which voice, in which formats. Do not produce the final content in this stage.' },
-  { key: 'mproduce', roles: MK_MAKERS, always: [], parallel: true, task: 'Produce your own deliverables from the plan and the brief, ready to use, as files in marketing/<run>/ in the project. Do not post, publish, send or spend anything anywhere.' },
-  { key: 'mreview', roles: ['editor', 'analytics'], always: ['editor', 'analytics'], parallel: false, task: 'Review every deliverable from your own role. Fix only small, certain problems (a typo, a wrong link); list the rest. End your report and your answer with a line that is exactly "VERDICT: PASS" when it can be used, or "VERDICT: FAIL" followed by the problems that must be fixed.' },
+  { key: 'mproduce', roles: MK_MAKERS, always: [], parallel: true, task: 'Produce your own deliverables from the plan and the brief, ready to use, as files in marketing/<run>/ (posts, image sets and library work where your role says). Do not post, publish, send or spend anything anywhere.' },
+  { key: 'mreview', roles: ['editor', 'analytics'], always: ['editor', 'analytics'], parallel: false, task: 'Review every deliverable from your own role, the post packages in bai-dang/ and the image sets in bo-anh/ included. Fix only small, certain problems (a typo, a wrong link); list the rest. End your report and your answer with a line that is exactly "VERDICT: PASS" when it can be used, or "VERDICT: FAIL" followed by the problems that must be fixed.' },
+  { key: 'mpublish', roles: ['social'], always: [], parallel: false, task: 'Get the reviewed posts ready to publish: for each post package of this run in bai-dang/, choose the account (from the saved accounts listed below) and the time for each platform, check the caption fits each platform, set "status": "ready", and write the posting calendar. Do not open a browser and do not post: the CEO publishes each post from the Social panel.' },
 ];
 const MK_FIX = { key: 'mfix', roles: MK_MAKERS, always: [], parallel: true, task: 'Fix every problem the review found in your own deliverables (read its reports).' };
 /** The AI Agent teams, and the words of a task that call for each (lower case, Vietnamese and English). Each team runs its
@@ -81,9 +92,11 @@ export const TEAMS = [
     name: 'AI Agent Dev', kind: 'software', plan: 'plan', check: 'verify', fix: () => FIX, fallback: ['frontend', 'backend'],
     words: ['code', 'app', 'web', 'api', 'bug', 'lỗi', 'tính năng', 'feature', 'giao diện', 'ui', 'ux', 'server', 'backend', 'frontend', 'database', 'test', 'build', 'deploy', 'phần mềm', 'software', 'module', 'fix', 'sửa', 'refactor', 'mobile', 'desktop', 'trang', 'màn hình', 'screen', 'dữ liệu', 'data', 'ai', 'agent', 'nhân sự', 'văn phòng', 'office'] },
   { id: 'marketing', roles: MARKETING_ROLES.map((r) => r.id), stages: () => MARKETING_STAGES, lead: 'cmo',
-    name: 'AI Agent Marketing', kind: 'marketing', plan: 'mplan', check: 'mreview', fix: () => MK_FIX, fallback: ['copywriter', 'designer', 'social'],
-    words: ['marketing', 'quảng cáo', 'quảng bá', 'ads', 'seo', 'content', 'nội dung', 'bài viết', 'bài đăng', 'copywriting', 'slogan', 'thương hiệu', 'brand', 'chiến dịch', 'campaign', 'truyền thông', 'pr', 'thông cáo', 'mạng xã hội', 'social', 'facebook', 'fanpage', 'tiktok', 'instagram', 'zalo', 'youtube', 'email marketing', 'newsletter', 'kol', 'koc', 'influencer', 'sự kiện', 'event', 'khuyến mãi', 'ưu đãi', 'promotion', 'ra mắt', 'launch', 'bán hàng', 'doanh số', 'khách hàng', 'thị trường', 'đối thủ', 'landing page', 'tiếp thị', 'livestream'] },
+    name: 'AI Agent Marketing', kind: 'marketing', plan: 'mplan', check: 'mreview', fix: () => MK_FIX, fallback: ['creator', 'designer'],
+    words: ['marketing', 'quảng cáo', 'quảng bá', 'ads', 'seo', 'content', 'nội dung', 'bài viết', 'bài đăng', 'đăng bài', 'viết bài', 'caption', 'hashtag', 'copywriting', 'slogan', 'thương hiệu', 'brand', 'chiến dịch', 'campaign', 'truyền thông', 'pr', 'thông cáo', 'mạng xã hội', 'social', 'facebook', 'fanpage', 'tiktok', 'instagram', 'threads', 'zalo', 'youtube', 'shopee', 'lazada', 'tiktok shop', 'sàn', 'email marketing', 'newsletter', 'kol', 'koc', 'influencer', 'sự kiện', 'event', 'khuyến mãi', 'ưu đãi', 'promotion', 'ra mắt', 'launch', 'bán hàng', 'doanh số', 'khách hàng', 'thị trường', 'đối thủ', 'landing page', 'tiếp thị', 'livestream', 'sản phẩm', 'ảnh sản phẩm', 'bộ ảnh', 'hình ảnh', 'kho ảnh', 'kho dữ liệu', 'ý tưởng'] },
 ];
+// words that say little about the kind of work ("nhân sự", "dữ liệu"…): half a word when choosing the team
+const WEAK = new Set(['nhân sự', 'ai', 'agent', 'data', 'dữ liệu', 'trang', 'văn phòng', 'office', 'sản phẩm', 'hình ảnh', 'ý tưởng', 'khách hàng', 'sàn']);
 const ALL_ROLES = [...ROLES, ...MARKETING_ROLES];
 const teamOf = (id) => TEAMS.find((t) => t.id === id) || TEAMS[0];
 const teamNow = (run) => teamOf(run?.teams?.[run?.ti || 0]);
@@ -97,7 +110,12 @@ const isPlan = (key) => TEAMS.some((t) => (t.plan || 'plan') === key);
 export function routeTeams(text) {
   const low = ` ${String(text || '').toLowerCase()} `;
   const hit = (w) => (/^[a-z]+$/.test(w) ? new RegExp(`[^a-z]${w}[^a-z]`).test(low) : low.includes(w));
-  const out = TEAMS.map((t) => ({ id: t.id, words: t.words.filter(hit) })).filter((x) => x.words.length).sort((a, b) => b.words.length - a.words.length);
+  const found = TEAMS.map((t) => ({ id: t.id, words: t.words.filter(hit) }));
+  const all = found.flatMap((x) => x.words);
+  // a word inside a longer one that matched ("dữ liệu" in "kho dữ liệu") is that one's; the vague words count half
+  const out = found.map((x) => ({ ...x, words: x.words.filter((w) => !all.some((o) => o !== w && o.length > w.length && o.includes(w) && !x.words.includes(o))) }))
+    .map((x) => ({ ...x, score: x.words.reduce((n, w) => n + (WEAK.has(w) ? 0.5 : 1), 0) }))
+    .filter((x) => x.words.length).sort((a, b) => b.score - a.score).map(({ id, words }) => ({ id, words }));
   return out.length ? out : [{ id: TEAMS[0].id, words: [] }];
 }
 /** The stages, in order: their members (always: who is there whatever the goal; maybe: only when the PM named them),
@@ -125,7 +143,11 @@ const FOCUS = {
   security: 'Check secrets, input validation, auth, dependencies and data exposure.',
   devops: 'Build and package it, check the configuration and CI, write how to deploy, monitor and roll back.',
   database: 'Check the schema and migrations, indexes, backups and data integrity.',
-  cmo: `Restate the goal as a marketing objective with KPIs, target audience, budget split and timeline; break it into tasks and assign each to a position. End your report with a line "ROLES: …" naming, from brand, product, content, ${MK_MAKERS.join(', ')}, only the positions this goal needs (Research, Strategist, Content, Editor and Analytics always take part).`,
+  cmo: `Restate the goal as a marketing objective with KPIs, target audience, budget split and timeline; break it into tasks and assign each to a position. End your report with a line "ROLES: …" naming, from brand, product, content, ${MK_MAKERS.join(', ')}, social, only the positions this goal needs (Research, Strategist, Content, Editor and Analytics always take part). Posts for social networks: creator writes them, photo makes their images from the asset library, social queues them for the CEO; product images for Shopee / TikTok Shop: photo (with librarian when the products' photos are not filed yet).`,
+  creator: 'From the brief and the products in the asset library, list the content ideas worth making (angle, hook, format, platform) and pick the best; write each post in full, ready to publish, one post package per post in bai-dang/<post-id>/ (post.json as your skill says, its images or video copied or referenced from bo-anh/ or san-pham/). Never invent a product fact: take it from thong-tin.md or say what is missing.',
+  librarian: 'Scan the folders the CEO linked and the library; file each product\'s originals under san-pham/<category>/<product>/goc/ (copy, never move or delete the CEO\'s files), start a thong-tin.md for each product from what is known, update kho.md (the catalogue: category, product, number of photos/videos, what is missing), and list duplicates or unusable files.',
+  photo: 'Make the image sets the goal asks for from the product\'s photos in the library, with the image tools on this computer (sharp in Node, or ffmpeg): sizes and specs per platform as your skill says, saved in bo-anh/<category>/<product>/<platform>-<YYYY-MM-DD>/ with a short README (which file is for what). Check every file opens and has the right size.',
+  social: 'Check each post package against each platform\'s rules and limits, give it an account and a time, set "status": "ready" and write the calendar (marketing/<run>/social-calendar.md). Say which accounts are missing (the CEO adds them in the Social panel).',
   research: 'Give the market, competitors, segments and insights this goal rests on; mark what is assumed and how to check it.',
   strategist: 'Give the positioning, personas, customer journey, channel mix and the timeline of the campaign.',
   brand: 'Give the key message, voice and tone, and the do and do not list for everyone producing content.',
@@ -135,6 +157,13 @@ const FOCUS = {
   analytics: 'Give KPIs and targets, the tracking plan (UTM, pixels, events) and how to measure and report; check every deliverable is measurable.',
 };
 const roleOf = (id) => ALL_ROLES.find((r) => r.id === id);
+/** The office's own training for a marketing role: server/skills/marketing/_team.md (every position) and <role>.md. */
+export const MK_SKILLS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'skills', 'marketing');
+export function builtinSkills(role, dir = MK_SKILLS_DIR) {
+  if (!MARKETING_ROLES.some((r) => r.id === role)) return '';
+  const read = (f) => { try { return fs.readFileSync(path.join(dir, f), 'utf8').trim(); } catch { return ''; } };
+  return [read('_team.md'), read(`${role}.md`)].filter(Boolean).join('\n\n');
+}
 const fileOf = (run, n, key, role) => path.posix.join('.ai-office', 'team', run.id, `${n}-${key}-${role}.md`);
 
 /** The roles the PM named in its plan ("ROLES: frontend, backend"), or null when it named none. */
@@ -149,13 +178,15 @@ export function membersOf(run, stage) {
   if (stage.key === 'report') return [leadOf(run, team)];
   const named = run.named, pick = stage.roles.filter((r) => stage.always.includes(r) || !named || named.includes(r));
   if (stage.key === 'plan' && run.lead === 'cto') pick.unshift('cto');
-  if ((stage.key === 'mproduce' || stage.key === 'mfix') && !named) return [...fallbackOf(team)];   // (the manager named nobody: the three most goals need, not all ten)
+  if (stage.key === 'mpublish') return !named || named.some((r) => MK_POSTS.includes(r)) ? ['social'] : [];   // (posts made: Social Media queues them)
+  if ((stage.key === 'mproduce' || stage.key === 'mfix') && !named) return [...fallbackOf(team)];   // (the manager named nobody: those most goals need, not all twelve)
+  if (stage.key === 'mproduce' && !pick.length && named.includes('social')) return [];   // (only posts to queue: straight to the review and Social Media)
   if ((stage.key === 'build' || stage.key === 'mproduce' || isFix(stage.key)) && !pick.length) return stage.roles.filter((r) => fallbackOf(team).includes(r));   // (nobody named who makes it: those who make most things)
   return pick;
 }
 
 /** What one member's session is told: the team, its own role and only that, the goal, what to read, where to write. */
-export function rolePrompt({ run, stage, n, role, mates, lang, earlier }) {
+export function rolePrompt({ run, stage, n, role, mates, lang, earlier, context = '' }) {
   const R = roleOf(role), others = mates.filter((m) => m !== role), team = teamNow(run);
   return [
     `You are the ${role.toUpperCase()} Agent of the "${team.name || team.id}" team (${team.kind || team.id}) in "DT Office". The CEO (the user) gave this goal to the ${leadOf(run, team).toUpperCase()}${(run.teams || []).length > 1 ? ` (teams on it, in order: ${run.teams.join(', ')}; yours now: ${run.teams[run.ti || 0]})` : ''}:`,
@@ -164,7 +195,8 @@ export function rolePrompt({ run, stage, n, role, mates, lang, earlier }) {
     `Your role: ${R.duty}`,
     ...(FOCUS[role] ? [`In this stage: ${FOCUS[role]}`] : []),
     `The stage's task: ${stage.task.replace('<run>', run.id)}`,
-    ...(team.id === 'marketing' ? [`Put your deliverables (plans, copy, scripts, calendars, briefs, designs) in marketing/${run.id}/ in the project, one file or folder per deliverable, named for your role. Do not change the product's code. Never post, publish, send email or messages, or spend any budget: prepare everything ready for the CEO to approve and use.`] : []),
+    ...(team.id === 'marketing' ? [`Put your deliverables (plans, copy, scripts, calendars, briefs, designs) in marketing/${run.id}/ in the project, one file or folder per deliverable, named for your role; post packages, product files and image sets go in the asset library as described below. Do not change the product's code. Never post, publish, send email or messages, or spend any budget, and never log in anywhere or ask for a password: prepare everything ready for the CEO to approve and publish (the CEO publishes a post from the Social panel, on the accounts saved there).`] : []),
+    ...(context ? ['', context] : []),
     ...(others.length ? ['', 'Your colleagues in this stage are separate agents, each in its own session. Do not do their work:', ...others.map((m) => `- ${m.toUpperCase()} Agent: ${roleOf(m).duty}`)] : []),
     '',
     ...(earlier.length ? ['Read these reports first (the stages before you, and the colleagues before you in this one):', ...earlier.map((f) => `- ${f}`), ''] : []),
@@ -183,7 +215,7 @@ export function verdictOf(text) {
  * @param {{ dataDir: string, lang: () => string, start: (run: object, stage: object, prompt: string, role: string) => { ok: boolean, task?: object, code?: string }, stop: (taskId: string) => void, onChange?: (run: object, what: string, extra?: object) => void, now?: () => number }} o
  * start: one member's session; { ok: false, code: 'busy' } when the office runs as many as it can: it waits its turn.
  */
-export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, now = Date.now }) {
+export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, now = Date.now, context = () => '' }) {
   const file = path.join(dataDir, 'team.json');
   let runs = [], roleSkills = {};
   try { const saved = JSON.parse(fs.readFileSync(path.join(dataDir, 'role-skills.json'), 'utf8')); if (saved && typeof saved === 'object' && !Array.isArray(saved)) roleSkills = Object.fromEntries(Object.entries(saved).filter(([role, text]) => [...ROLES, ...MARKETING_ROLES].some(r => r.id === role) && typeof text === 'string' && text.length <= 20000)); } catch { /* no assignments yet */ }
@@ -196,22 +228,30 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   const end = (r, status, what, extra) => { r.status = status; r.end = now(); save(); onChange(r, what, extra); };
 
   // the next stage of a run, once the one before it is done
+  // the stage after `last` (null: the run is over)
+  function stageAfter(r, last) {
+    const team = teamNow(r);
+    if (r.directRole && last) { end(r, 'done', 'done'); return null; }
+    if (r.directRole) return { key: 'direct', roles: [r.directRole], parallel: false };
+    if (!last) return teamOf(r.teams?.[0]).stages()[0];
+    if (isCheck(last.key) && last.verdict !== 'pass' && r.fixes < MAX_FIXES) { r.fixes++; return fixOf(team); }
+    if (isFix(last.key)) return team.stages().find((s) => s.key === checkOf(team));
+    if (isCheck(last.key) && last.verdict !== 'pass') return REPORT;   // (still failing after the fixes: nothing shipped, the CEO is told)
+    if (last.key === 'report' && (r.ti || 0) + 1 < (r.teams || []).length) { r.ti = (r.ti || 0) + 1; r.fixes = 0; r.named = null; onChange(r, 'team', { team: r.teams[r.ti] }); return teamOf(r.teams[r.ti]).stages()[0]; }   // (the next team, reading what this one left)
+    if (last.key === 'report') { end(r, 'done', 'done'); return null; }
+    if (last.key === 'ship') return REPORT;
+    const st = teamOf(r.teams?.[r.ti || 0]).stages(), i = st.findIndex((s) => s.key === last.key); return st[i + 1] || REPORT;
+  }
   function nextStage(r) {
     if (r.status !== 'run') return;
-    const last = r.stages.at(-1);
-    let stage;
-    const team = teamNow(r);
-    if (r.directRole && last) { end(r, 'done', 'done'); return; }
-    if (r.directRole) stage = { key: 'direct', roles: [r.directRole], parallel: false };
-    else if (!last) stage = teamOf(r.teams?.[0]).stages()[0];
-    else if (isCheck(last.key) && last.verdict !== 'pass' && r.fixes < MAX_FIXES) { r.fixes++; stage = fixOf(team); }
-    else if (isFix(last.key)) stage = team.stages().find((s) => s.key === checkOf(team));
-    else if (isCheck(last.key) && last.verdict !== 'pass') stage = REPORT;   // (still failing after the fixes: nothing shipped, the CEO is told)
-    else if (last.key === 'report' && (r.ti || 0) + 1 < (r.teams || []).length) { r.ti = (r.ti || 0) + 1; r.fixes = 0; r.named = null; onChange(r, 'team', { team: r.teams[r.ti] }); stage = teamOf(r.teams[r.ti]).stages()[0]; }   // (the next team, reading what this one left)
-    else if (last.key === 'report') { end(r, 'done', 'done'); return; }
-    else if (last.key === 'ship') stage = REPORT;
-    else { const st = teamOf(r.teams?.[r.ti || 0]).stages(), i = st.findIndex((s) => s.key === last.key); stage = st[i + 1] || REPORT; }
-    const n = r.stages.length + 1, roles = r.directRole ? [r.directRole] : membersOf(r, stage);
+    let last = r.stages.at(-1), stage = null, roles = [];
+    for (let k = 0; k < 12; k++) {
+      stage = stageAfter(r, last); if (!stage) return;
+      roles = r.directRole ? [r.directRole] : membersOf(r, stage);
+      if (roles.length || stage.key === 'report') break;
+      last = { key: stage.key, verdict: 'pass' };   // (nobody this goal needs in it: the stage after it)
+    }
+    const n = r.stages.length + 1;
     const s = { key: stage.key, team: r.teams?.[r.ti || 0] || 'dev', n, roles, parallel: stage.parallel, state: 'run', verdict: '', jobs: roles.map((role) => ({ role, state: 'wait', task: null, file: fileOf(r, n, stage.key, role), summary: '', verdict: '' })) };
     r.stages.push(s); save(); onChange(r, 'stage', { stage: s });
     launch(r);
@@ -242,8 +282,11 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
       if (held) { if (held.run !== j.held?.run || held.role !== j.held?.role) { j.held = held; save(); onChange(r, 'held', { stage: s, job: j, by: held }); } if (!s.parallel) return; continue; }   // (waits: called once that one is done)
       j.held = null;
       const before = [...r.stages.slice(0, -1).flatMap((x) => (x.jobs || []).filter((y) => y.state === 'done').map((y) => y.file)), ...(s.parallel ? [] : s.jobs.filter((x) => x.state === 'done').map((x) => x.file))];
-      const skill = roleSkills[j.role];
-      const got = start(r, s, rolePrompt({ run: r, stage, n: s.n, role: j.role, mates: s.roles, lang: lang(), earlier: before }) + (skill ? `\n\nAssigned role skill (user instructions):\n${skill}\nApply this skill to your role in this task.` : ''), j.role);
+      const skill = roleSkills[j.role], learned = builtinSkills(j.role);
+      let ctx = ''; try { ctx = context(r, j.role, teamOf(s.team)) || ''; } catch { /* the library unreadable: the prompt without it */ }
+      const got = start(r, s, rolePrompt({ run: r, stage, n: s.n, role: j.role, mates: s.roles, lang: lang(), earlier: before, context: ctx })
+        + (learned ? `\n\nYour training (the office's skills for your role; follow them):\n${learned}` : '')
+        + (skill ? `\n\nAssigned role skill (user instructions):\n${skill}\nApply this skill to your role in this task.` : ''), j.role);
       if (!got?.ok && got?.code === 'busy') return;   // (the office is running as many as it can: when one ends)
       if (!got?.ok) { j.state = 'fail'; j.summary = got?.code || 'error'; s.state = 'fail'; end(r, 'fail', 'fail', { code: got?.code }); return; }
       j.task = got.task.id; j.state = 'run'; j.at = now(); save(); onChange(r, 'job', { stage: s, job: j });
@@ -273,14 +316,18 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
     get: (id) => { const r = runs.find((x) => x.id === id); return r ? pub(r) : null; },
     /** A goal from the CEO: { dir, goal, lead: 'pm' | 'cto', agent, model, effort, teams } -> { ok, run } | { ok: false, code }.
      *  Tasks run side by side; a member already at work on one is called for another once done (held). */
-    begin({ dir, goal, lead = 'pm', agent = 'claude', model = '', effort = '', teams = null, role = '' }) {
+    begin({ dir, goal, lead = 'pm', agent = 'claude', model = '', effort = '', teams = null, role = '', account }) {
       goal = String(goal || '').trim().slice(0, 4000);
       if (!goal) return { ok: false, code: 'empty' };
       role = String(role || '');
       if (role && ![...ROLES, ...MARKETING_ROLES].some(r => r.id === role)) return { ok: false, code: 'badRole' };
+      // Selecting a department manager is a delegation, not a one-person "direct" job.
+      const manager = MANAGERS[role];
+      if (manager) { lead = role; teams = [manager]; role = ''; }
       const ids = [...new Set((Array.isArray(teams) ? teams : []).filter((x) => TEAMS.some((t) => t.id === x)))];
       const list = role ? [MARKETING_ROLES.some(r => r.id === role) ? 'marketing' : 'dev'] : ids.length ? ids : lead === 'cmo' ? ['marketing'] : [TEAMS[0].id];
       const r = { teams: list, directRole: role, ti: 0, id: `${new Date(now()).toISOString().slice(0, 10)}-${crypto.randomUUID().slice(2, 8)}`, dir, goal, lead: role || teamOf(list[0]).lead || (lead === 'cto' ? 'cto' : 'pm'), agent: agent === 'codex' ? 'codex' : 'claude', model, effort, status: 'run', at: now(), fixes: 0, named: null, stages: [] };
+      if (typeof account === 'string') r.account = account;   // account label only; never credentials
       runs.unshift(r); runs = runs.slice(0, 20);
       onChange(r, 'begin');
       nextStage(r);

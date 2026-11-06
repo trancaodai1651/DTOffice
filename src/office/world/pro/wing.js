@@ -11,7 +11,7 @@ import { makeSofa } from '../furniture/room-pieces.js';
 import { trinket } from '../props/trinkets.js';
 import { DEPTS, WING } from '../layout.js';
 import { DESKS, UNITS, dLocal } from '../desks.js';
-import { MARKETING_SEATS, TEAM_SEATS } from '../../../shared/team-roles.js';
+import { KHO_SEATS, MARKETING_SEATS, TEAM_SEATS } from '../../../shared/team-roles.js';
 import { floorZone, glassWall, gridTex, lowWall, plateTex, speckTex } from './pieces.js';
 import { t as tr } from '../../../i18n/index.js';
 
@@ -29,11 +29,12 @@ function plaque(i, x, y, z, ry) {
     const g = c.getContext('2d'), n = i + 1;
     if (DEPTS[i].team) name = tr('world.dept.team');   // (the AI team's room keeps its own name)
     if (DEPTS[i].mk) name = tr('world.dept.marketing');   // (and so does the marketing department)
+    if (DEPTS[i].kho) name = tr('world.dept.kho');   // (and its asset room)
     g.fillStyle = '#1E232B'; g.fillRect(0, 0, 512, 160); g.fillStyle = ACCENTS[i]; g.fillRect(0, 0, 14, 160);
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.fillStyle = name ? '#F3EFE8' : '#9AA3B0'; g.font = `800 ${name ? 56 : 46}px ${FONT}`;
     const title = name ? tr('world.dept.name', { name }) : tr('world.dept.free', { n }); fitText(g, title, 456); g.fillText(title, 263, 66);
-    g.fillStyle = '#A9B2C0'; g.font = `600 26px ${FONT}`; g.fillText(DEPTS[i].team ? tr('world.dept.teamSub') : DEPTS[i].mk ? tr('world.dept.marketingSub') : name ? tr('world.dept.sub', { n }) : tr('world.dept.freeSub'), 263, 122);
+    g.fillStyle = '#A9B2C0'; g.font = `600 26px ${FONT}`; g.fillText(DEPTS[i].team ? tr('world.dept.teamSub') : DEPTS[i].mk ? tr('world.dept.marketingSub') : DEPTS[i].kho ? tr('world.dept.khoSub') : name ? tr('world.dept.sub', { n }) : tr('world.dept.freeSub'), 263, 122);
     tex.needsUpdate = true;
   };
   draw('');
@@ -65,6 +66,32 @@ function marketingPlates() {
     const [x, z] = dLocal(d, 0.42, 0.18), g = new THREE.Group(); g.position.set(x, 0.835, z); g.rotation.y = d.ry; scene.add(g);
     for (const s of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.125), face); m.position.z = s * 0.004; m.rotation.y = s > 0 ? 0 : Math.PI; m.userData.noMerge = true; g.add(m); }
   });
+}
+
+// the asset room: the Asset Manager's and the Product Photo designer's nameplates (KHO_SEATS), and shelves of product
+// boxes, files and photo prints along its back wall, under a "KHO DỮ LIỆU" sign
+function khoRoom() {
+  const i = DEPTS.findIndex((d) => d.kho); if (i < 0) return;
+  const d0 = DEPTS[i], room = UNITS.find((u) => u.kho);
+  KHO_SEATS.forEach((role, k) => {
+    const d = DESKS[room?.desks[k]]; if (!d) return;
+    const face = new THREE.MeshBasicMaterial({ map: plateTex(tr(`team.roles.${role}.name`), '', { bg: '#2F5D50', fg: '#F3EFE8', sub: '#B9D6C4' }) });
+    const [x, z] = dLocal(d, 0.42, 0.18), g = new THREE.Group(); g.position.set(x, 0.835, z); g.rotation.y = d.ry; scene.add(g);
+    for (const s of [1, -1]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 0.125), face); m.position.z = s * 0.004; m.rotation.y = s > 0 ? 0 : Math.PI; m.userData.noMerge = true; g.add(m); }
+  });
+  // along the room's west wall (the glass onto corridor B), facing into the room and the camera
+  const x = d0.x0 + 0.32, BOX = ['#C9A27A', '#B88E62', '#D8B98F', '#A97C55'], FILE = ['#4F6D8F', '#C2477A', '#6A8042', '#E2B04A', '#8C4FA8'];
+  for (let z = d0.z0 + 1.0; z + 1.1 < d0.z1 - 0.9; z += 1.3) {   // a run of steel shelving units
+    const g = new THREE.Group(); g.position.set(x, 0, z + 0.55); g.rotation.y = Math.PI / 2; scene.add(g);
+    for (const sx of [-0.55, 0.55]) for (const sz of [-0.18, 0.18]) put(g, rbox(0.04, 1.7, 0.04, metal, 0.01), sx, 0.85, sz);
+    for (const y of [0.12, 0.55, 0.98, 1.41]) put(g, rbox(1.14, 0.03, 0.42, mat('#B7BEC8', { roughness: 0.5 }), 0.005), 0, y, 0);
+    [0.12, 0.55, 0.98, 1.41].forEach((y, row) => {
+      if (row % 2 === 0) for (let k = 0, bx = -0.42; k < 3; k++, bx += 0.42) { const h = rand(0.22, 0.34); put(g, rbox(0.36, h, 0.32, BOX[(k + row) % BOX.length], 0.01), bx, y + 0.015 + h / 2, 0); }
+      else for (let k = 0, bx = -0.48; k < 9; k++, bx += 0.12) { const h = rand(0.26, 0.32); put(g, rbox(0.08, h, 0.28, FILE[(k + row) % FILE.length], 0.005), bx, y + 0.015 + h / 2, 0); }
+    });
+  }
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 0.42), new THREE.MeshBasicMaterial({ map: plateTex(tr('world.dept.kho'), tr('world.dept.khoShelf'), { bg: '#2F5D50', fg: '#F3EFE8', sub: '#B9D6C4' }) }));
+  sign.position.set(d0.x0 + 0.06, 2.15, d0.cz); sign.rotation.y = Math.PI / 2; sign.userData.noMerge = true; scene.add(sign);
 }
 
 // a whiteboard with three columns of sticky notes (on a wall, or on two legs when `stand` is set)
@@ -149,7 +176,7 @@ function buildWing() {
     ...(DEPTS[2].big ? [] : [[-7.5, 18.9, 0.9, 'snake']]), ...(DEPTS[3].team ? [] : [[13.55, 18.9, 0.9, 'snake']]), ...(DEPTS[2].big ? [] : [[-7.45, 25.5, 1.05, 'monstera'], [1.6, 25.5, 0.95, 'bush']]), ...(DEPTS[3].team ? [] : [[5.2, 25.5, 0.95, 'bush'], [13.5, 25.5, 1.05, 'monstera']])]) potPlant(x, z, s, k);   // (the AI team's room: its 16 desks fill it)
   if (!DEPTS[2].big) makeSofa(-5.4, 25.35, 1.9, 0, '#4F6D8F', ['#F2B33D', '#E8742A']);
   if (!DEPTS[3].team) makeSofa(10.2, 25.35, 1.9, 0, '#6B4F3A', ['#BDE0FE', '#E2B04A']);
-  teamPlates(); marketingPlates();
+  teamPlates(); marketingPlates(); khoRoom();
 
   /* corridors: the company's sign at the end of corridor A, plants where the corridors end */
   put(scene, rbox(0.03, 2.7, 1.6, mat('#2F4A3D', { roughness: 0.9 }), 0.005), -7.985, 1.35, (WING.corA[0] + WING.corA[1]) / 2);

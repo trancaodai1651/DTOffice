@@ -2,7 +2,7 @@
 import { HQ, STATIC, replay } from '../core/env.js';
 import { state } from '../core/state.js';
 import { UNITS, chairs, deskKit } from '../world/desks.js';
-import { MARKETING_ROLE_IDS, MARKETING_SEATS, TEAM_SEATS } from '../../shared/team-roles.js';
+import { KHO_SEATS, MARKETING_ROLE_IDS, MARKETING_SEATS, TEAM_SEATS } from '../../shared/team-roles.js';
 import { deriveTeamPresence, sessionActivity } from '../../shared/team-presence.js';
 import { PALETTE, Worker, residents, sessions } from './workers.js';
 import { addHook } from '../ui/ticks.js';
@@ -16,7 +16,10 @@ export const liveTeamEnabled = () => !STATIC && !new URLSearchParams(location.se
 export const getTeamPresence = () => projection;
 export const teamSessionActivity = session => sessionActivity(session, permissions);
 export const onTeamPresence = fn => { listeners.add(fn); return () => listeners.delete(fn); };
-const mkDesk = role => UNITS.filter(u => u.mk).flatMap(u => u.desks)[MARKETING_SEATS.indexOf(role)] ?? -1;
+const mkDesk = role => KHO_SEATS.includes(role) ? UNITS.find(u => u.kho)?.desks[KHO_SEATS.indexOf(role)] ?? -1 : UNITS.filter(u => u.mk).flatMap(u => u.desks)[MARKETING_SEATS.indexOf(role)] ?? -1;
+let marketingProjection = [];
+/** The marketing department's people (MARKETING_ROLE_IDS), as getTeamPresence gives the dev team's. */
+export const getMarketingPresence = () => marketingProjection;
 export const teamDesk = role => !HQ || !liveTeamEnabled() ? -1 : TEAM_SEATS.includes(role) ? UNITS.find(u => u.team)?.desks[TEAM_SEATS.indexOf(role)] ?? -1 : MARKETING_ROLE_IDS.includes(role) ? mkDesk(role) : -1;
 const STAFF = new Set([...TEAM_SEATS, ...MARKETING_ROLE_IDS]);
 export const residentForDesk = desk => [...residents.values()].find(w => w.personnelDesk === desk);
@@ -25,11 +28,12 @@ export function clearWorld() {
   for (const [k, w] of residents) { if (!STAFF.has(k)) continue; if (state.hovered === w) state.hovered = null; w.remove(); residents.delete(k); }   // (the specialists are theirs: people/specialists.js)
 }
 export function reconcileTeamPresence() {
-  if (!liveTeamEnabled()) { clearWorld(); projection = []; }
+  if (!liveTeamEnabled()) { clearWorld(); projection = []; marketingProjection = []; }
   else {
     projection = deriveTeamPresence(sessions.values(), permissions, freshness);
     // the dev team's projection (the roster), then the marketing department's own residents (not in the dev roster)
     const marketing = deriveTeamPresence(sessions.values(), permissions, freshness, MARKETING_ROLE_IDS).map(p => ({ ...p, seatIndex: p.seatIndex + 5 }));
+    marketingProjection = marketing;
     if (ready && HQ) for (const p of [...projection, ...marketing]) {
       let w = residents.get(p.roleId);
       if (!w) {

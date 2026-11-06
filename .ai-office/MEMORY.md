@@ -28,6 +28,13 @@
 
 - Từ 0.4.13: desktop updater native `src-tauri/src/updates.rs`, IPC chỉ main/local; GitHub Releases `latest.json` + EXE/tar `.sig`, requireSignedVersion. Giữ nguyên updater public key trong config và private key ở `~/.dtoffice-release/updater.key`/GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` (không ghi nội dung vào repo). Mac phải dùng nguyên archive do Tauri ký, không tar lại. UI `ui/updates.js`; trước cài chờ owned tasks/team/specialists qua update-readiness, dừng Node do app sở hữu trong before-exit hook.
 
+- Từ 06/11 (sau 0.4.13): Marketing 21 vị trí (+creator, librarian, photo; nhóm `massets`), giai đoạn `mpublish` (social sau review), giai đoạn không ai cần thì bỏ qua. Skill dựng sẵn ở `server/skills/marketing/` chèn vào prompt; kho + tài khoản qua `createTeam({ context })`. Kho dữ liệu `server/asset-library.mjs` là workspace Marketing khi không có dự án. Tài khoản MXH = hồ sơ Edge/Chrome riêng ở data-dir/social-profiles (không lưu mật khẩu); agent không bao giờ tự đăng/đăng nhập, CEO bấm Đăng. Phòng Kho = DEPTS[1] `kho`, bàn theo `KHO_SEATS`; `MARKETING_ROSTER` phải khớp nhóm ở server.
+
+- Từ 0.4.14: chọn role pm/cto/cmo = giao quản lý phân công cả phòng, không chạy direct; các role khác vẫn direct.
+  `/api/tasks` nhận assignment dev/marketing/session, giữ CLI theo SID gốc và model/effort; không đóng hội thoại để giao đội.
+  `cli-environment.mjs` chỉ bỏ nested-session flags, giữ auth/provider/account; auth probe lỗi/không hỗ trợ = unknown,
+  bắt cả lỗi spawn đồng bộ. E2E dùng fake CLI/home riêng, không suy ra máy thật chưa đăng nhập từ môi trường thử.
+
 ## Tra cứu theo nhu cầu
 
 

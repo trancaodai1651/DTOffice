@@ -562,3 +562,27 @@
 .tm-job { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 99px; background: #F2F4F7; font-size: 11.5px; cursor: default; }
 .tm-job .tm-dot { width: 7px; height: 7px; }
 .tm-job.is-run .tm-dot { background: var(--zc-blue); animation: zc-rec 1.2s ease-in-out infinite; } .tm-job.is-done .tm-dot { background: #2E9E5B; } .tm-job.is-fail .tm-dot { background: #D92D20; } .tm-job.is-wait { opacity: .6; }
+
+/* "Phòng Kho dữ liệu" in the team's sheet (ui/library-panel.js): the library, the social accounts, the posts to publish */
+.lib-panel { display: grid; gap: 8px; padding: 4px 0 8px; }
+.lib-body { display: grid; gap: 8px; }
+.lib-sec { border: 1px solid var(--zc-line); border-radius: 8px; padding: 6px 10px; background: #fff; }
+.lib-sec > summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--zc-ink); padding: 4px 0; }
+.lib-sec h4 { margin: 10px 0 4px; font-size: 12px; color: var(--zc-grey); text-transform: uppercase; letter-spacing: .03em; }
+.lib-row, .lib-acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.lib-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-end; margin: 6px 0; }
+.lib-field { display: grid; gap: 2px; flex: 1 1 160px; min-width: 0; }
+.lib-field small { font-size: 11px; color: var(--zc-grey); }
+.lib-field input, .lib-field select { width: 100%; min-width: 0; padding: 6px 8px; border: 1px solid var(--zc-line); border-radius: 6px; font: inherit; font-size: 13px; color: var(--zc-ink); background: #fff; }
+.lib-path { font-size: 11px; color: var(--zc-grey); overflow-wrap: anywhere; }
+.lib-item { display: grid; gap: 2px; padding: 6px 0; border-top: 1px solid var(--zc-line); }
+.lib-item small, .lib-post small { color: var(--zc-grey); font-size: 12px; }
+.lib-cat { margin: 4px 0; }
+.lib-cat > b { margin-right: 6px; }
+.lib-post { display: grid; gap: 4px; padding: 8px; margin: 6px 0; border: 1px solid var(--zc-line); border-left: 3px solid var(--zc-blue); border-radius: 6px; }
+.lib-post.is-posted { border-left-color: #2E9E5B; opacity: .75; }
+.lib-post.is-draft { border-left-color: #C9A227; }
+.lib-caption { margin: 0; font-size: 12px; white-space: pre-wrap; color: var(--zc-ink); }
+.lib-done { color: #2E9E5B !important; font-weight: 600; }
+.lib-miss { color: #B4541A !important; }
+.gw-kho { margin: 6px 0; }

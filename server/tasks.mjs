@@ -14,6 +14,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { bgPhase, bgRefusal, parseBackgrounded } from './bg-sessions.mjs';
 import { mediaEnvironment } from './media-tools.mjs';
+import { standaloneEnvironment, cliCommand } from './cli-environment.mjs';
 
 const MAX_TEXT = 4000, MAX_IMAGES = 4, MAX_IMAGE = 3_500_000;
 const WATCH_MS = 8000;   // how often background sessions are looked at while one runs (`claude agents`, one per account)
@@ -48,7 +49,7 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
     }
     // the photos by their paths: Claude Code reads them with its Read tool
     const prompt = files.length ? `${text}\n\n${files.length > 1 ? 'Attached images' : 'Attached image'} (read ${files.length > 1 ? 'them' : 'it'}):\n${files.join('\n')}` : text;
-    const e = mediaEnvironment({ ...env(), ...extra }); for (const k of Object.keys(e)) if (e[k] == null) delete e[k];   // (extra: the conversation's own account; null unsets)
+    const e = mediaEnvironment(standaloneEnvironment({ ...env(), ...extra })); for (const k of Object.keys(e)) if (e[k] == null) delete e[k];   // (extra: the conversation's own account; null unsets)
     // (stopAfter: a conversation taken from your editor, stopped once done so the editor takes it up again alone)
     const t = { id, dir, text, at: now, from, sid: null, result: '', error: '', buf: '', bin, env: e, prompt, system, stopAfter, agent: isCodex ? 'codex' : 'claude', run: { model, effort }, role, team, ask, args, perm, mode: isCodex ? 'codex' : bg?.want() && !args ? 'bg' : 'print' };
     if (t.mode === 'codex' && !runCodex(t)) return { ok: false, code: 'noCodex' };
@@ -66,7 +67,8 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
     const piped = t.prompt.length > 6000;
     const args = ['-p', piped ? 'Carry out the complete DT Office assignment supplied on stdin.' : t.prompt, '--output-format', 'stream-json', '--verbose', ...runArgs('claude', t.run), ...(from?.sid ? ['--resume', from.sid, ...(from.fork === false ? [] : ['--fork-session'])] : []), ...(system ? ['--append-system-prompt', system] : []), ...(set ? ['--settings', set] : []), ...(t.args?.claude || [])];   // long role skills travel on stdin, not Windows command-line arguments
     let proc;
-    try { proc = spawn(t.bin.file, args, { cwd: t.dir, env: t.env, stdio: [piped ? 'pipe' : 'ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
+    const cmd = cliCommand(t.bin.file, args);
+    try { proc = spawn(cmd.file, cmd.args, { cwd: t.dir, env: t.env, stdio: [piped ? 'pipe' : 'ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
     catch { return false; }
     Object.assign(t, { mode: 'print', proc, pid: proc.pid });
     if (piped) { proc.stdin.on('error', () => {}); proc.stdin.end(t.prompt); }

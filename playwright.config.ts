@@ -17,12 +17,12 @@ export default defineConfig({
   retries: process.env.CI ? 1 : 0,
   workers: 2,                       // each test builds a whole 3D office: two at a time is plenty
   expect: { timeout: 30_000 },      // the office takes a few seconds to build on a busy machine or a CI runner
-  use: { baseURL: `http://127.0.0.1:${PORT}`, viewport: { width: 1440, height: 900 } },
+  use: { baseURL: `http://127.0.0.1:${PORT}`, viewport: { width: 1440, height: 900 }, ...(process.env.E2E_BROWSER_CHANNEL ? { channel: process.env.E2E_BROWSER_CHANNEL } : {}) },
   webServer: {
     command: 'node server/index.mjs',
     url: `http://127.0.0.1:${PORT}/health`,
     // its own data folder (never the real office's data/), English, and nothing that calls out to the network
-    env: { HOME: HOME_DIR, USERPROFILE: HOME_DIR, CLAUDE_CONFIG_DIR: path.join(HOME_DIR, '.claude'), OFFICE_CLAUDE_BIN: path.resolve('tests/e2e/fake-claude.sh'), OFFICE_TUNNEL_CMD: path.resolve('tests/e2e/fake-cloudflared.sh'), NODE_ENV: 'production', OFFICE_PORT: String(PORT), OFFICE_DATA_DIR: DATA_DIR, OFFICE_LANG: 'en', OFFICE_TRANSLATE: '0', OFFICE_USAGE: '0', OFFICE_CI: '0',
+    env: { HOME: HOME_DIR, USERPROFILE: HOME_DIR, CLAUDE_CONFIG_DIR: path.join(HOME_DIR, '.claude'), OFFICE_CLAUDE_BIN: process.env.E2E_CLAUDE_BIN || path.resolve('tests/e2e/fake-claude.sh'), OFFICE_TUNNEL_CMD: path.resolve('tests/e2e/fake-cloudflared.sh'), NODE_ENV: 'production', OFFICE_PORT: String(PORT), OFFICE_DATA_DIR: DATA_DIR, OFFICE_LANG: 'en', OFFICE_TRANSLATE: '0', OFFICE_USAGE: '0', OFFICE_CI: '0',
       // a build of its own (OFFICE_DIST_DIR=.next-e2e npm run build), so testing never touches the running office's .next
       ...(process.env.OFFICE_DIST_DIR && { OFFICE_DIST_DIR: process.env.OFFICE_DIST_DIR }) },
     timeout: 60_000,
