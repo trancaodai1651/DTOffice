@@ -1,18 +1,33 @@
-# Video thật, công cụ kèm app, giao từng nhân sự và release · 06/11/2026
+# Video, FFmpeg kèm app, giao từng nhân sự và release · 06/11/2026
 
-- Người dùng yêu cầu sửa video chỉ có script, cài đủ FFmpeg với app, xử lý TLS/Chrome bị chặn, giao từng AI Agent, commit/push và phát hành/upload bộ cài mới.
-- Baseline sạch `main`/`5b4434c`; không đóng app người dùng ở 4310. Version 0.4.11, đã đẩy tag v0.4.11.
-- `scripts/bundle-ffmpeg.mjs`: tải/pin b6.1.1, kiểm SHA256, cache riêng `.cache/ffmpeg` (ignored); mang ffmpeg/ffprobe, LICENSE/README/source. Windows x64 + macOS x64/arm64 cùng app Universal. Gắn vào desktop prepare, verifier dựng clip thật trước khi đóng gói.
-- `server/media-tools.mjs`: ưu tiên binary bundled/override, dò cả Winget khi PATH cũ; task PATH chứa tools và dùng OS CA. `video-tools.mjs`: HTTPS downloader có OS trust, không dùng Chrome/không bỏ TLS; manifest cảnh title/clip/image có source/license, render H264/AAC + cover + ffprobe. Kiểm đường dẫn/DNS/redirect/type/size; không chạy shell do model sinh.
-- `specialists.mjs`: xuất/kiểm tra MP4 thật mới done, có thể render manifest khi CLI chỉ viết plan/MP4 hỏng; render status/busy; lỗi có retry UI; task cũ done nhưng thiếu MP4 đổi fail. UI giữ brief/from khi cập nhật.
-- `tasks.mjs`: prompt nội bộ trước bị cắt 4000, nay 64000; prompt >6000 dùng stdin (Codex `exec -`, Claude query + stdin), tránh Windows argv limit. Unit kiểm skill cuối chuỗi còn nguyên.
-- Direct role: `team.begin({role})` chạy một stage direct của đúng người, có skill, không tự gọi pipeline; giữ hàng đợi/lock. Selector đủ Dev/Marketing và nút trên thẻ nhân sự. Đã thêm vi/en.
-- Khôi phục video người dùng: `D:/2026-11-06-tom-tat-gia-vang-hom-nay/video-final.mp4`, 17.491.114 byte, 30 s, 1080×1920, 30fps, H264/AAC im lặng. Tải được 2 clip Pexels bằng helper HTTPS mới; giữ script cũ đã review, backup cover thành cover-original.jpg. Không sửa DB app đang chạy. Dữ liệu/giá giữ nguyên kịch bản có mốc 08:42 06/11; không tuyên bố là giá hiện thời. Đã xem frame tại giây 7, chữ Việt đúng.
-- Kiểm tra local: 245 unit (237 pass/8 skip), lint/typecheck/build/smoke/maps đạt; helper render thật 2 s và video người dùng 30 s đạt. 4 E2E đều đạt sau khi sửa test guide cũ đọc nhầm news trong debug roster chỉ dành cho Dev: backend news routing, guide giữ topic, video real render/legacy recovery/fail script-only, giao một Dev/Marketing từ UI. Desktop prepare đã mang binary; verifier dựng clip Việt bằng bundled FFmpeg/ffprobe và server Node thật đạt.
-- Đã xử lý Windows env có key `Path` thay vì `PATH`, giữ nguyên các công cụ cũ khi thêm FFmpeg. Migration kiểm MP4 đã được sửa bên ngoài app để nhận lại video cũ, không coi file hỏng là thành công. Client/server không yếu TLS hay cấp quyền Chrome mới.
-- Đã commit/push `1c64eac9e9c0b49f0b0bf7678f135affd822ab23`, đẩy tag `v0.4.11`. Desktop release run `42171002428`: https://github.com/trancaodai1651/DTOffice/actions/runs/42171002428, Windows job `127738539169`, macOS job `127738539486`. CI main run `42170999323`. Bản public trước là 0.4.7; 0.4.11 bao gồm mọi thay đổi local 0.4.8–0.4.10.
-- Chưa publish vì CI đang build. Còn: theo dõi 2 build + verify-macos Intel/ARM + publish đến khi xong, kiểm assets Windows/macOS/SHA, tải installer release và đối chiếu checksum; cập nhật trạng thái cuối. Dùng GitHub connector `fetch` cho actions endpoint; JSON nằm trong `structuredContent.content`. Không dùng `fetch_commit_workflow_runs` vì tool đó chỉ lọc PR. Ghi chú phát hành `docs/RELEASE-0.4.11.md`.
+## Kết quả
+- Đã phát hành public/latest [v0.4.12](https://github.com/trancaodai1651/DTOffice/releases/tag/v0.4.12): Windows x64 EXE, macOS Universal DMG + app archive, SHA256SUMS.txt.
+- Code chính `1c64eac9e9c0b49f0b0bf7678f135affd822ab23`; sửa tương thích Intel/version cuối `f1cfc052c31a9e6d1ce744866145e1f78291180e`, đã đẩy main + tag v0.4.12. Bao gồm mọi cải tiến 0.4.8–0.4.10 từ public cũ 0.4.7.
+- CI chính [42173887698](https://github.com/trancaodai1651/DTOffice/actions/runs/42173887698) đạt toàn bộ. Desktop release [42173892174](https://github.com/trancaodai1651/DTOffice/actions/runs/42173892174) đạt build Windows/macOS, verify Mac ARM + Intel, publish.
 
-- CI main 42170999323 đạt Node 20/22, platform smoke Linux/Windows/macOS và browser smoke. Desktop Windows lần đầu treo /api/sys (300 s), đã chạy lại riêng job sau khi Mac build đạt; lần chạy lại đã qua smoke và đang đóng gói. Không sửa source/tag vì lỗi không tái hiện ở main CI/local/retry.
-- Verify Intel run 42171002428 phát hiện FFmpeg darwin-x64 không có drawtext; chặn publish đúng quy tắc, ARM bị hủy theo fail-fast. Không có release public 0.4.11. Sửa caption thành Sharp/Pango PNG + overlay, thêm sharp làm dependency trực tiếp, giữ binary FFmpeg pin và tag cũ. Version phát hành kế tiếp 0.4.12. Unit caption kiểm Unicode/escape markup, chữ dài không vượt khung, glyph thật và ảnh trống; 246 unit/238 pass/8 skip, lint/types/build/smoke đạt.
-- 0.4.12: 2 E2E video/direct-role đạt lại, xem cover tiếng Việt mới rõ nét; production desktop prepare + verifier dựng clip bằng bundled tools và chạy Node/server đạt. Module map/version/diff check đạt. Chuẩn bị commit/push và tag v0.4.12 để build/retest cả hai Mac.
+## Đã làm / quyết định
+- `scripts/bundle-ffmpeg.mjs`: pin upstream b6.1.1, kiểm SHA256, bundle FFmpeg + ffprobe, LICENSE/README/SOURCE; không tải thêm khi cài app. Windows x64, macOS có cả x64/arm64. Cache build `.cache/ffmpeg` bị ignore.
+- `media-tools.mjs`: ưu tiên bundled/override rồi PATH và Winget; giữ Path/PATH cũ trên Windows, thêm OS CA cho child task.
+- `video-tools.mjs`: tải HTTPS bằng chứng chỉ hệ điều hành, xác minh DNS/redirect/type/size; không phụ thuộc Chrome, không giảm TLS. Chỉ file trong thư mục job. Manifest cảnh title/clip/image có nguồn/giấy phép, render H264/AAC 30fps, cover + proof ffprobe; không tự chạy shell do model tạo.
+- Caption qua Sharp/Pango PNG + FFmpeg overlay, dùng font hỗ trợ tiếng Việt, escape markup, tự xuống dòng/thu nhỏ trong khung. Sharp là dependency trực tiếp. Không cần filter drawtext vốn thiếu ở binary Intel upstream.
+- `specialists.mjs`: có VIDEO-TOOLS.md lệnh tuyệt đối; export phải xác minh MP4 thật mới done. Có render status/held guard, retry lỗi, giữ brief và from-news khi refresh. Startup kiểm video cũ đã được khôi phục ngoài app; file thiếu/hỏng không nhận là hoàn tất.
+- `tasks.mjs`: prompt nội bộ/skill max64k, >6000 ký tự gửi stdin cho Codex/Claude để tránh argv Windows; văn bản người dùng vẫn max4000.
+- `team.begin({role})` và API/UI: giao riêng đúng một nhân sự Dev/Marketing, có skill, không tự gọi cả pipeline. Giữ queue/write lock. Selector đủ 15 Dev + 18 Marketing, click thẻ giữ đúng role và focus goal. Chữ mới đủ vi/en.
+
+## Video người dùng đã khôi phục
+- `D:/2026-11-06-tom-tat-gia-vang-hom-nay/video-final.mp4`: 17.491.114 byte, 30 s, 1080×1920, 30fps, H264 + AAC im lặng. SHA256 `e7f1fc592d9c6919d0d26ac7015a5d4f91cb0134b873a0781d0b1008607d6f2c`.
+- Tải thành công 2 clip Pexels bằng helper mới, xem nguồn/giấy phép, review rồi chạy script FFmpeg cũ. Sao lưu cover-original.jpg và cập nhật nguồn tư liệu đúng việc tải/dùng thực tế. Đã xem frame tiếng Việt tại giây 7.
+- Giữ mốc giá trong script 08:42 06/11/2026, không nhận là giá hiện thời; chưa có nhạc/giọng đọc. Không upload video cá nhân lên GitHub và không sửa DB app cũ.
+
+## Kiểm tra
+- Local 0.4.12: 246 unit (238 pass/8 skip), lint/typecheck/production build/smoke/maps/version/diff đạt. 2 E2E video/direct-role chạy lại đạt; 2 E2E news routing trước đó đạt.
+- E2E có MP4 render thật, ffprobe codec/fps, script-only fail, legacy export recovery, đúng employee POST. Unit caption có Unicode/ký tự đặc biệt/văn bản dài/khung ảnh/glyph thật.
+- Desktop prepare + verifier local dựng clip Việt thật bằng bundled binaries và chạy shipped Node/server đạt. GitHub verifier đạt tương tự trên Mac Intel/ARM; Intel output 320×568, 30fps, H264/AAC, 1.021 s.
+- Đã tải lại cả EXE Windows, DMG macOS và app.tar.gz công khai; cả 3 khớp SHA256SUMS và asset digest GitHub. Bản checksum text cũng khớp digest. File đã xác minh ở test-results/releases/v0.4.12/.
+
+## Sự cố build đã xử lý
+- Tag v0.4.11 chưa từng public release: Windows lần đầu treo /api/sys (retry đạt), sau đó verify Intel phát hiện thiếu drawtext nên chặn publish đúng quy tắc. Không sửa tag cũ; v0.4.12 chứa sửa caption và đã đạt toàn bộ.
+
+## Bước tiếp
+- Nhiệm vụ hoàn tất; bàn giao tài liệu được commit/push sau tag, chỉ sửa bộ nhớ. Ghi chú phát hành `docs/RELEASE-0.4.12.md`.
+- Người dùng tải/cài bản mới để app mang FFmpeg và code mới; không tự cài/đóng app thay người dùng.
