@@ -18,7 +18,11 @@ test('idle resident agents can play billiards and leave the game when real work 
     // The real SSE projection changes to work, then the leisure loop must release the table.
     (window as unknown as { __office: { emit: (m: object) => void } }).__office.emit({ k: 'snap', sessions: [{ id: 'new-job', role, status: 'work', agent: 'codex', name: 'job', dir: 'C:/test', subs: [], counts: {} }], feed: [], stats: {} });
   }, players[0].slice('team-role:'.length));
+  await page.evaluate(role => {
+    (window as unknown as { __office: { callMeeting: (roles: string[], task: string) => void } }).__office.callMeeting([role], 'Receive the new assignment');
+  }, players[0].slice('team-role:'.length));
   await expect.poll(() => page.evaluate('window.__office.bil.stage')).toBe('over');
+  await expect.poll(() => page.evaluate(role => { const o = (window as unknown as { __office: { teamRoster: Map<string, { station: string }>, marketingRoster: Map<string, { station: string }> } }).__office; return (o.teamRoster.get(role) || o.marketingRoster.get(role))?.station; }, players[0].slice('team-role:'.length)), { timeout: 35000 }).toBe('meeting');
   expect(errors).toEqual([]);
 });
 

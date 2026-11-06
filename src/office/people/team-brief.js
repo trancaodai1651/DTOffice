@@ -56,6 +56,8 @@ function begin(m) {
   const members = m.roles.map((r) => residents.get(r)).filter(Boolean);
   current = { ...m, members, phase: 'gather', deadline: state.sim + 35, next: 0, turn: 0, spots: new Map() };
   for (const w of members) {
+    // A real assignment takes control from leisure, including a game holding an infinite errand.
+    w.chore = null;
     w.roaming = true; w.lounging = false; w.after = null; w.met = false;
     w.say('meet', tr('people.brief.toMeeting'));
     const spot = allocate('meeting', w, true) || nearBoss(director, w);

@@ -1,6 +1,6 @@
 # Trạng thái bàn giao · 04/11/2026
 
-- Codex · 06/11: [Bida, bot Claude/Codex, USD/VND và skill theo vị trí](state/staff-skills-bot-costs.md) — đang kiểm tra 0.4.10, sau đó commit/push theo yêu cầu.
+- Codex · 06/11: [Bida, bot Claude/Codex, USD/VND và skill theo vị trí](state/staff-skills-bot-costs.md) — hoàn thành 0.4.10, 232 unit + 12 E2E đạt; bản cài Windows local; đã commit/push main.
 
 - Codex · 06/11: [PC, đường phố và giao đúng nhân sự đọc báo](state/pc-streets-news.md) — hoàn thành 0.4.9 local; 226 unit + 12 E2E đạt, bundled server/native/NSIS đạt; chưa commit/publish.
 - Claude Code · 06/11: [Đội AI Agent Marketing 18 vị trí + phòng 3D Marketing ở HQ](state/marketing-team.md) — xong code, unit, xem tay; E2E lỗi môi trường Windows; chưa commit.
