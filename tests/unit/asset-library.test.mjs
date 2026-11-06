@@ -25,7 +25,7 @@ test('the library: made where it belongs, folders linked, products counted, post
     const goc = path.join(root, 'san-pham', 'ao-thun', 'ao-thun-basic-trang', 'goc'); fs.mkdirSync(goc, { recursive: true });
     fs.writeFileSync(path.join(goc, '1.jpg'), 'x'); fs.writeFileSync(path.join(goc, '2.mov'), 'x');
     const post = path.join(root, 'bai-dang', '20261106-ao-thun-facebook-1'); fs.mkdirSync(post, { recursive: true });
-    fs.writeFileSync(path.join(post, 'post.json'), JSON.stringify({ title: 'Áo', caption: 'Mát cả ngày', hashtags: ['aothun', '#basic'], platforms: ['facebook', 'Threads', 'myspace'], media: ['01.jpg', '../../secret', 'C:/x.jpg'], status: 'ready' }));
+    fs.writeFileSync(path.join(post, 'post.json'), JSON.stringify({ title: 'Áo', caption: 'Mát cả ngày', hashtags: ['aothun', '#basic'], platforms: ['facebook', 'Threads', 'myspace'], media: ['01.jpg', '../../secret', 'C:/x.jpg', 'C:\\x.jpg', 'C:x.jpg', '/x.jpg', '\\\\host\\share\\x.jpg', '..\\secret', ''], status: 'ready' }));
     const out = createLibrary({ dataDir, home }).out();   // (kept across restarts)
     assert.equal(out.sources.length, 1); assert.equal(out.sources[0].images, 2); assert.equal(out.sources[0].videos, 1);
     assert.deepEqual(out.categories, [{ name: 'ao-thun', products: [{ name: 'ao-thun-basic-trang', images: 1, videos: 1, files: 2 }] }]);

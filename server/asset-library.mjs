@@ -60,7 +60,8 @@ export function readPost(root, id) {
   let p; try { p = JSON.parse(fs.readFileSync(path.join(dir, 'post.json'), 'utf8')); } catch { return null; }
   if (!p || typeof p !== 'object') return null;
   const platforms = (Array.isArray(p.platforms) ? p.platforms : [p.platform]).map((x) => String(x || '').toLowerCase().replace(/[^a-z]/g, '')).filter((x) => PLATFORMS.includes(x));
-  const media = (Array.isArray(p.media) ? p.media : []).map(String).filter((m) => !path.isAbsolute(m) && !m.split(/[\\/]/).includes('..')).slice(0, 40);
+  // A library can move between Windows and macOS/Linux: reject absolute paths from either syntax on every host.
+  const media = (Array.isArray(p.media) ? p.media : []).map(String).filter((m) => m && !path.posix.isAbsolute(m) && !path.win32.isAbsolute(m) && !/^[a-z]:/i.test(m) && !m.split(/[\\/]/).includes('..')).slice(0, 40);
   const tags = (Array.isArray(p.hashtags) ? p.hashtags : []).map(String).slice(0, 30);
   return { id, dir, title: String(p.title || id).slice(0, 200), product: String(p.product || '').slice(0, 200), caption: String(p.caption || '').slice(0, 5000), hashtags: tags,
     platforms, accounts: p.accounts && typeof p.accounts === 'object' ? Object.fromEntries(Object.entries(p.accounts).map(([k, v]) => [k, String(v)])) : {},

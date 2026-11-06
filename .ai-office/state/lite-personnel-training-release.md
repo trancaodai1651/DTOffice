@@ -26,3 +26,4 @@
 - Nhánh `main`; gốc `19d800e`, trước đó `367ff07` (0.4.14 local), remote trước nhiệm vụ `ac0d697` (0.4.13 public).
 - Build production cách ly `.next-workspace` và smoke 0.4.15 trên Windows: đạt. Đang commit/tag/push; sau đó theo dõi Desktop release, CI, checksum và latest.json.
 - Không stage/sửa `.ai-office/SESSION-LOG.md` do app tự quản lý.
+- CI đầu phát hiện bộ lọc post media chỉ dùng path.isAbsolute của host: Linux/Mac không loại C:/x.jpg. Đã sửa dùng cả posix/win32, loại drive-relative và thêm fixture đa hệ; cần CI chạy lại trước publish.
