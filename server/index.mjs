@@ -2953,11 +2953,11 @@ const server = http.createServer((req, res) => {
       if (url.pathname === '/api/team/resume') { const ok = team.resume(String(b?.id || '')); json(res, ok ? 200 : 409, ok ? { ok } : { ok, message: tr('team.cantResume') }); return; }
       if (url.pathname !== '/api/team') { json(res, 404, { ok: false }); return; }
       const specialist = specialistRequest(b?.goal);
-      if (specialist) { const [code, out] = giveSpecialistWork(specialist, b); json(res, code, out); return; }
+      if (specialist && !b?.role) { const [code, out] = giveSpecialistWork(specialist, b); json(res, code, out); return; }
       const dir = memoryDir(b?.dir); if (!dir) { json(res, 400, { ok: false, code: 'noDir', message: tr('chat.task.noDir') }); return; }
       const agent = b?.agent === 'codex' ? 'codex' : 'claude';
       if (!agentOn(agent) || !(agent === 'codex' ? findCodex() : findClaude())) { json(res, 409, { ok: false, code: agent === 'codex' ? 'noCodex' : 'noClaude', message: tr(`chat.task.why.${agent === 'codex' ? 'noCodex' : 'noClaude'}`) }); return; }
-      const r = team.begin({ dir, goal: b?.goal, lead: b?.lead, agent, teams: Array.isArray(b?.teams) ? b.teams.map(String) : null, ...pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome()) });
+      const r = team.begin({ dir, goal: b?.goal, role: b?.role, lead: b?.lead, agent, teams: Array.isArray(b?.teams) ? b.teams.map(String) : null, ...pickRun(agent, { model: b?.model, effort: b?.effort }, codexHome()) });
       json(res, r.ok ? 200 : 409, r.ok ? r : { ...r, message: tr(r.code === 'teamBusy' ? 'team.busy' : `chat.task.why.${r.code}`) });
     });
     return;

@@ -23,6 +23,7 @@ playwright-report/
 
 # the desktop app (src-tauri/, scripts/build-desktop.mjs)
 /.desktop/
+/.cache/
 /src-tauri/target/
 /src-tauri/gen/
 

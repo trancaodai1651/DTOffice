@@ -18,7 +18,7 @@ const LOOK = {
   video: { shirt: '#2E86AB', hair: '#1C1C22', style: 'spiky', acc: null, outfit: 'shirt', skin: null },
 };
 let panel = null, open = '', info = null, jobs = [], seenDone = new Set(), primed = false, prefill = null;
-let newsDraft = '';
+let newsDraft = '', videoDraft = '';
 function kept() { try { return JSON.parse(localStorage.getItem(KEEP) || '{}') || {}; } catch { return {}; } }
 function keep(v) { try { localStorage.setItem(KEEP, JSON.stringify({ ...kept(), ...v })); } catch { /* storage blocked */ } }
 const post = (url, b) => fetch(`${url}${q()}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(b) }).then((x) => x.json()).catch(() => ({ ok: false, message: tr('specialists.unreachable') }));
@@ -56,7 +56,7 @@ function runFields(kind, pick) {
 const say = (text) => el('p', 'gw-say', text);
 function jobCard(j) {
   const card = el('div', `sp-job is-${j.status}`), head = el('div', 'sp-job-head');
-  head.append(el('b', null, j.topic || j.brief || ''), el('em', `tm-badge is-${j.status === 'print' ? 'run' : j.status}`, tr(`specialists.status.${j.status}`)));
+  head.append(el('b', null, j.topic || j.brief || ''), el('em', `tm-badge is-${['print', 'render'].includes(j.status) ? 'run' : j.status}`, tr(`specialists.status.${j.status}`)));
   card.append(head);
   const acts = el('div', 'sp-acts');
   const openBtn = (what, label) => { const b = el('button', 'gw-prev', label); b.type = 'button'; b.addEventListener('click', async () => { const r = await post('/api/specialists/open', { id: j.id, what }); if (!r.ok) toast(r.message || tr('specialists.unreachable'), 5000); }); return b; };
@@ -69,8 +69,12 @@ function jobCard(j) {
     acts.append(openBtn('dir', tr('specialists.video.openDir')));
   }
   if (j.status === 'run') { const b = el('button', 'gw-prev', tr('specialists.stop')); b.type = 'button'; b.addEventListener('click', () => post('/api/specialists/stop', { id: j.id })); acts.append(b); }
+  if (j.kind === 'video' && j.status === 'fail') {
+    acts.append(openBtn('dir', tr('specialists.video.openDir')));
+    const retry = el('button', 'gw-prev', tr('specialists.video.retry')); retry.type = 'button'; retry.addEventListener('click', () => { videoDraft = j.brief || ''; keep({ video: { ...kept().video, source: j.source, input: j.input, format: j.format, agent: j.agent, model: j.model, effort: j.effort } }); prefill = j.from ? { from: j.from, topic: j.brief } : null; openSpecialist('video'); }); acts.append(retry);
+  }
   if (acts.childElementCount) card.append(acts);
-  if (j.status === 'done' && j.summary) { const d = el('details', 'sp-sum'); d.append(el('summary', null, '…'), el('p', null, j.summary)); card.append(d); }
+  if (['done', 'fail'].includes(j.status) && j.summary) { const d = el('details', 'sp-sum'); d.append(el('summary', null, '…'), el('p', null, j.summary)); card.append(d); }
   return card;
 }
 
@@ -104,8 +108,9 @@ function newsBody(body) {
 }
 /* ---------- the video editor ---------- */
 function videoBody(body) {
-  const pick = { agent: '', model: '', effort: '', source: 'web', format: 'short', ...kept().video }, from = prefill; prefill = null;
+  const pick = { agent: '', model: '', effort: '', source: 'web', format: 'short', ...kept().video }, from = prefill;
   const brief = el('textarea', 'gw-in'); brief.rows = 3; brief.maxLength = 2000; brief.placeholder = tr('specialists.video.briefPh'); brief.setAttribute('aria-label', tr('specialists.video.briefPh'));
+  brief.value = videoDraft; brief.addEventListener('input', () => { videoDraft = brief.value; });
   brief.addEventListener('keydown', (e) => e.stopPropagation());
   const fromLine = from ? el('p', 'sp-from', `📰 ${tr('specialists.video.fromNews', { topic: from.topic })}`) : null;
   // the footage: found on the web, or a folder of yours
@@ -128,7 +133,7 @@ function videoBody(body) {
     const r = await post('/api/specialists/video', { brief: brief.value, source: pick.source, input: inp.value.trim(), from: from?.from || '', out: out.value.trim(), format: pick.format, agent: pick.agent, model: pick.model, effort: pick.effort });
     go.textContent = tr('specialists.video.go');
     if (!r.ok) { toast(r.message || tr('specialists.unreachable'), 6000); sync(); return; }
-    keep({ video: { agent: pick.agent, model: pick.model, effort: pick.effort, source: pick.source, input: inp.value.trim(), out: out.value.trim(), format: pick.format } }); brief.value = '';
+    keep({ video: { agent: pick.agent, model: pick.model, effort: pick.effort, source: pick.source, input: inp.value.trim(), out: out.value.trim(), format: pick.format } }); videoDraft = ''; prefill = null; brief.value = ''; draw();
   });
   const fields = el('div', 'gw-fields'); fields.append(outBox, fmt);
   const parts = [say(tr('specialists.video.hello')), ...(fromLine ? [fromLine] : []), brief, src, fields, runFields('video', pick)];

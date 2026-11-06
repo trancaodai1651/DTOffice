@@ -1,5 +1,6 @@
 // The AI team (server/team.mjs, ui/team-sheet.js): 15 agents run by the CEO
 export default {
+  assignment: 'Nhân sự thực hiện', wholeTeam: 'Cả đội (trưởng nhóm phân công)',
   skills: {"title":"Skill theo vị trí","role":"Vị trí nhân sự","content":"Tên skill và hướng dẫn (hoặc nội dung SKILL.md)","import":"Nhập file skill","save":"Lưu skill","saved":"Đã lưu. Áp dụng từ việc tiếp theo.","error":"Không lưu được skill. Tối đa 20.000 ký tự; thử lại trên máy chạy văn phòng.","note":"Chọn vị trí Dev hoặc Marketing, nhập file .md hoặc dán hướng dẫn. Để trống rồi lưu để gỡ. Áp dụng cho từng việc mới của đúng vị trí."},
   residentWaiting: 'Đang chờ giao việc; nhân sự này chưa có phiên CLI chạy.',
   residentConnected: 'Đã gắn với một phiên CLI thật của Đội AI Agent Dev.',
@@ -68,7 +69,7 @@ export default {
     news: { name: 'Nhân sự đọc báo', duty: 'Đọc báo Việt Nam và nước ngoài theo chủ đề, tóm tắt thành PDF' },
     video: { name: 'Nhân sự edit video', duty: 'Viết kịch bản và dựng video theo các skill nội dung' },
   },
-  stages: { plan: 'Lập kế hoạch, phân tích yêu cầu', design: 'Thiết kế hệ thống và giao diện', build: 'Phát triển mã nguồn', verify: 'Kiểm thử, rà soát và bảo mật', fix: 'Sửa lỗi sau kiểm thử', ship: 'Triển khai, giám sát và bảo trì', report: 'Báo cáo CEO', mplan: 'Lập kế hoạch marketing, nghiên cứu thị trường', mstrategy: 'Thông điệp, thương hiệu và brief nội dung', mproduce: 'Sản xuất nội dung và kênh', mreview: 'Kiểm duyệt và đo lường', mfix: 'Sửa theo kiểm duyệt' },
+  stages: { direct: 'Giao việc trực tiếp', plan: 'Lập kế hoạch, phân tích yêu cầu', design: 'Thiết kế hệ thống và giao diện', build: 'Phát triển mã nguồn', verify: 'Kiểm thử, rà soát và bảo mật', fix: 'Sửa lỗi sau kiểm thử', ship: 'Triển khai, giám sát và bảo trì', report: 'Báo cáo CEO', mplan: 'Lập kế hoạch marketing, nghiên cứu thị trường', mstrategy: 'Thông điệp, thương hiệu và brief nội dung', mproduce: 'Sản xuất nội dung và kênh', mreview: 'Kiểm duyệt và đo lường', mfix: 'Sửa theo kiểm duyệt' },
   goalPh: 'Mục tiêu cho đội, ví dụ: thêm trang đăng nhập bằng email cho ứng dụng, có kiểm thử',
   project: 'Dự án',
   giveTo: 'Giao cho',

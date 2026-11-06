@@ -1,5 +1,7 @@
 # Công cụ, đóng gói và kiểm tra
 
+Từ 0.4.11: `scripts/bundle-ffmpeg.mjs` tải và kiểm SHA256 binary FFmpeg/ffprobe đã khóa release vào `office/vendor/ffmpeg/<platform-arch>`, gồm giấy phép/nguồn. Mac Universal mang cả hai CPU. `verify-desktop.mjs` bắt buộc dựng và ffprobe một clip tiếng Việt bằng binary bundled trước khi phát hành; `.cache/ffmpeg` chỉ cache build, không commit.
+
 [Chọn nhóm khác](../FEATURE-MAP.md). Đường dẫn tính từ root repo.
 
 | Chức năng | Code/thư mục | Điểm vào | Kiểm tra liên quan |

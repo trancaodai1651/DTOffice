@@ -1,5 +1,7 @@
 # Trạng thái bàn giao · 04/11/2026
 
+- Codex · 06/11: [Video, FFmpeg kèm app, giao từng vị trí và phát hành](state/video-tools-role-release.md) — đang kiểm tra 0.4.11; yêu cầu commit/push và publish bộ cài Windows/macOS mới.
+
 - Codex · 06/11: [Bida, bot Claude/Codex, USD/VND và skill theo vị trí](state/staff-skills-bot-costs.md) — hoàn thành 0.4.10, 232 unit + 12 E2E đạt; bản cài Windows local; đã commit/push main.
 
 - Codex · 06/11: [PC, đường phố và giao đúng nhân sự đọc báo](state/pc-streets-news.md) — hoàn thành 0.4.9 local; 226 unit + 12 E2E đạt, bundled server/native/NSIS đạt; chưa commit/publish.

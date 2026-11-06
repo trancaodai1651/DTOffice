@@ -13,6 +13,8 @@ export default {
     where: 'Thư mục lưu (bỏ trống: Tài liệu/DT Office/Bao chi)',
   },
   video: {
+    exportVerified: 'Đã kiểm tra MP4 thật: {seconds} giây, {width}×{height}, H.264/AAC, 30 fps.',
+    exportFailed: 'Chưa xuất được video: {why}', retry: 'Dựng lại video',
     name: 'Nhân sự edit video', short: 'Edit video', tag: 'Edit video',
     hello: 'Chào sếp! Em dựng video theo các skill nội dung (kịch bản ngắn, kể chuyện, hook, an toàn nội dung). Sếp cho em biết video về gì, tư liệu lấy ở đâu và lưu vào đâu nhé.',
     briefPh: 'Video về gì? Ví dụ: tóm tắt tin giá vàng trong 45 giây, giọng trẻ trung',
@@ -30,7 +32,7 @@ export default {
   },
   cli: 'CLI', model: 'Model', effort: 'Effort',
   recent: 'Việc gần đây', none: 'Chưa có việc nào.',
-  status: { run: 'Đang làm', print: 'Đang in PDF', done: 'Xong', fail: 'Lỗi', stopped: 'Đã dừng' },
+  status: { render: 'Đang xuất và kiểm tra video', run: 'Đang làm', print: 'Đang in PDF', done: 'Xong', fail: 'Lỗi', stopped: 'Đã dừng' },
   stop: 'Dừng', sending: 'Đang giao…', close: 'Đóng', back: 'Quay lại',
   unreachable: 'Không liên lạc được với văn phòng.',
   why: { empty: 'Hãy nhập nội dung trước.', badDir: 'Hãy nhập đường dẫn đầy đủ của thư mục.', noInput: 'Không thấy thư mục video đầu vào trên máy.', specialistBusy: 'Nhân sự này đang làm việc đã nhận. Hãy chờ xong hoặc dừng việc hiện tại trước.' },

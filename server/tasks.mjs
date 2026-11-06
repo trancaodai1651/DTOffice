@@ -13,6 +13,7 @@ import { runArgs } from './agent-models.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
 import { bgPhase, bgRefusal, parseBackgrounded } from './bg-sessions.mjs';
+import { mediaEnvironment } from './media-tools.mjs';
 
 const MAX_TEXT = 4000, MAX_IMAGES = 4, MAX_IMAGE = 3_500_000;
 const WATCH_MS = 8000;   // how often background sessions are looked at while one runs (`claude agents`, one per account)
@@ -29,7 +30,7 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
   const pub = (t) => ({ id: t.id, dir: t.dir, text: t.text.slice(0, 200), at: t.at, from: t.from || null, sid: t.sid || null, mode: t.mode, job: t.job || null, agent: t.agent || 'claude', model: t.run?.model || '', effort: t.run?.effort || '', role: t.role || '', team: t.team || null });
   /** { dir, text, images: [data URLs], from: { sid, name, fork } | null } -> { ok, task } or { ok: false, code } */
   function start({ dir, text, images = [], from = null, env: extra = null, system = '', stopAfter = false, agent = 'claude', model = '', effort = '', role = '', team = null, ask = '', args = null, perm = null }) {   // (args: { claude: [], codex: [] } more flags for this one, e.g. web search; perm: 'specialist' for the staff who work alone)
-    text = String(text || '').trim().slice(0, MAX_TEXT);
+    text = String(text || '').trim().slice(0, team || perm || role ? 64000 : MAX_TEXT);
     if (!text) return { ok: false, code: 'empty' };
     if (running.size >= max) return { ok: false, code: 'busy' };
     const now = Date.now(); while (recent.length && now - recent[0] > 3600e3) recent.shift();
@@ -47,7 +48,7 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
     }
     // the photos by their paths: Claude Code reads them with its Read tool
     const prompt = files.length ? `${text}\n\n${files.length > 1 ? 'Attached images' : 'Attached image'} (read ${files.length > 1 ? 'them' : 'it'}):\n${files.join('\n')}` : text;
-    const e = { ...env(), ...extra }; for (const k of Object.keys(e)) if (e[k] == null) delete e[k];   // (extra: the conversation's own account; null unsets)
+    const e = mediaEnvironment({ ...env(), ...extra }); for (const k of Object.keys(e)) if (e[k] == null) delete e[k];   // (extra: the conversation's own account; null unsets)
     // (stopAfter: a conversation taken from your editor, stopped once done so the editor takes it up again alone)
     const t = { id, dir, text, at: now, from, sid: null, result: '', error: '', buf: '', bin, env: e, prompt, system, stopAfter, agent: isCodex ? 'codex' : 'claude', run: { model, effort }, role, team, ask, args, perm, mode: isCodex ? 'codex' : bg?.want() && !args ? 'bg' : 'print' };
     if (t.mode === 'codex' && !runCodex(t)) return { ok: false, code: 'noCodex' };
@@ -62,11 +63,13 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
     const { from, system } = t;
     // (from.fork false: carry on that very conversation, one this office started for you, instead of a branch of it)
     const set = printSettings?.(t);
-    const args = ['-p', t.prompt, '--output-format', 'stream-json', '--verbose', ...runArgs('claude', t.run), ...(from?.sid ? ['--resume', from.sid, ...(from.fork === false ? [] : ['--fork-session'])] : []), ...(system ? ['--append-system-prompt', system] : []), ...(set ? ['--settings', set] : []), ...(t.args?.claude || [])];   // (system: a word from the office, outside the conversation)
+    const piped = t.prompt.length > 6000;
+    const args = ['-p', piped ? 'Carry out the complete DT Office assignment supplied on stdin.' : t.prompt, '--output-format', 'stream-json', '--verbose', ...runArgs('claude', t.run), ...(from?.sid ? ['--resume', from.sid, ...(from.fork === false ? [] : ['--fork-session'])] : []), ...(system ? ['--append-system-prompt', system] : []), ...(set ? ['--settings', set] : []), ...(t.args?.claude || [])];   // long role skills travel on stdin, not Windows command-line arguments
     let proc;
-    try { proc = spawn(t.bin.file, args, { cwd: t.dir, env: t.env, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
+    try { proc = spawn(t.bin.file, args, { cwd: t.dir, env: t.env, stdio: [piped ? 'pipe' : 'ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
     catch { return false; }
     Object.assign(t, { mode: 'print', proc, pid: proc.pid });
+    if (piped) { proc.stdin.on('error', () => {}); proc.stdin.end(t.prompt); }
     proc.stdout.on('data', (c) => {
       t.buf += String(c);
       let nl;
@@ -104,11 +107,13 @@ export function createTasks({ dataDir, claude, codex = null, codexArgs = () => [
   function runCodex(t) {
     const js = /\.m?js$/.test(t.bin.file), extra = [...codexArgs(), ...(t.args?.codex || [])];
     const words = t.system ? `${t.prompt}\n\n${t.system}` : t.prompt;
-    const args = [...(js ? [t.bin.file] : []), 'exec', '--json', '--skip-git-repo-check', ...extra, ...runArgs('codex', t.run), ...(t.from?.sid ? ['resume', t.from.sid] : []), '--', words];
+    const piped = words.length > 6000;
+    const args = [...(js ? [t.bin.file] : []), 'exec', '--json', '--skip-git-repo-check', ...extra, ...runArgs('codex', t.run), ...(t.from?.sid ? ['resume', t.from.sid] : []), '--', piped ? '-' : words];
     let proc;
-    try { proc = spawn(js ? process.execPath : t.bin.file, args, { cwd: t.dir, env: t.env, stdio: ['ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
+    try { proc = spawn(js ? process.execPath : t.bin.file, args, { cwd: t.dir, env: t.env, stdio: [piped ? 'pipe' : 'ignore', 'pipe', 'pipe'], detached: process.platform !== 'win32', windowsHide: true }); }
     catch { return false; }
     Object.assign(t, { proc, pid: proc.pid });
+    if (piped) { proc.stdin.on('error', () => {}); proc.stdin.end(words); }
     if (t.from?.sid) t.sid = t.from.sid;
     const step = (it) => {
       if (it.type === 'command_execution') onStep?.(t, { name: 'Bash', input: { command: String(it.command || '') } });

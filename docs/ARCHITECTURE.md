@@ -224,12 +224,12 @@ engine switches to demo mode and talks to no API.
 | `ui/session-drawer.js` | 398 | The session drawer: chat, steps, subagents. |
 | `ui/settings.js` | 136 | Settings popover: backdrop, floor plan, look, time, toggles. |
 | `ui/setup.js` | 103 | The first run (server/setup.mjs): which CLIs the office connects to, Claude Code, Codex or both. |
-| `ui/specialists.js` | 197 | Talking to the specialists (server/specialists.mjs): a panel like the guide's, with their face. |
+| `ui/specialists.js` | 202 | Talking to the specialists (server/specialists.mjs): a panel like the guide's, with their face. |
 | `ui/stranded.js` | 159 | "Việc bỏ quên" in the Mac drawer: the worktrees and checkouts of the repositories the office knows that still hold work (files not committed, commits not pushed, stashes), and worktrees with nothing left in them that could go. |
 | `ui/stuck.js` | 97 | Stuck sessions ("Ngắt vòng lặp kẹt", server/loops.mjs): the card in the group chat (what repeats, Stop, a hint for Claude) and the row in Settings → More (on or off, after how many failures, after how many minutes of spending with nothing edited). |
 | `ui/task-sheet.js` | 210 | "Giao việc": giving Claude work from the group chat (server/tasks.mjs runs it on the Mac). |
 | `ui/team-roster.js` | 89 | Personnel, freshness and explicit session selection, shared by 2D and the 3D office. |
-| `ui/team-sheet.js` | 216 | "Đội AI Agent Dev" (server/team.mjs): you are the CEO. |
+| `ui/team-sheet.js` | 221 | "Đội AI Agent Dev" (server/team.mjs): you are the CEO. |
 | `ui/ticks.js` | 25 | The page's clocks, in 2D and 3D alike: the time in the top bar, the open session's header, the Mac's readings. |
 | `ui/timelapse.js` | 156 | A 15-second clip of the office to share: square (1080 × 1080) for a feed or vertical (1080 × 1920) for Reels, TikTok and Shorts, the camera turning slowly round the floor, people at four times their pace, the day running into the evening (a clock in the corner from 8:00 to 23:00, the lights coming on at six), a title at the start and the day's numbers over the last two and a half seconds, with an original lo-fi tune under it (clip-music.js; it can be turned off). |
 | `ui/tips.js` | 115 | The first visit: a short tour of what you can click. |

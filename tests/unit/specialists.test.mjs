@@ -87,3 +87,11 @@ test('one news reader owns the task, keeps its session after completion and cann
   assert.equal(restored.get(first.job.id).sid, 'news-thread');
   assert.equal(h.sp.news({ topic: 'Gold' }).ok, true);
 });
+
+test('a script-only video response fails instead of being reported as a completed export', async () => {
+  const h = harness(), r = h.sp.video({ brief: 'Create a short video' });
+  assert.equal(r.ok, true);
+  await h.sp.taskDone({ id: r.job.task, result: 'Prepared a script; no video was rendered.' });
+  const job = h.sp.get(r.job.id);
+  assert.equal(job.status, 'fail'); assert.equal(job.video, ''); assert.match(job.summary, /video|MP4/i);
+});

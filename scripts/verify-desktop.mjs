@@ -11,6 +11,11 @@ const data = fs.mkdtempSync(path.join(os.tmpdir(), 'dtoffice-desktop-'));
 const pkg = JSON.parse(fs.readFileSync(path.join(office, 'package.json'), 'utf8'));
 assert.equal(pkg.name, '@trancaodai1651/dtoffice');
 execFileSync(node, ['-e', "console.log(process.arch); require('sharp'); require('next');"], { cwd: office, stdio: 'inherit' });
+// Both encoders and the probe must work without system FFmpeg or a network connection.
+const videoDir = path.join(data, 'video-smoke'); fs.mkdirSync(videoDir);
+fs.writeFileSync(path.join(videoDir, 'video-plan.json'), JSON.stringify({ size: [320, 568], scenes: [{ type: 'title', duration: 1, text: 'DT Office · Tiếng Việt' }] }));
+execFileSync(node, [path.join(office, 'server', 'video-tools.mjs'), 'render', path.join(videoDir, 'video-plan.json')], { cwd: office, stdio: 'inherit', env: { ...process.env, OFFICE_FFMPEG: '', OFFICE_FFPROBE: '' } });
+console.log('Bundled FFmpeg + ffprobe render and verify H.264/AAC: OK');
 const port = 14310;
 const child = spawn(node, [path.join(office, 'bin', 'cli.mjs')], {
   cwd: office, stdio: 'inherit',

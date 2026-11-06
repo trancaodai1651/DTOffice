@@ -7,6 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { bundleFfmpeg } from './bundle-ffmpeg.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // An isolated production build can be packaged without replacing the running office's .next.
@@ -46,6 +47,8 @@ step('Node → .desktop/node');
 fs.mkdirSync(NODE, { recursive: true });
 fs.copyFileSync(process.execPath, path.join(NODE, path.basename(process.execPath)));
 fs.cpSync(path.resolve(path.dirname(npmCli), '..'), path.join(NODE, 'node_modules', 'npm'), { recursive: true });
+
+await bundleFfmpeg(OFFICE, { universal: process.argv.includes('--universal') });
 
 if (process.argv.includes('--universal')) {
   if (process.platform !== 'darwin') throw new Error('--universal requires macOS');

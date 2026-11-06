@@ -121,7 +121,7 @@ export async function openTeamSheet(host, options = {}) {
   sheet.append(head);
   const info = el('div', 'tm-task-info');
   const roster = createTeamRoster({ roleId: options.roleId, onSession: id => { closeTeamSheet(false); options.onDismiss?.(); openSession(id); const heading = $('ds-name'); heading.tabIndex = -1; heading.focus(); },
-    onGoal: () => { const goal = current.querySelector('textarea'); if (goal) { goal.scrollIntoView({ block: 'center' }); goal.focus(); } else info.scrollIntoView({ block: 'center' }); },
+    onGoal: role => { options.roleId = role; const target = current.querySelector('[data-assignment-role]'); if (target) { target.value = role; target.dispatchEvent(new Event('change')); } const goal = current.querySelector('.tm-form textarea'); if (goal) { goal.scrollIntoView({ block: 'center' }); goal.focus(); } else info.scrollIntoView({ block: 'center' }); },
     onRoom: event => { event.stopPropagation(); closeTeamSheet(false); options.onDismiss?.(); if (HQ) goView('team'); else openLayoutSettings(); } });
   disposeRoster = roster.dispose; sheet.append(roster.element, info); host.append(sheet);
   const disabled = [];
@@ -148,11 +148,11 @@ export async function openTeamSheet(host, options = {}) {
       const retry = el('button', 'zc-task-tool', tr('team.presence.retry')); retry.type = 'button'; retry.addEventListener('click', loadInfo);
       info.append(el('p', 'zc-task-note', tr('team.presence.tasksError')), retry); return;
     }
-    buildTaskInfo(info, t, r);
+    buildTaskInfo(info, t, r, options);
   }
   await loadInfo();
 }
-function buildTaskInfo(sheet, t, r) {
+function buildTaskInfo(sheet, t, r, options = {}) {
   sheet.append(roleSkillsEditor(t));
   sheet.append(el('p', 'zc-task-note', tr('team.sub')));
   const about = el('details', 'tm-about');
@@ -167,22 +167,27 @@ function buildTaskInfo(sheet, t, r) {
   // the goal
   const saved = kept(), dirs = [...r.projects.map((p) => [p.dir, p.name]), ...r.sessions.filter((s) => !r.projects.some((p) => p.dir === s.dir)).map((s) => [s.dir, s.dir.split(/[\\/]/).pop()])].filter((x, i, a) => a.findIndex((y) => y[0] === x[0]) === i);
   const can = (a) => (a === 'codex' ? r.codex : r.claude !== false);
-  const pick = { dir: dirs.some((d) => d[0] === saved.dir) ? saved.dir : dirs[0]?.[0] || '', lead: ['cto', 'cmo'].includes(saved.lead) ? saved.lead : 'pm', agent: can(saved.agent) ? saved.agent : can('claude') ? 'claude' : 'codex', model: saved.model || '', effort: saved.effort || '' };
+  const allRoles = [...t.roles, ...(t.marketing?.roles || [])], selected = options.roleId || saved.role || '';
+  const pick = { role: allRoles.some(x => x.id === selected) ? selected : '', dir: dirs.some((d) => d[0] === saved.dir) ? saved.dir : dirs[0]?.[0] || '', lead: ['cto', 'cmo'].includes(saved.lead) ? saved.lead : 'pm', agent: can(saved.agent) ? saved.agent : can('claude') ? 'claude' : 'codex', model: saved.model || '', effort: saved.effort || '' };
   const form = el('div', 'tm-form');
   const goal = el('textarea', 'zc-task-in'); goal.rows = 3; goal.maxLength = 4000; goal.placeholder = tr('team.goalPh');
   const fields = el('div', 'tm-fields'), go = el('button', 'zc-task-go', tr('team.go')); go.type = 'button';
   function drawFields() {
+    const assignee = select(tr('team.assignment'), [['', tr('team.wholeTeam')], ...allRoles.map(x => [x.id, tr(`team.roles.${x.id}.name`)])], pick.role, v => { pick.role = v; drawFields(); });
+    assignee.querySelector('select').dataset.assignmentRole = '1';
     const models = r.models?.[pick.agent] || [], m = models.find((x) => x.id === pick.model);
     if (pick.model && !m) pick.model = '';
     const efforts = m?.efforts || (pick.agent === 'codex' ? [...new Set(models.flatMap((x) => x.efforts))] : r.models?.claude?.[0]?.efforts || []);
     if (pick.effort && !efforts.includes(pick.effort)) pick.effort = '';
     fields.replaceChildren(
       select(tr('team.project'), dirs.map(([d, n]) => [d, `${n} · ${d}`]), pick.dir, (v) => { pick.dir = v; }),
+      assignee,
       select(tr('team.giveTo'), [['pm', `${tr('team.roles.pm.name')} · ${tr('team.teams.dev')}`], ['cto', `${tr('team.roles.cto.name')} · ${tr('team.teams.dev')}`], ...((t.teams || []).some((x) => x.id === 'marketing') ? [['cmo', `${tr('team.roles.cmo.name')} · ${tr('team.teams.marketing')}`]] : [])], pick.lead, (v) => { pick.lead = v; }),
       select(tr('team.cli'), [['claude', 'Claude Code'], ['codex', 'Codex CLI']].filter(([a]) => can(a)), pick.agent, (v) => { pick.agent = v; pick.model = ''; pick.effort = ''; drawFields(); }),
       select(tr('team.model'), [['', tr('chat.task.modelDefault')], ...models.map((x) => [x.id, x.name])], pick.model, (v) => { pick.model = v; drawFields(); }),
       select(tr('team.effort'), [['', tr('chat.task.effortDefault')], ...efforts.map((e) => [e, effortName(e)])], pick.effort, (v) => { pick.effort = v; }),
     );
+    fields.children[2].hidden = !!pick.role;
     go.disabled = !pick.dir || !goal.value.trim();
   }
   goal.addEventListener('input', () => { go.disabled = !pick.dir || !goal.value.trim(); });

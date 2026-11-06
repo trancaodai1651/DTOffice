@@ -88,7 +88,7 @@ const ALL_ROLES = [...ROLES, ...MARKETING_ROLES];
 const teamOf = (id) => TEAMS.find((t) => t.id === id) || TEAMS[0];
 const teamNow = (run) => teamOf(run?.teams?.[run?.ti || 0]);
 /** Who leads a team in this run: the Marketing Manager for marketing; for dev, the PM or the CTO the goal went to. */
-const leadOf = (run, team = teamNow(run)) => team.lead || (run?.lead === 'cto' ? 'cto' : 'pm');
+const leadOf = (run, team = teamNow(run)) => run?.directRole || team.lead || (run?.lead === 'cto' ? 'cto' : 'pm');
 const isCheck = (key) => TEAMS.some((t) => checkOf(t) === key);
 const fixOf = (team) => team.fix?.() || FIX, checkOf = (team) => team.check || 'verify', fallbackOf = (team) => team.fallback || ['frontend', 'backend'];
 const isFix = (key) => TEAMS.some((t) => fixOf(t).key === key);
@@ -191,7 +191,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   // an office that stopped while a run was going: that run is over
   for (const r of runs) if (r.status === 'run') { r.status = 'stopped'; for (const s of r.stages) { if (s.state === 'run') s.state = 'stopped'; for (const j of s.jobs || []) if (j.state === 'run' || j.state === 'wait') j.state = 'stopped'; } }
   const save = () => { try { fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(file, JSON.stringify({ runs: runs.slice(0, 20) }, null, 1)); } catch { /* best effort */ } };
-  const pub = (r) => ({ id: r.id, teams: r.teams || ['dev'], ti: r.ti || 0, dir: r.dir, goal: r.goal, lead: r.lead, agent: r.agent, model: r.model, effort: r.effort, status: r.status, at: r.at, end: r.end || 0, fixes: r.fixes, named: r.named || null,
+  const pub = (r) => ({ id: r.id, directRole: r.directRole || '', teams: r.teams || ['dev'], ti: r.ti || 0, dir: r.dir, goal: r.goal, lead: r.lead, agent: r.agent, model: r.model, effort: r.effort, status: r.status, at: r.at, end: r.end || 0, fixes: r.fixes, named: r.named || null,
     stages: r.stages.map(({ key, team, roles, state, verdict, jobs = [] }) => ({ key, team: team || 'dev', roles, state, verdict, jobs: jobs.map(({ role, state: js, verdict: v, summary, held, at }) => ({ role, state: js, verdict: v, summary, held: held || null, at: at || 0 })) })) });
   const end = (r, status, what, extra) => { r.status = status; r.end = now(); save(); onChange(r, what, extra); };
 
@@ -201,7 +201,9 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
     const last = r.stages.at(-1);
     let stage;
     const team = teamNow(r);
-    if (!last) stage = teamOf(r.teams?.[0]).stages()[0];
+    if (r.directRole && last) { end(r, 'done', 'done'); return; }
+    if (r.directRole) stage = { key: 'direct', roles: [r.directRole], parallel: false };
+    else if (!last) stage = teamOf(r.teams?.[0]).stages()[0];
     else if (isCheck(last.key) && last.verdict !== 'pass' && r.fixes < MAX_FIXES) { r.fixes++; stage = fixOf(team); }
     else if (isFix(last.key)) stage = team.stages().find((s) => s.key === checkOf(team));
     else if (isCheck(last.key) && last.verdict !== 'pass') stage = REPORT;   // (still failing after the fixes: nothing shipped, the CEO is told)
@@ -209,7 +211,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
     else if (last.key === 'report') { end(r, 'done', 'done'); return; }
     else if (last.key === 'ship') stage = REPORT;
     else { const st = teamOf(r.teams?.[r.ti || 0]).stages(), i = st.findIndex((s) => s.key === last.key); stage = st[i + 1] || REPORT; }
-    const n = r.stages.length + 1, roles = membersOf(r, stage);
+    const n = r.stages.length + 1, roles = r.directRole ? [r.directRole] : membersOf(r, stage);
     const s = { key: stage.key, team: r.teams?.[r.ti || 0] || 'dev', n, roles, parallel: stage.parallel, state: 'run', verdict: '', jobs: roles.map((role) => ({ role, state: 'wait', task: null, file: fileOf(r, n, stage.key, role), summary: '', verdict: '' })) };
     r.stages.push(s); save(); onChange(r, 'stage', { stage: s });
     launch(r);
@@ -217,7 +219,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   // start whoever may start now: in a stage side by side, everyone (as the office allows); one after another, the next
   // who holds a member back: the same person at work on another task, or (for the stages that change code) a colleague
   // changing the same project's code for another task
-  const EDITS = new Set(['build', 'fix']);
+  const EDITS = new Set(['build', 'fix', 'direct']);
   function heldBy(r, s, role) {
     for (const x of runs) {
       if (x === r || x.status !== 'run') continue;
@@ -232,7 +234,7 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
   }
   function launch(r) {
     const s = r.stages.at(-1); if (!s || r.status !== 'run') return;
-    const stage = [...teamOf(s.team).stages(), fixOf(teamOf(s.team)), REPORT].find((x) => x.key === s.key);
+    const stage = s.key === 'direct' ? { key: 'direct', task: 'Complete this assignment yourself in your role. Do not delegate it or start a team workflow. Create and verify the requested deliverables. Publish only if the CEO explicitly requested publishing.' } : [...teamOf(s.team).stages(), fixOf(teamOf(s.team)), REPORT].find((x) => x.key === s.key);
     for (const j of s.jobs) {
       if (j.state !== 'wait') continue;
       if (!s.parallel && s.jobs.some((x) => x.state === 'run')) return;
@@ -271,12 +273,14 @@ export function createTeam({ dataDir, lang, start, stop, onChange = () => {}, no
     get: (id) => { const r = runs.find((x) => x.id === id); return r ? pub(r) : null; },
     /** A goal from the CEO: { dir, goal, lead: 'pm' | 'cto', agent, model, effort, teams } -> { ok, run } | { ok: false, code }.
      *  Tasks run side by side; a member already at work on one is called for another once done (held). */
-    begin({ dir, goal, lead = 'pm', agent = 'claude', model = '', effort = '', teams = null }) {
+    begin({ dir, goal, lead = 'pm', agent = 'claude', model = '', effort = '', teams = null, role = '' }) {
       goal = String(goal || '').trim().slice(0, 4000);
       if (!goal) return { ok: false, code: 'empty' };
+      role = String(role || '');
+      if (role && ![...ROLES, ...MARKETING_ROLES].some(r => r.id === role)) return { ok: false, code: 'badRole' };
       const ids = [...new Set((Array.isArray(teams) ? teams : []).filter((x) => TEAMS.some((t) => t.id === x)))];
-      const list = ids.length ? ids : lead === 'cmo' ? ['marketing'] : [TEAMS[0].id];   // (a goal given to the Marketing Manager: the marketing team)
-      const r = { teams: list, ti: 0, id: `${new Date(now()).toISOString().slice(0, 10)}-${crypto.randomUUID().slice(0, 6)}`, dir, goal, lead: teamOf(list[0]).lead || (lead === 'cto' ? 'cto' : 'pm'), agent: agent === 'codex' ? 'codex' : 'claude', model, effort, status: 'run', at: now(), fixes: 0, named: null, stages: [] };
+      const list = role ? [MARKETING_ROLES.some(r => r.id === role) ? 'marketing' : 'dev'] : ids.length ? ids : lead === 'cmo' ? ['marketing'] : [TEAMS[0].id];
+      const r = { teams: list, directRole: role, ti: 0, id: `${new Date(now()).toISOString().slice(0, 10)}-${crypto.randomUUID().slice(2, 8)}`, dir, goal, lead: role || teamOf(list[0]).lead || (lead === 'cto' ? 'cto' : 'pm'), agent: agent === 'codex' ? 'codex' : 'claude', model, effort, status: 'run', at: now(), fixes: 0, named: null, stages: [] };
       runs.unshift(r); runs = runs.slice(0, 20);
       onChange(r, 'begin');
       nextStage(r);

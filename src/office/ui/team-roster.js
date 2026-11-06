@@ -8,7 +8,7 @@ import { t as tr } from '../../i18n/index.js';
 let selectedRole = null;
 let openTeamUi = null;
 export function setTeamOpener(open) { openTeamUi = open; }
-export const showRole = roleId => { if (liveTeamEnabled() && TEAM_SEATS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } else if (liveTeamEnabled() && MARKETING_ROLE_IDS.includes(roleId)) openTeamUi?.({}); };
+export const showRole = roleId => { if (liveTeamEnabled() && TEAM_SEATS.includes(roleId)) { selectedRole = roleId; openTeamUi?.({ roleId }); } else if (liveTeamEnabled() && MARKETING_ROLE_IDS.includes(roleId)) openTeamUi?.({ roleId }); };
 export const presenceStatus = p => tr(`team.presence.${p.freshness === 'loading' ? 'loading' : p.freshness === 'stale' ? 'stale' : p.activity}`);
 export function positionTeamEntry(lite) {
   const entry = document.querySelector('.team-presence-entry'); if (!entry) return;
@@ -54,7 +54,7 @@ export function createTeamRoster({ roleId, onSession, onGoal, onRoom }) {
             const open = el('button', 'zc-task-tool', tr('team.presence.openSession')); open.type = 'button'; open.dataset.focus = `session:${s.id}`;
             open.addEventListener('click', () => { if (!sessions.has(s.id)) { missing = true; draw(); return; } onSession(s.id); }); entry.append(open); detail.append(entry);
           }
-          const goal = el('button', 'zc-task-tool', tr('team.go')); goal.type = 'button'; goal.dataset.focus = `goal:${p.roleId}`; goal.addEventListener('click', onGoal); detail.append(goal);
+          const goal = el('button', 'zc-task-tool', tr('team.go')); goal.type = 'button'; goal.dataset.focus = `goal:${p.roleId}`; goal.addEventListener('click', () => onGoal(p.roleId)); detail.append(goal);
         }
         row.append(button, detail); col.append(row);
       }

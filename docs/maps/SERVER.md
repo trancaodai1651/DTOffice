@@ -1,5 +1,7 @@
 # Server, CLI và logic dùng chung
 
+Từ 0.4.11: `/api/team` nhận `role` để giao riêng, stage `direct` dùng skill đã lưu; thiếu role giữ quy trình đội. `media-tools.mjs` chọn FFmpeg/ffprobe bundled; `video-tools.mjs` tải HTTPS bằng OS CA, render manifest và kiểm MP4 thật. Video chỉ done sau H264/AAC/30fps/ratio hợp lệ; có phục hồi export cũ, trạng thái render. Prompt nội bộ dài gửi stdin. Test: `unit/video-tools`, `unit/task-prompt`, `unit/team`, `e2e/video-export`.
+
 [Chọn nhóm khác](../FEATURE-MAP.md). Đường dẫn tính từ root; test viết gọn `unit/X` = `tests/unit/X.test.mjs`,
 `e2e/X` = `tests/e2e/X.spec.ts`. API dưới đây tìm trong `server/index.mjs` trừ khi chỉ rõ khác.
 

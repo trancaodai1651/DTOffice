@@ -82,13 +82,13 @@ test('guide hands news work to the existing news reader and keeps the requested 
   const errors: string[] = []; page.on('pageerror', (e) => errors.push(e.message));
   await page.addInitScript(() => { localStorage.setItem('office-tips', 'seen'); localStorage.setItem('office-quality', 'low'); localStorage.setItem('office-guide-hello', '1'); });
   await page.goto(`${BASE}/?debug&layout=hq`);
-  await page.waitForFunction('!!window.__office?.teamRoster?.get("news")');
+  await page.waitForFunction(`(() => { let found=false; window.__office?.scene?.traverse(n => { if(n.userData?.worker?.specialist==='news') found=true; }); return found; })()`);
   await page.locator('#btn-guide').click(); await page.locator('.gd-work').click();
   const brief = 'Đọc báo về kinh tế Việt Nam hôm nay';
   await page.locator('.gw textarea').fill(brief); await page.locator('.gw .gd-go').click();
   await expect(page.locator('.sp-panel')).toBeVisible(); await expect(page.locator('.sp-panel')).toHaveAttribute('aria-label', 'News reader');
   await expect(page.locator('.sp-panel textarea')).toHaveValue(brief);
   await expect(page.locator('.sp-panel button', { hasText: 'Read the news' })).toBeEnabled();
-  expect(await page.evaluate(`(() => { const o=window.__office; return [...o.sessions.values()].filter(s=>s.role==='news').every(s=>!o.workers.has(s.id)) && o.teamRoster.get('news').id === 'specialist:news'; })()`)).toBe(true);
+  expect(await page.evaluate(`(() => { const o=window.__office, ids=new Set(); o.scene.traverse(n=>{if(n.userData?.worker?.specialist==='news') ids.add(n.userData.worker.id);}); return [...o.sessions.values()].filter(s=>s.role==='news').every(s=>!o.workers.has(s.id)) && ids.size===1 && ids.has('specialist:news'); })()`)).toBe(true);
   expect(errors).toEqual([]);
 });

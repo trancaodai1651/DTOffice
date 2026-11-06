@@ -9,6 +9,19 @@ import { ROLES, STAGES, GROUPS, TEAMS, MARKETING_ROLES, MARKETING_GROUPS, MARKET
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'office-team-'));
 
+test('a direct assignment runs exactly the chosen employee, applies their skill and does not launch a team', () => {
+  const h = harness();
+  h.team.setSkill('frontend', 'FRONTEND-DIRECT-SKILL');
+  const r = h.team.begin({ dir: h.dir, goal: 'Implement one button', role: 'frontend' });
+  assert.equal(r.ok, true); assert.deepEqual(h.atWork(), ['direct:frontend']);
+  assert.match(h.started[0].prompt, /FRONTEND-DIRECT-SKILL/);
+  h.finish('frontend');
+  assert.equal(h.team.get(r.run.id).status, 'done'); assert.equal(h.started.length, 1);
+  assert.equal(h.team.begin({ dir: h.dir, goal: 'x', role: 'not-a-role' }).code, 'badRole');
+  const mk = h.team.begin({ dir: h.dir, goal: 'Write a caption', role: 'copywriter' });
+  assert.deepEqual(mk.run.teams, ['marketing']); assert.deepEqual(h.atWork(), ['direct:copywriter']);
+});
+
 test('role skills persist and reach only the assigned role at launch', () => {
   const dataDir = tmp(), prompts = [];
   const options = { dataDir, lang: () => 'vi', start: (_r, _s, prompt, role) => { prompts.push({ prompt, role }); return { ok: true, task: { id: role } }; }, stop() {} };

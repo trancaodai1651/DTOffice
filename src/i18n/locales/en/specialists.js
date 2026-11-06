@@ -13,6 +13,8 @@ export default {
     where: 'Save folder (empty: Documents/DT Office/Bao chi)',
   },
   video: {
+    exportVerified: 'Verified MP4: {seconds} seconds, {width}×{height}, H.264/AAC, 30 fps.',
+    exportFailed: 'Video export failed: {why}', retry: 'Retry video export',
     name: 'Video editor', short: 'Video', tag: 'Video',
     hello: 'Hi boss! I make videos with the content skills (short-video scripts, storytelling, hooks, content safety). Tell me what it\'s about, where the footage comes from and where to save it.',
     briefPh: 'What is the video about? e.g. a 45-second recap of the gold price news, upbeat',
@@ -30,7 +32,7 @@ export default {
   },
   cli: 'CLI', model: 'Model', effort: 'Effort',
   recent: 'Recent jobs', none: 'No jobs yet.',
-  status: { run: 'Working', print: 'Printing PDF', done: 'Done', fail: 'Failed', stopped: 'Stopped' },
+  status: { render: 'Rendering and verifying video', run: 'Working', print: 'Printing PDF', done: 'Done', fail: 'Failed', stopped: 'Stopped' },
   stop: 'Stop', sending: 'Sending…', close: 'Close', back: 'Back',
   unreachable: "Couldn't reach the office.",
   why: { empty: 'Write something first.', badDir: "Enter the folder's full path.", noInput: 'No such input folder on this computer.', specialistBusy: 'This specialist is already working. Wait for that job to finish or stop it first.' },

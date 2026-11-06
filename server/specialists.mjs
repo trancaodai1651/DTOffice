@@ -12,6 +12,9 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { execFile, spawn } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { findMediaTool } from './media-tools.mjs';
+import { renderVideo, verifyVideo } from './video-tools.mjs';
+import { createT } from '../src/i18n/index.js';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 export const SKILLS_DIR = path.join(HERE, 'skills', 'video');
@@ -33,10 +36,7 @@ function onPath(name) {
 }
 /** ffmpeg: on the PATH, or where winget / Homebrew put it. */
 export function findFfmpeg() {
-  const local = process.env.LOCALAPPDATA || '';
-  const known = WIN ? [path.join(local, 'Microsoft', 'WinGet', 'Links', 'ffmpeg.exe'), 'C:\\ffmpeg\\bin\\ffmpeg.exe', path.join(process.env.ProgramFiles || 'C:\\Program Files', 'ffmpeg', 'bin', 'ffmpeg.exe')]
-    : ['/opt/homebrew/bin/ffmpeg', '/usr/local/bin/ffmpeg', '/usr/bin/ffmpeg'];
-  return onPath('ffmpeg') || known.find((f) => fs.existsSync(f)) || null;
+  return findMediaTool('ffmpeg');
 }
 /** A Chromium browser that can print a page to PDF without a window (Edge on Windows, Chrome/Edge on a Mac). */
 export function findBrowser() {
@@ -88,6 +88,8 @@ export function videoPrompt({ brief, source, input = '', news = null, out, ffmpe
     '', `BRIEF: ${brief || (news ? 'a video made from the news report below' : '(none given: make the best video from the material)')}`,
     `FORMAT: ${format === 'long' ? 'a horizontal 16:9 video of 1–3 minutes' : 'a vertical 9:16 short (Reels/TikTok/Shorts) of 20–60 seconds'}`,
     `SAVE TO: ${out} (this folder; the finished video and everything you make stay here)`, '',
+    'Read VIDEO-TOOLS.md in this folder before downloading or rendering. It gives the exact Node helper commands and video-plan.json schema.',
+    'Do not automate Chrome or bypass browser/tool restrictions. Use the HTTPS download helper with public direct media URLs; it uses the OS certificate store. Never disable TLS verification. If a site refuses access, choose another licensed source or create explicitly labelled original title-card graphics.',
     'First learn your skills: read every SKILL.md below (and the references they point to when you use them). Use short-video-reels and storytelling-million-views for the script and the hook, viral-content-concepts for the angle, facebook-content-safety (and brand-trust-building when there is a brand) before anything is published, the growth skills for the caption and where it fits:',
     ...sk, '',
     'FOOTAGE:',
@@ -99,7 +101,8 @@ export function videoPrompt({ brief, source, input = '', news = null, out, ffmpe
     '1. Plan: kich-ban.md with the viewer promise, 3 hook options and the one you chose, the beat sheet, the shot list (time · visual · on-screen text · audio/edit), the caption and hashtags.',
     `2. Cut it with ffmpeg${ffmpeg ? ` (${ffmpeg})` : ''}: trim, order the shots, scale/crop to the format, on-screen text (drawtext with a font that has Vietnamese characters, e.g. Arial or Segoe UI on Windows, Arial Unicode on a Mac), transitions, music or voice only when free to use, loudness normalised. Write the exact commands to dung-video.ps1 (Windows) or dung-video.sh (macOS/Linux) so it can be made again, then run them.`,
     '3. Export video-final.mp4 (H.264 + AAC, 30 fps) and a cover image cover.jpg. Check the result with ffprobe (duration, size, streams).',
-    ...(ffmpeg ? [] : ['ffmpeg is NOT installed on this computer: do steps 1 and 2 (the script and the commands), skip running them, and say in your answer that ffmpeg must be installed (the office has a button for it) and the commands run.']),
+    'Always write video-plan.json with the actual scenes and source/license metadata. Run the render helper unless you already produced a verified custom FFmpeg export (e.g. with licensed narration/music); verify a custom export using the helper verify command. If stock footage cannot be downloaded, render original illustrated title cards instead, clearly label them as graphics and describe the substitution. A script or shot list alone is not a finished video. The default helper creates silent AAC when no licensed audio is available; disclose it.',
+    ...(ffmpeg ? [] : ['ffmpeg is NOT installed on this computer: report the missing dependency and request installation. Do not claim that a script or a plan is a finished export. The current desktop installer includes ffmpeg and ffprobe.']),
     '4. Run the content-safety check on the script, the text and the footage; fix what it finds.',
     `5. End your answer in ${vi ? 'Vietnamese' : 'English'}: what you made, the files, the length, the sources used, and what the CEO should check before posting.`,
   ].join('\n');
@@ -111,15 +114,26 @@ export function videoPrompt({ brief, source, input = '', news = null, out, ffmpe
  */
 export function createSpecialists({ dataDir, lang, start, stop, onChange = () => {}, home = os.homedir(), now = Date.now, ffmpeg = findFfmpeg, browser = findBrowser }) {
   const file = path.join(dataDir, 'specialists.json');
-  let jobs = [];
+  let jobs = []; const recover = [];
   try { jobs = JSON.parse(fs.readFileSync(file, 'utf8')).jobs || []; } catch { /* none yet */ }
-  for (const j of jobs) if (j.status === 'run' || j.status === 'print') j.status = 'stopped';   // (the office stopped under it)
+  for (const j of jobs) {
+    if (['run', 'print', 'render'].includes(j.status)) j.status = 'stopped';
+    if (j.kind === 'video' && ['done', 'fail'].includes(j.status) && (!j.video || !fs.existsSync(j.video))) {
+      j.video = ''; j.status = 'fail';
+      const candidate = path.join(j.dir, 'video-final.mp4');
+      if (fs.existsSync(candidate)) { j.status = 'render'; recover.push([j, candidate]); }
+    }
+  }
   const save = () => { try { fs.mkdirSync(dataDir, { recursive: true }); fs.writeFileSync(file, JSON.stringify({ jobs: jobs.slice(0, 40) }, null, 1)); } catch { /* best effort */ } };
   const pub = (j) => ({ id: j.id, kind: j.kind, topic: j.topic, brief: j.brief, source: j.source, input: j.input, from: j.from || null, dir: j.dir, status: j.status, at: j.at, end: j.end || 0,
     sid: j.sid || null, task: j.task || null, pdf: j.pdf || '', video: j.video || '', summary: j.summary || '', agent: j.agent, model: j.model, effort: j.effort, asked: !!j.asked });
   const defaults = () => ({ news: path.join(home, 'Documents', 'DT Office', 'Bao chi'), video: path.join(home, 'Videos', 'DT Office') });
   const folder = (root, title) => { const d = path.join(root, `${day(now())}-${slug(title)}`); let f = d, i = 2; while (fs.existsSync(f)) f = `${d}-${i++}`; fs.mkdirSync(f, { recursive: true }); return f; };
   const absolute = (p) => { const s = String(p || '').trim().replace(/^["']|["']$/g, '').replace(/^~(?=$|[\\/])/, home); return s && path.isAbsolute(s) ? path.resolve(s) : ''; };
+  // A repaired export may have been created after an older app incorrectly marked the job done.
+  for (const [j, candidate] of recover) verifyVideo(candidate, j.format).then(proof => {
+    j.video = candidate; j.status = 'done'; j.summary = createT(lang())('specialists.video.exportVerified', { seconds: proof.duration.toFixed(1), width: proof.width, height: proof.height }); save(); onChange(pub(j), 'done');
+  }).catch(error => { j.status = 'fail'; j.summary = createT(lang())('specialists.video.exportFailed', { why: error.message }); save(); onChange(pub(j), 'fail'); });
 
   function run(j, prompt, args) {
     const got = start({ dir: j.dir, text: prompt, agent: j.agent, model: j.model, effort: j.effort, role: j.kind === 'news' ? 'news' : 'video', ask: j.topic || j.brief || '', args, perm: 'specialist' });
@@ -133,7 +147,7 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
     get: (id) => { const j = jobs.find((x) => x.id === id); return j ? pub(j) : null; },
     raw: (id) => jobs.find((x) => x.id === id) || null,
     defaults,
-    tools: () => ({ ffmpeg: ffmpeg() || '', browser: browser() || '', skills: videoSkills() }),
+    tools: () => ({ ffmpeg: ffmpeg() || '', ffprobe: findMediaTool('ffprobe') || '', browser: browser() || '', skills: videoSkills() }),
     bind(task, sid) { const j = jobs.find((x) => x.task === task); if (!j || !sid || j.sid === sid) return; j.sid = sid; save(); onChange(pub(j), 'bind'); },
     /** { topic, dir?, agent, model, effort } -> { ok, job } | { ok: false, code } */
     news({ topic, dir = '', agent = 'claude', model = '', effort = '' }) {
@@ -149,7 +163,7 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
       brief = String(brief || '').trim().slice(0, 2000);
       const news = from ? jobs.find((x) => x.id === from && x.kind === 'news') : null;
       if (!brief && !news) return { ok: false, code: 'empty' };
-      if (jobs.some((j) => j.kind === 'video' && ['run', 'print'].includes(j.status))) return { ok: false, code: 'specialistBusy' };
+      if (jobs.some((j) => j.kind === 'video' && ['run', 'print', 'render'].includes(j.status))) return { ok: false, code: 'specialistBusy' };
       const src = source === 'folder' ? 'folder' : 'web', inDir = src === 'folder' ? absolute(input) : '';
       if (src === 'folder' && !(inDir && fs.existsSync(inDir) && fs.statSync(inDir).isDirectory())) return { ok: false, code: 'noInput' };
       const root = out ? absolute(out) : defaults().video; if (!root) return { ok: false, code: 'badDir' };
@@ -159,6 +173,8 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
       const skills = videoSkills();
       for (const n of skills) fs.cpSync(path.join(SKILLS_DIR, n), path.join(j.dir, '.claude', 'skills', n), { recursive: true });
       const ff = ffmpeg() || '';
+      const helper = path.join(HERE, 'video-tools.mjs'), cmd = `${WIN ? '& ' : ''}${JSON.stringify(process.execPath)} ${JSON.stringify(helper)}`;
+      fs.writeFileSync(path.join(j.dir, 'VIDEO-TOOLS.md'), `# Local video tools\n\nFFmpeg: ${ff || 'not installed'}\nFFprobe: ${findMediaTool('ffprobe') || 'not installed'}\n\nUse these commands from this job folder (no Chrome automation):\n\n${cmd} doctor\n${cmd} download "https://public-host/path/file.mp4" "tu-lieu/clip.mp4"\n${cmd} render video-plan.json\n${cmd} verify video-final.mp4\n\nManifest example:\n\n${JSON.stringify({ format: j.format, scenes: [{ type: 'title', duration: 5, text: 'Title and dated facts', color: '#17253b' }, { type: 'clip', file: 'tu-lieu/clip.mp4', duration: 5, text: 'Caption', source: 'https://source-page', license: 'license checked at URL' }] }, null, 2)}\n\nFor unavailable footage use type=title scenes explicitly identified as original graphics. Audio is silent AAC; do not claim narration or music. Fonts support Vietnamese. Copy user footage into this folder, never alter originals.\n`);
       const claude = ['--allowedTools', 'Bash Read Write Edit Glob Grep WebSearch WebFetch Skill', ...(inDir ? ['--add-dir', inDir] : []), ...(news ? ['--add-dir', news.dir] : [])];
       const codex = ['-c', 'web_search="live"', '-c', 'sandbox_workspace_write.network_access=true'];
       return run(j, videoPrompt({ brief, source: src, input: inDir, news: news?.dir || null, out: j.dir, ffmpeg: ff, skills, lang: lang(), format: j.format }), { claude, codex });
@@ -176,7 +192,18 @@ export function createSpecialists({ dataDir, lang, start, stop, onChange = () =>
         j.pdf = fs.existsSync(own) ? own : await printPdf(html, own, browser());
         if (!j.pdf && fs.existsSync(html)) j.html = html;
       } else {
-        const v = path.join(j.dir, 'video-final.mp4'); j.video = fs.existsSync(v) ? v : '';
+        j.status = 'render'; save(); onChange(pub(j), 'render');
+        const v = path.join(j.dir, 'video-final.mp4'), manifest = path.join(j.dir, 'video-plan.json');
+        try {
+          let proof;
+          try { proof = await verifyVideo(v, j.format); }
+          catch (error) { if (!fs.existsSync(manifest)) throw error; await renderVideo(j.dir, JSON.parse(fs.readFileSync(manifest, 'utf8'))); proof = await verifyVideo(v, j.format); }
+          j.video = v;
+          j.summary += `\n\n${createT(lang())('specialists.video.exportVerified', { seconds: proof.duration.toFixed(1), width: proof.width, height: proof.height })}`;
+          fs.writeFileSync(path.join(j.dir, 'export-verified.json'), JSON.stringify(proof, null, 2));
+        } catch (e) {
+          j.video = ''; j.status = 'fail'; j.summary = createT(lang())('specialists.video.exportFailed', { why: String(e.message || e).slice(0, 700) }); j.end = now(); save(); onChange(pub(j), 'fail'); return true;
+        }
       }
       j.status = 'done'; j.end = now(); save(); onChange(pub(j), 'done');
       return true;

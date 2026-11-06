@@ -20,7 +20,7 @@ const LOOK = {
 };
 let jobs = [];
 const met = new Set();   // the jobs whose meeting was called (or that were already going when the page opened)
-const busy = (kind) => jobs.find((j) => j.kind === kind && (j.status === 'run' || j.status === 'print'));
+const busy = (kind) => jobs.find((j) => j.kind === kind && ['run', 'print', 'render'].includes(j.status));
 
 // their armchairs (the library's first two seats), kept for them
 function seat(kind) { const l = STATIONS?.library || []; return l[SPECIALIST_ROLES.indexOf(kind)] || null; }
