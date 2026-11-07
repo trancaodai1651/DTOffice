@@ -1,6 +1,6 @@
 {
   "name": "@trancaodai1651/dtoffice",
-  "version": "0.4.15",
+  "version": "0.4.16",
   "private": true,
   "description": "DT Office: a local 3D workspace for Claude Code and Codex, AI teams, shared project memory and machine monitoring.",
   "license": "MIT",

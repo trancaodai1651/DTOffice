@@ -18,8 +18,8 @@
 - 3D HQ: Phòng Kho (DEPTS[1]) thu về nửa trái (`solo`, 1 pod, x 4.3–9.15); `WORKROOMS` trong `layout.js`: Phòng in 3D (sau, cửa hành lang A) và Phòng camera (trước, cửa vào Kho). `world/pro/workrooms.js`: kệ cuộn nhựa theo màu trong kho, bàn với A1 + AD5M (đèn trạng thái, đầu in chạy khi in), tường 6 màn hình ảnh camera (15 s/lần). Điều hướng phòng 1 pod (`navigation.js`).
 
 ## Kiểm tra
-- lint, typecheck đạt; module map cập nhật (`--check` đạt); docs/maps/SERVER.md thêm 2 dòng.
-- Unit 272: 264 đạt, 7 bỏ qua, 1 lỗi chập chờn `loop-hook` (Windows hook --fast, chạy riêng đạt; không liên quan). Test mới `tests/unit/print-camera-rooms.test.mjs` 8/8 (MQTT, Digest RFC 2617, CRC, TCP Flashforge giả, kho nhựa, máy in giả, camera Digest giả, duyệt giờ).
+- Commit `2ad0af2` ở GitHub CI `42328245112` đạt Node 20/22, Windows/macOS/Linux, browser smoke; Node 22 có 272 unit, 271 đạt, 1 bỏ qua, 0 lỗi.
+- Sau nâng version: lint, typecheck, module-map `--check`, build production `.next-release-0416`, smoke Windows và unit `print-camera-rooms` 8/8 đạt (MQTT, Digest RFC 2617, CRC, TCP Flashforge giả, kho nhựa, máy in giả, camera Digest giả, duyệt giờ).
 - Xem tay cổng 4311 (HQ): hộp thoại in 3D/camera, máy và camera IP giả báo "không kết nối được"/"hết thời gian"; phòng 3D hiển thị đúng; console chỉ 502 từ camera giả.
 - Chưa thử với máy in/camera thật. Chưa chạy E2E. Chưa commit.
 
@@ -30,4 +30,6 @@
 - HQ giờ không còn phòng ban trống cho dự án thường (chỉ khu tầng chính).
 
 ## Bước tiếp
-- Thử với A1/Flashforge/camera thật trong LAN; chỉnh `storage` nếu lệnh in không chạy. Chạy E2E trên CI.
+- Commit `2ad0af2` đã push lên `origin/main`; workflow CI cho commit này đạt: Node 20/22, Windows/macOS/Linux, browser smoke.
+- Codex đang đóng gói và phát hành app 0.4.16 Windows/macOS Universal; ghi commit/release/checksum sau khi workflow hoàn tất.
+- Thử với A1/Flashforge/camera thật trong LAN; chỉnh `storage` nếu lệnh in không chạy. CI không thay phép thử phần cứng thật.
