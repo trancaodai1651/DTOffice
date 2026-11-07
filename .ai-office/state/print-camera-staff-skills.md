@@ -21,7 +21,7 @@
 - Commit `2ad0af2` ở GitHub CI `42328245112` đạt Node 20/22, Windows/macOS/Linux, browser smoke; Node 22 có 272 unit, 271 đạt, 1 bỏ qua, 0 lỗi.
 - Sau nâng version: lint, typecheck, module-map `--check`, build production `.next-release-0416`, smoke Windows và unit `print-camera-rooms` 8/8 đạt (MQTT, Digest RFC 2617, CRC, TCP Flashforge giả, kho nhựa, máy in giả, camera Digest giả, duyệt giờ).
 - Xem tay cổng 4311 (HQ): hộp thoại in 3D/camera, máy và camera IP giả báo "không kết nối được"/"hết thời gian"; phòng 3D hiển thị đúng; console chỉ 502 từ camera giả.
-- Chưa thử với máy in/camera thật. Chưa chạy E2E. Chưa commit.
+- Chưa thử với máy in/camera thật. CI browser smoke đạt; chưa có E2E chuyên biệt cho máy in/camera.
 
 ## Còn dở / rủi ro
 - Bambu A1: đường dẫn lệnh `gcode_file` mặc định `/sdcard/<file>`; cần xác nhận trên máy thật (trường `storage` của máy in cho phép đổi). In .3mf qua `project_file` chưa làm.
@@ -30,6 +30,11 @@
 - HQ giờ không còn phòng ban trống cho dự án thường (chỉ khu tầng chính).
 
 ## Bước tiếp
-- Commit `2ad0af2` đã push lên `origin/main`; workflow CI cho commit này đạt: Node 20/22, Windows/macOS/Linux, browser smoke.
-- Codex đang đóng gói và phát hành app 0.4.16 Windows/macOS Universal; ghi commit/release/checksum sau khi workflow hoàn tất.
+- Code mới nhất `2ad0af2` đã push; bản desktop version commit `d1d14d6`, tag `v0.4.16`.
+- [Đã phát hành public/latest v0.4.16](https://github.com/trancaodai1651/DTOffice/releases/tag/v0.4.16): Windows x64, macOS Universal DMG/app archive, chữ ký, latest.json, SHA256SUMS.
+- [CI 42332913418](https://github.com/trancaodai1651/DTOffice/actions/runs/42332913418) và [Desktop release 42332913387](https://github.com/trancaodai1651/DTOffice/actions/runs/42332913387) đạt; Mac ARM và Intel verifier đều pass.
+- Tải lại 7 asset: digest GitHub, 6 SHA256, public latest manifest, 3 updater targets/URL/signature đều khớp.
+- Cargo native updater test `published_installers_have_valid_signatures --ignored`: đạt; kiểm chữ ký và signed version 0.4.16 của Windows, Mac x64, Mac ARM. Asset/log bị bỏ qua ở `test-results/releases/v0.4.16/` và `.cache/release-0416-*.log`.
+- Cập nhật bàn giao commit sau tag; chưa chạy installer lên app thật. Kiểm tra máy in/camera thật còn là bước riêng khi thiết bị sẵn sàng.
+- Chưa thử với A1/Flashforge/camera thật trong LAN; chỉnh `storage` nếu lệnh in không chạy.
 - Thử với A1/Flashforge/camera thật trong LAN; chỉnh `storage` nếu lệnh in không chạy. CI không thay phép thử phần cứng thật.

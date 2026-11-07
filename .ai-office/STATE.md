@@ -1,6 +1,6 @@
 # Trạng thái bàn giao · 07/11/2026
 
-- Codex · 07/11: [Đóng gói code mới nhất và phát hành desktop 0.4.16](state/print-camera-staff-skills.md) — code `2ad0af2` ở `origin/main`, CI và build/smoke Windows local đạt; đang hoàn thiện release Windows + macOS Universal; chưa thử phần cứng thật.
+- Codex · 07/11: [Đóng gói code mới nhất và phát hành desktop 0.4.16](state/print-camera-staff-skills.md) — public/latest Windows + macOS Universal; code `2ad0af2`, tag/release `v0.4.16`, CI/build Intel+ARM, 271 unit, browser smoke, asset/hash/chữ ký/updater manifest đều đạt.
 
 - Claude Code · 07/11: [Skill đăng bài/content/phân loại, Phòng in 3D, Phòng camera](state/print-camera-staff-skills.md) — code đã commit/push trong `2ad0af2`; unit mới 8/8 và xem tay HQ. Còn kiểm tra/build hai nền tảng và phát hành ở dòng trên.
 
