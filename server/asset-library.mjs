@@ -65,7 +65,10 @@ export function readPost(root, id) {
   const tags = (Array.isArray(p.hashtags) ? p.hashtags : []).map(String).slice(0, 30);
   return { id, dir, title: String(p.title || id).slice(0, 200), product: String(p.product || '').slice(0, 200), caption: String(p.caption || '').slice(0, 5000), hashtags: tags,
     platforms, accounts: p.accounts && typeof p.accounts === 'object' ? Object.fromEntries(Object.entries(p.accounts).map(([k, v]) => [k, String(v)])) : {},
-    media, when: String(p.when || p.schedule || '').slice(0, 40), status: ['draft', 'ready', 'posted'].includes(p.status) ? p.status : 'ready',
+    media, when: String(p.when || p.schedule || '').slice(0, 40), status: ['draft', 'proposed', 'ready', 'posted'].includes(p.status) ? p.status : 'ready',
+    // the publisher's proposed times ("proposed": waiting for the CEO to approve one; approving makes the post "ready")
+    proposals: (Array.isArray(p.proposals) ? p.proposals : []).filter((x) => x && typeof x === 'object').map((x) => ({ when: String(x.when || '').slice(0, 40), why: String(x.why || '').slice(0, 300) })).filter((x) => x.when).slice(0, 5),
+    approved: p.approved && typeof p.approved === 'object' ? { when: String(p.approved.when || '').slice(0, 40), at: String(p.approved.at || '').slice(0, 40) } : null,
     posted: p.posted && typeof p.posted === 'object' ? p.posted : {}, link: String(p.link || '').slice(0, 500) };
 }
 /** The text to paste: the caption and its hashtags. */
@@ -132,6 +135,16 @@ export function createLibrary({ dataDir, home = os.homedir(), now = Date.now }) 
       for (const pf of platform ? [platform] : p.platforms) raw.posted[pf] = new Date(now()).toISOString();
       if (link) raw.link = String(link).slice(0, 500);
       if (p.platforms.every((pf) => raw.posted[pf])) raw.status = 'posted';
+      try { fs.writeFileSync(path.join(p.dir, 'post.json'), JSON.stringify(raw, null, 2)); return true; } catch { return false; }
+    },
+    /** The CEO approves a proposed post's time (one of the proposals, or a time of their own: "YYYY-MM-DD HH:mm"): the post
+     *  is then "ready" to publish. false when the post can't be read or the time is not a time. */
+    approve(id, when = '') {
+      const r = ensure(), p = readPost(r, id); if (!p || p.status === 'posted') return false;
+      const t = String(when || p.when || p.proposals[0]?.when || '').trim();
+      if (!/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}$/.test(t)) return false;
+      let raw; try { raw = JSON.parse(fs.readFileSync(path.join(p.dir, 'post.json'), 'utf8')); } catch { return false; }
+      raw.when = t.replace('T', ' '); raw.status = 'ready'; raw.approved = { when: raw.when, at: new Date(now()).toISOString() };
       try { fs.writeFileSync(path.join(p.dir, 'post.json'), JSON.stringify(raw, null, 2)); return true; } catch { return false; }
     },
     /** What a marketing agent is told about the library: where things are, the folders you linked, what is in stock. */

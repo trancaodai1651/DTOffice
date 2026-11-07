@@ -105,7 +105,20 @@ export function libraryPanel({ focus = '' } = {}) {
       card.append(el('b', null, p.title), el('small', null, [tr(`library.posts.status.${p.status}`), p.when, p.product, tr('library.posts.media', { n: p.media.length })].filter(Boolean).join(' · ')));
       const text = el('p', 'lib-caption', p.caption.length > 280 ? `${p.caption.slice(0, 280)}…` : p.caption); card.append(text);
       const acts = el('div', 'lib-acts');
-      for (const pf of p.platforms) {
+      if (p.status === 'proposed' || p.status === 'draft') {   // the publisher proposed times: the CEO approves one (or sets another)
+        const pick = el('select'), times = p.proposals?.length ? p.proposals : p.when ? [{ when: p.when, why: '' }] : [];
+        for (const x of times) { const o = el('option', null, x.why ? `${x.when} · ${x.why}` : x.when); o.value = x.when; pick.append(o); }
+        const own = el('input'); own.type = 'datetime-local'; own.setAttribute('aria-label', tr('library.posts.ownTime'));
+        const go = button(tr('library.posts.approve'), async () => {
+          const when = own.value ? own.value.replace('T', ' ') : pick.value;
+          if (!when) { toast(tr('library.posts.pickTime'), 5000); return; }
+          if (await act('/api/library/approve', { id: p.id, when })) toast(tr('library.posts.approved', { when }), 5000);
+        }, 'zc-task-go');
+        const box = el('div', 'lib-approve');
+        box.append(el('small', null, tr(times.length ? 'library.posts.proposedSub' : 'library.posts.noProposal')), ...(times.length ? [pick] : []), own, go);
+        card.append(box);
+      }
+      for (const pf of p.status === 'ready' || p.status === 'posted' ? p.platforms : []) {
         const done = p.posted?.[pf], mine = data.accounts.filter((a) => a.platform === pf), chosen = mine.find((a) => a.id === p.accounts?.[pf]) || mine[0];
         if (done) { acts.append(el('small', 'lib-done', `✓ ${platformName(pf)}`)); continue; }
         if (!chosen) { acts.append(el('small', 'lib-miss', tr('library.posts.noAccount', { platform: platformName(pf) }))); continue; }

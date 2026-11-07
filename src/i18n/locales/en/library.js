@@ -31,7 +31,10 @@ export default {
     title: 'Posts to publish · {n}',
     sub: 'The Content Creator writes, Social Media picks the account and time. Press Publish: the account\'s posting page opens, the caption is copied and the media folder opens to drag from; press the platform\'s Post button, then Posted.',
     none: 'No post yet. Give the marketing team a task, e.g. "Write 3 Facebook and Instagram posts for the basic white T-shirt".',
-    status: { draft: 'Draft', ready: 'Ready', posted: 'Posted' },
+    status: { draft: 'Draft', proposed: 'Waiting for your time approval', ready: 'Approved · ready', posted: 'Posted' },
+    proposedSub: 'The publisher proposed posting times. Pick one (or set another) and press Approve.',
+    noProposal: 'No time proposed yet. Set a posting time and press Approve.',
+    ownTime: 'Another time', approve: 'Approve posting time', pickTime: 'Pick or set a posting time.', approved: 'Posting time {when} approved. The post is ready to publish.',
     media: '{n} files', noAccount: 'No {platform} account yet',
     publish: 'Publish {platform} · {account}', markDone: 'Posted on {platform}',
     opened: '{platform} posting page opened and the caption copied. Paste it (Ctrl+V), drag the media from the folder that opened, then press the platform\'s Post.',
@@ -41,6 +44,6 @@ export default {
   err: {
     badDir: 'Give the full path.', noDir: 'Folder not found.', dup: 'This folder is already linked.', full: 'The limit is reached.',
     badPlatform: 'Unsupported platform.', noLabel: 'Give the account a name.', noAccount: 'Account not found.',
-    noBrowser: 'Microsoft Edge or Google Chrome was not found on this computer.', noPost: 'This post cannot be read.',
+    noBrowser: 'Microsoft Edge or Google Chrome was not found on this computer.', noPost: 'This post cannot be read.', badTime: 'Not a valid posting time (YYYY-MM-DD HH:mm).', notApproved: 'This post\'s time is not approved yet. Approve it before publishing.',
   },
 };

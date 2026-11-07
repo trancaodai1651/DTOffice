@@ -11,9 +11,10 @@ export const DEPTS = [
   // the marketing department ("Phòng Marketing", server/team.mjs MARKETING_ROLES): the two rooms on the left of corridor B,
   // one open space (a doorway in the half wall between them), the front one with four pods like the AI team's room
   { x0: -8, x1: 2.3, z0: 10.8, z1: 18.4, cx: -2.85, door: { side: 'n', at: -2.4 }, mk: true },
-  // "Phòng Kho dữ liệu" (server/asset-library.mjs): the marketing department's asset room, shelves of product boxes along
-  // its walls; its first desks are the Asset Manager's and the Product Photo designer's (shared/team-roles.js KHO_SEATS)
-  { x0: 4.3, x1: 14, z0: 10.8, z1: 18.4, cx: 9.15, door: { side: 'n', at: 9.15 }, kho: true },
+  // "Phòng Kho dữ liệu" (server/asset-library.mjs): the marketing department's asset room, the west half of the back right
+  // room: shelves of product boxes along its wall and one pod, the Asset Manager's and the Product Photo designer's desks
+  // first (shared/team-roles.js KHO_SEATS). The east half is the print room and the camera room (WORKROOMS)
+  { x0: 4.3, x1: 9.15, z0: 10.8, z1: 18.4, cx: 7.0, door: { side: 'n', at: 5.16 }, kho: true, solo: true },
   { x0: -8, x1: 2.3, z0: 18.4, z1: 26, cx: -3.05, door: { side: 'e', at: 22.2 }, mk: true, big: true },
   // the AI team's room ("Phòng AI 15 Agent DEV", server/team.mjs): four pods in two rows, a desk for each of the 15 agents
   // and one for the CEO; the door from corridor B opens into the lane between the rows
@@ -21,7 +22,11 @@ export const DEPTS = [
 ].map((d) => ({ ...d, cz: (d.z0 + d.z1) / 2,
   // [x, z, aisle]: a pod's centre, and how far its aisles run from it (behind each row of chairs)
   pods: d.team || d.big ? [[d.cx - 2.65, 20.55, 1.45], [d.cx + 2.65, 20.55, 1.45], [d.cx - 2.65, 23.85, 1.45], [d.cx + 2.65, 23.85, 1.45]]
-    : [[d.cx - 2.65, (d.z0 + d.z1) / 2], [d.cx + 2.65, (d.z0 + d.z1) / 2]] }));
+    : d.solo ? [[d.cx, (d.z0 + d.z1) / 2]] : [[d.cx - 2.65, (d.z0 + d.z1) / 2], [d.cx + 2.65, (d.z0 + d.z1) / 2]] }));
+/** The rooms without desks on the wing, beside the asset room: "Phòng in 3D" (server/print-farm.mjs: its filament rack and
+ *  printers) at the back, its door on corridor A, and "Phòng camera" (server/cameras.mjs: a wall of screens) in front of
+ *  it, its door into the asset room. world/pro/workrooms.js builds them, ui/rooms-panel.js runs them. */
+export const WORKROOMS = { print: { x0: 9.15, x1: 14, z0: 10.8, z1: 14.6, door: 11.6 }, camera: { x0: 9.15, x1: 14, z0: 14.6, z1: 18.4, door: 16.7 } };
 /** The AI team's room among DEPTS (-1 when there is none). */
 export const TEAM_DEPT = DEPTS.findIndex((d) => d.team);
 /** The marketing department's rooms among DEPTS. */

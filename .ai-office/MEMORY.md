@@ -39,6 +39,8 @@
 
 - Kho có thể chuyển giữa Windows/Mac/Linux: post media chỉ dùng đường dẫn tương đối; kiểm cả path.posix/path.win32 và loại drive-relative C:x, không chỉ path.isAbsolute của host. Fixture đa hệ ở unit/asset-library.
 
+- Từ 07/11/2026: bài đăng có trạng thái `proposed` (Social đề xuất giờ, `proposals`) → CEO duyệt (`/api/library/approve`) → `ready` mới đăng. Phòng in 3D (`print-farm.mjs`) và Phòng camera (`cameras.mjs`) dùng `lan-proto.mjs` không phụ thuộc thư viện; chỉ IP LAN + loopback; mã/mật khẩu thiết bị chỉ ở data-dir, không trả về trang. HQ: Kho = DEPTS[1] `solo` 1 pod, `WORKROOMS` (in 3D, camera) ở nửa phải.
+
 ## Tra cứu theo nhu cầu
 
 

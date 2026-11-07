@@ -9,6 +9,7 @@ import { focusTarget } from '../core/loop.js';
 import { t as tr } from '../../i18n/index.js';
 
 let VIEWS;
+const ROOM_VIEWS = ['print', 'camera'];
 export function setView(v) { for (const b of document.querySelectorAll('.seg-btn')) b.setAttribute('aria-pressed', String(b.dataset.view === v)); }
 let panBack = null;
 let panTimer = 0;
@@ -24,11 +25,12 @@ export function goView(v) {
 
 export function setup() {
   /* ---------- camera toolbar ---------- */
-  VIEWS = HQ ? { home: { t: [3, 0.3, 9], z: 1 }, desks: { t: [3, 0.6, 18.2], z: 1.6 }, team: { t: [9.2, 0.6, 22.2], z: 3.0 }, marketing: { t: [-2.9, 0.6, 18.4], z: 2.1 }, kho: { t: [9.2, 0.6, 14.8], z: 2.3 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.8 }, server: { t: [-5.6, 1.0, -0.6], z: 3.3 } }
+  VIEWS = HQ ? { home: { t: [3, 0.3, 9], z: 1 }, desks: { t: [3, 0.6, 18.2], z: 1.6 }, team: { t: [9.2, 0.6, 22.2], z: 3.0 }, marketing: { t: [-2.9, 0.6, 18.4], z: 2.1 }, kho: { t: [6.8, 0.6, 14.6], z: 2.6 }, print: { t: [11.6, 0.6, 12.7], z: 3.4 }, camera: { t: [11.6, 0.6, 16.5], z: 3.4 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.8 }, server: { t: [-5.6, 1.0, -0.6], z: 3.3 } }
     : PRO ? { home: { t: [3, 0.3, 0.7], z: 1 }, desks: { t: [2.3, 0.6, 3.6], z: 1.9 }, meeting: { t: [-1.2, 0.6, -5.4], z: 2.0 }, server: { t: [-5.6, 1.0, -0.6], z: 2.4 } }
     : { home: { t: [0, 0.3, 0.2], z: 1 }, desks: { t: [0, 0.6, 0.4], z: 1.75 }, meeting: { t: [5.2, 0.6, 2.4], z: 2.3 }, server: { t: [5.4, 1.0, -4.4], z: 2.2 } };
   if (PRO) VIEWS.director = { t: [-5.4, 0.6, -5.6], z: 2.8 };
-  for (const b of document.querySelectorAll('.seg-btn[data-view]')) b.hidden = !VIEWS[b.dataset.view];
+  // the print room and the camera room: their dialog on every plan; on headquarters the camera goes to the room too
+  for (const b of document.querySelectorAll('.seg-btn[data-view]')) b.hidden = !VIEWS[b.dataset.view] && !ROOM_VIEWS.includes(b.dataset.view);
   // Camera glides to important moments (a permission request, a deploy, an incident) unless you moved it in the last
   // 30 seconds, then returns to where it was.
   state.camAuto = true;
@@ -51,6 +53,7 @@ export function setup() {
     if (fp.on) exitFp();
     if (state.selectedId) { state.selectedId = null; state.subView = null; drS.hidden = true; queueUi(); }
     goView(b.dataset.view);
+    if (ROOM_VIEWS.includes(b.dataset.view)) import('./rooms-panel.js').then((m) => m.openRoom(b.dataset.view));
   });
   $('zoom-in').addEventListener('click', () => { if (fp.on) { fpCam.fov = Math.max(40, fpCam.fov - 8); fpCam.updateProjectionMatrix(); return; } state.zoomGoal = Math.min(controls.maxZoom, (state.zoomGoal ?? camera.zoom) * 1.2); });
   $('zoom-out').addEventListener('click', () => { if (fp.on) { fpCam.fov = Math.min(90, fpCam.fov + 8); fpCam.updateProjectionMatrix(); return; } state.zoomGoal = Math.max(controls.minZoom, (state.zoomGoal ?? camera.zoom) / 1.2); });

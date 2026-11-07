@@ -13,6 +13,7 @@ import { DEPTS, WING } from '../layout.js';
 import { DESKS, UNITS, dLocal } from '../desks.js';
 import { KHO_SEATS, MARKETING_SEATS, TEAM_SEATS } from '../../../shared/team-roles.js';
 import { floorZone, glassWall, gridTex, lowWall, plateTex, speckTex } from './pieces.js';
+import { buildWorkrooms } from './workrooms.js';
 import { t as tr } from '../../../i18n/index.js';
 
 /** DEPT_SIGNS[i](name) redraws room i's door plaque: the project's name, or '' for a free room. */
@@ -167,16 +168,16 @@ function buildWing() {
 
   /* the rooms: a sprint board, a credenza, plants in the corners; the two front rooms a sofa by the open edge */
   sprintBoard(0, -7.96, 1.5, 14.6, Math.PI / 2, 1.4, 0.9);
-  sprintBoard(1, 12.2, 1.3, 11.3, 0, 1.3, 0.8, true);
+  if (!DEPTS[1].solo) sprintBoard(1, 12.2, 1.3, 11.3, 0, 1.3, 0.8, true);
   sprintBoard(2, -5.4, 0.78, WING.split + 0.1, 0, 1.3, 0.72);
   sprintBoard(3, 11.9, 0.78, WING.split + 0.1, 0, 1.3, 0.72);
-  credenza(-6.3, 11.3); credenza(6.2, 11.3); if (!DEPTS[2].big) credenza(-1.3, WING.split + 0.45); if (!DEPTS[3].team) credenza(7.3, WING.split + 0.45);
+  credenza(-6.3, 11.3); if (!DEPTS[1].solo) credenza(6.2, 11.3); if (!DEPTS[2].big) credenza(-1.3, WING.split + 0.45); if (!DEPTS[3].team) credenza(7.3, WING.split + 0.45);
   for (const [x, z, s, k] of [[-7.5, 11.25, 1.0, 'monstera'], [1.75, 11.3, 0.9, 'snake'], [-7.5, 17.85, 0.95, 'bush'], [1.75, 17.85, 0.9, 'snake'],
-    [4.75, 11.3, 0.9, 'snake'], [13.55, 11.3, 1.0, 'monstera'], [4.75, 17.85, 0.9, 'bush'], [13.55, 17.85, 0.95, 'snake'],
+    ...(DEPTS[1].solo ? [[8.75, 11.3, 0.9, 'snake']] : [[4.75, 11.3, 0.9, 'snake'], [13.55, 11.3, 1.0, 'monstera'], [4.75, 17.85, 0.9, 'bush'], [13.55, 17.85, 0.95, 'snake']]),
     ...(DEPTS[2].big ? [] : [[-7.5, 18.9, 0.9, 'snake']]), ...(DEPTS[3].team ? [] : [[13.55, 18.9, 0.9, 'snake']]), ...(DEPTS[2].big ? [] : [[-7.45, 25.5, 1.05, 'monstera'], [1.6, 25.5, 0.95, 'bush']]), ...(DEPTS[3].team ? [] : [[5.2, 25.5, 0.95, 'bush'], [13.5, 25.5, 1.05, 'monstera']])]) potPlant(x, z, s, k);   // (the AI team's room: its 16 desks fill it)
   if (!DEPTS[2].big) makeSofa(-5.4, 25.35, 1.9, 0, '#4F6D8F', ['#F2B33D', '#E8742A']);
   if (!DEPTS[3].team) makeSofa(10.2, 25.35, 1.9, 0, '#6B4F3A', ['#BDE0FE', '#E2B04A']);
-  teamPlates(); marketingPlates(); khoRoom();
+  teamPlates(); marketingPlates(); khoRoom(); buildWorkrooms();
 
   /* corridors: the company's sign at the end of corridor A, plants where the corridors end */
   put(scene, rbox(0.03, 2.7, 1.6, mat('#2F4A3D', { roughness: 0.9 }), 0.005), -7.985, 1.35, (WING.corA[0] + WING.corA[1]) / 2);

@@ -86,7 +86,7 @@ function wingGraph() {
   DEPTS.forEach((d, i) => {
     const p0 = first; first += d.pods.length;
     if (d.team || d.big) { teamRoom(d, i, p0, nodes, edges); return; }
-    const pl = p0, pr = pl + 1, zb = d.cz - 1.8, zf = d.cz + 1.8, lane = d.door.side === 'n' ? d.door.at : d.cx;
+    const pl = p0, pr = d.pods.length > 1 ? pl + 1 : pl, zb = d.cz - 1.8, zf = d.cz + 1.8, lane = d.door.side === 'n' ? d.door.at : d.cx;
     nodes[`D${i}b`] = [lane, zb]; nodes[`D${i}f`] = [lane, zf];
     edges.push([`D${i}b`, `D${i}f`], [`D${i}b`, `P${pl}b1`], [`P${pl}b1`, `P${pl}b0`], [`D${i}b`, `P${pr}b0`], [`P${pr}b0`, `P${pr}b1`],
       [`D${i}f`, `P${pl}f1`], [`P${pl}f1`, `P${pl}f0`], [`D${i}f`, `P${pr}f0`], [`P${pr}f0`, `P${pr}f1`]);

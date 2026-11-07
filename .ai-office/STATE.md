@@ -1,4 +1,6 @@
-# Trạng thái bàn giao · 06/11/2026
+# Trạng thái bàn giao · 07/11/2026
+
+- Claude Code · 07/11: [Skill đăng bài/content/phân loại, Phòng in 3D, Phòng camera](state/print-camera-staff-skills.md) — xong code, unit 8/8 mới, xem tay HQ; chưa thử máy in/camera thật, chưa E2E, chưa commit.
 
 - Codex · 06/11: [2D giao việc, 38 nhân sự/Skill và phát hành 0.4.15](state/lite-personnel-training-release.md) — đã phát hành public/latest Windows + macOS Universal; code `ef6a5cd`, 256 unit + 16 E2E đạt, CI/build/Mac Intel+ARM đạt; asset/hash/chữ ký/signed-version và manifest cập nhật thật đều đạt.
 

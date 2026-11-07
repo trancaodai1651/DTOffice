@@ -35,6 +35,8 @@ import { updateReadiness } from '../src/shared/update-readiness.js';
 import { sessionName } from '../src/shared/session-name.js';
 import { createSpecialists, openPath, ffmpegInstall } from './specialists.mjs';
 import { createLibrary, postText } from './asset-library.mjs';
+import { createPrintFarm } from './print-farm.mjs';
+import { createCameras } from './cameras.mjs';
 import { createSocial } from './social-accounts.mjs';
 import { createAntigravityAccounts, makeDb, windowsOf } from './antigravity-accounts.mjs';
 import { report as promptReport } from './prompt-report.mjs';
@@ -1565,18 +1567,25 @@ function giveSpecialistWork(request, b = {}) {
 /* ---------- "Kho dữ liệu" and the Social Media agent's accounts (server/asset-library.mjs, server/social-accounts.mjs):
    the marketing department's workspace, its products and image sets, the posts queued, and the accounts they go out on. */
 const library = createLibrary({ dataDir: DATA_DIR });
+// "Phòng in 3D" (the filament stock, the printers on the LAN) and "Phòng camera" (Dahua cameras on the LAN): this computer only
+const printFarm = createPrintFarm({ dataDir: DATA_DIR });
+const cameras = createCameras({ dataDir: DATA_DIR });
+const printOut = () => ({ ok: true, ...printFarm.out() });
+const camerasOut = () => ({ ok: true, ...cameras.out() });
 const social = createSocial({ dataDir: DATA_DIR });
 const libraryOut = () => { library.ensure(); return { ok: true, ...library.out(), accounts: social.list(), platforms: social.PLATFORMS }; };   // (made the first time you open it)
 // what a marketing agent is told: the library, and (for those who need it) the accounts saved for publishing
 const marketingContext = (r, role) => [library.brief(), ...(['social', 'creator', 'cmo'].includes(role) ? [social.list().length
   ? `SAVED ACCOUNTS (the CEO is logged in to each in its own browser profile; refer to them by id): ${social.list().map((a) => `${a.id} = ${a.platform} "${a.label}"`).join('; ')}`
   : 'SAVED ACCOUNTS: none yet (the CEO adds them in the Social panel: Phòng Kho dữ liệu → Tài khoản mạng xã hội).'] : [])].join('\n');
+// positions that need the live web: market research and trend scanning (the publisher checks the day's headlines)
+const TEAM_WEB_ROLES = new Set(['research', 'creator', 'social', 'seo']);
 const team = createTeam({
   dataDir: DATA_DIR, lang: () => prefs.lang(),
   context: (r, role, t) => (t.id === 'marketing' ? marketingContext(r, role) : ''),
   start: (r, s, prompt, role) => {
     memory.sync(r.dir);   // (the project's memory file, before the stage reads it)
-    return tasks.start({ dir: r.dir, text: prompt, agent: r.agent, model: r.model, effort: r.effort, role, team: r.id, ...(r.agent === 'claude' && r.account !== undefined ? { env: acctEnv(r.account) } : {}), ask: `${tr(`team.stages.${s.key}`)}: ${r.goal}`, system: r.agent === 'codex' ? memoryWords(r.dir) : '' });
+    return tasks.start({ dir: r.dir, text: prompt, agent: r.agent, model: r.model, effort: r.effort, role, team: r.id, ...(TEAM_WEB_ROLES.has(role) ? { args: { claude: ['--allowedTools', 'WebSearch WebFetch'], codex: ['-c', 'web_search="live"'] } } : {}), ...(r.agent === 'claude' && r.account !== undefined ? { env: acctEnv(r.account) } : {}), ask: `${tr(`team.stages.${s.key}`)}: ${r.goal}`, system: r.agent === 'codex' ? memoryWords(r.dir) : '' });
   },
   stop: (id) => tasks.stop(id),
   onChange: (r, what, x = {}) => {
@@ -2982,6 +2991,62 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if (url.pathname === '/api/print' || url.pathname.startsWith('/api/print/') || url.pathname === '/api/cameras' || url.pathname.startsWith('/api/cameras/')) {   // the print room and the camera room: devices on this computer's network, from this computer only
+    if (!authorized(req, url) || !isLoopback(req)) { json(res, 403, { ok: false, code: 'localOnly', message: tr('rooms.err.localOnly') }); return; }
+    const what = url.pathname.split('/')[3] || '', cam = url.pathname.startsWith('/api/cameras');
+    const fail = (code, status = 400) => json(res, status, { ok: false, code, message: tr(`rooms.err.${code}`) });
+    if (req.method === 'GET') {
+      if (!cam && !what) { json(res, 200, printOut()); return; }
+      if (!cam && what === 'status') { printFarm.refresh().then(() => json(res, 200, printOut()), () => json(res, 200, printOut())); return; }
+      if (cam && !what) { json(res, 200, camerasOut()); return; }
+      if (cam && what === 'snap') {
+        cameras.snapshot(String(url.searchParams.get('id') || '')).then((r) => {
+          if (!r.ok) { fail(r.code, r.code === 'notFound' ? 404 : 502); return; }
+          res.writeHead(200, { 'Content-Type': r.type, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }).end(r.body);
+        });
+        return;
+      }
+      if (cam && what === 'live') { cameras.stream(String(url.searchParams.get('id') || ''), res, url.searchParams.get('main') ? 0 : 1).then((r) => { if (!r.ok) fail(r.code, r.code === 'notFound' ? 404 : 502); }); return; }
+      json(res, 404, { ok: false }); return;
+    }
+    if (req.method !== 'POST' || !sameOriginOf(req)) { json(res, 403, { ok: false }); return; }
+    if (!cam && what === 'send') {   // a G-code file for a printer: the body is the file itself (up to 500 MB)
+      const id = String(url.searchParams.get('id') || ''), name = String(url.searchParams.get('name') || '').slice(-120);
+      if (!/\.(gcode|gco|g|3mf)$/i.test(name)) { req.resume(); fail('notGcode'); return; }
+      const tmp = printFarm.tempFile(name), out = fs.createWriteStream(tmp); let size = 0, over = false;
+      req.on('data', (c) => { size += c.length; if (size > 500 * 1024 * 1024 && !over) { over = true; req.unpipe(out); out.destroy(); } });
+      req.pipe(out);
+      out.on('error', () => {});
+      const written = new Promise((resolve) => out.on('close', resolve));   // (closed early when too big, else once the file is complete)
+      req.on('end', () => written.then(async () => {
+        if (over || !size) { try { fs.rmSync(tmp, { force: true }); } catch { /* gone */ } fail(over ? 'tooBig' : 'empty'); return; }
+        const r = await printFarm.print(id, tmp, name).catch((e) => ({ ok: false, code: 'sendFail', why: String(e?.message || '') }));
+        try { fs.rmSync(tmp, { force: true }); } catch { /* gone */ }
+        if (!r.ok) { json(res, 409, { ok: false, code: r.code, message: `${tr(`rooms.err.${r.code}`)}${r.why ? ` (${r.why})` : ''}` }); return; }
+        chat.system(tr('rooms.print.chatSent', { file: r.file, printer: printFarm.out().printers.find((p) => p.id === id)?.name || '' }));
+        json(res, 200, { ...printOut(), sent: r.file });
+      }));
+      return;
+    }
+    if (!String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
+    readJson(req, 20_000).then((b) => {
+      const id = String(b?.id || '');
+      const done = (r, outFn) => { if (r && r.ok === false) return fail(r.code, r.code === 'notFound' ? 404 : 400); json(res, 200, outFn()); };
+      if (cam) {
+        if (what === 'add') return done(cameras.add(b || {}), camerasOut);
+        if (what === 'edit') return done(cameras.edit(id, b || {}), camerasOut);
+        if (what === 'remove') { cameras.remove(id); json(res, 200, camerasOut()); return; }
+      } else {
+        if (what === 'filament') return done(printFarm.addFilament(b || {}), printOut);
+        if (what === 'filament-edit') return done(printFarm.editFilament(id, b || {}), printOut);
+        if (what === 'filament-remove') { printFarm.removeFilament(id); json(res, 200, printOut()); return; }
+        if (what === 'printer') return done(printFarm.addPrinter(b || {}), printOut);
+        if (what === 'printer-remove') { printFarm.removePrinter(id); json(res, 200, printOut()); return; }
+      }
+      json(res, 404, { ok: false });
+    });
+    return;
+  }
   if ((url.pathname.startsWith('/api/library/') || url.pathname.startsWith('/api/social/')) && req.method === 'POST') {   // the asset library and the social accounts: on this computer only (they open its folders and browser)
     if (!authorized(req, url) || !isLoopback(req) || !sameOriginOf(req) || !String(req.headers['content-type'] || '').startsWith('application/json')) { json(res, 403, { ok: false }); return; }
     readJson(req, 20_000).then((b) => {
@@ -2992,6 +3057,7 @@ const server = http.createServer((req, res) => {
         if (what === 'source') { const r = library.addSource({ dir: b?.dir, name: b?.name, category: b?.category, product: b?.product }); if (!r.ok) return fail(r.code); json(res, 200, libraryOut()); return; }
         if (what === 'unsource') { library.removeSource(id); json(res, 200, libraryOut()); return; }
         if (what === 'open') { const f = library.target(String(b?.what || '')); if (!f) return fail('noDir', 404); json(res, 200, { ok: openPath(f) }); return; }
+        if (what === 'approve') { const ok = library.approve(id, String(b?.when || '')); if (!ok) return fail('badTime', 409); json(res, 200, libraryOut()); return; }
         if (what === 'posted') { const ok = library.markPosted(id, String(b?.platform || ''), String(b?.link || '')); json(res, ok ? 200 : 404, ok ? libraryOut() : { ok }); return; }
         json(res, 404, { ok: false }); return;
       }
@@ -3000,6 +3066,7 @@ const server = http.createServer((req, res) => {
       if (what === 'login' || what === 'visit') { const r = social[what](id); if (!r.ok) return fail(r.code, 409); json(res, 200, libraryOut()); return; }
       if (what === 'publish') {   // a queued post on one account: its posting page, the caption to copy, the media folder opened
         const p = library.post(String(b?.post || '')); if (!p) return fail('noPost', 404);
+        if (p.status === 'proposed' || p.status === 'draft') return fail('notApproved', 409);   // (the CEO approves the time first)
         const text = postText(p), r = social.publish(id, text); if (!r.ok) return fail(r.code, 409);
         openPath(p.dir); json(res, 200, { ok: true, text, platform: r.platform }); return;
       }

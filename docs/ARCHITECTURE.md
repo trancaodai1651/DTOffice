@@ -194,7 +194,7 @@ engine switches to demo mode and talks to no API.
 | `ui/ai-accounts.js` | 278 | The other AI tools' accounts, in the plan card under Claude's (server/codex-accounts.mjs, antigravity-accounts.mjs): Codex and Antigravity IDE, each with its accounts (usage, the one in use, out until when), adding one, using another, and switching by itself when the one in use runs out. |
 | `ui/burn.js` | 300 | … |
 | `ui/cache-words.js` | 53 | How a session's prompt cache reads on screen ("Đồng hồ bộ nhớ đệm", src/shared/cache-clock.js; the cups on the desks are world/props/cups.js): the line under the session drawer's folder, the one under the chat's "Gửi tới" and in its list of conversations, list mode's cards, and the switch in Settings → More for the "about to go cold" notification. |
-| `ui/camera-bar.js` | 62 | The camera toolbar. |
+| `ui/camera-bar.js` | 65 | The camera toolbar. |
 | `ui/chat-avatars.js` | 72 | Round photos for the group chat (group-chat-view.js): each person's own chibi, head and shoulders, drawn once by the office's renderer (the way Settings draws its portraits: same materials, light and tone mapping) and kept as a data URL. |
 | `ui/ci-card.js` | 44 | "Sửa luôn" (server/index.mjs ciCard / ciFix): the card in the group chat when a repository's CI goes red, from the session working in it. |
 | `ui/clip-music.js` | 122 | The clip's music: an original lo-fi loop made right here, nothing borrowed (no samples, no files): a Rhodes-like FM electric piano on Fmaj9 – Em7 – Dm9 – G13, a round bass, a swung boom-bap kit, a soft pentatonic lead, vinyl crackle and a small Schroeder reverb. |
@@ -207,7 +207,7 @@ engine switches to demo mode and talks to no API.
 | `ui/guide.js` | 137 | The guide ("Hướng dẫn viên"): a member of staff whose job is helping you use the office. |
 | `ui/icons.js` | 85 | Stroke icons (24 px grid) and the icon helper. |
 | `ui/image-view.js` | 28 | Images in the feed: a session that read, wrote or edited an image gets a thumbnail on that line (activity.js), and a click opens it here, large, over the office (the server serves it by id: GET /api/image). |
-| `ui/library-panel.js` | 132 | "Phòng Kho dữ liệu": the marketing department's asset library (server/asset-library.mjs) and the Social Media agent's accounts (server/social-accounts.mjs), in the team's sheet. |
+| `ui/library-panel.js` | 145 | "Phòng Kho dữ liệu": the marketing department's asset library (server/asset-library.mjs) and the Social Media agent's accounts (server/social-accounts.mjs), in the team's sheet. |
 | `ui/lite.js` | 171 | The 2D view: every session as a row, no 3D (a page that opens in it builds no 3D world until asked, core/world-boot.js; switched to later, the office keeps a frame a second behind it). |
 | `ui/look-switch.js` | 22 | Switching the character look. |
 | `ui/mac-drawer.js` | 724 | The Mac drawer: memory, CPU, dev servers, plan limits, cleanup. |
@@ -221,6 +221,7 @@ engine switches to demo mode and talks to no API.
 | `ui/portraits.js` | 64 | Portraits of the two character looks for Settings → Characters: two people in each look, drawn by the office's own renderer (same materials, light and tone mapping, so they match what you will see) into a canvas, the first time the tab opens. |
 | `ui/projects.js` | 72 | Your projects: the folders work is given in (the guide, 📋 Giao việc, the AI Agent teams). |
 | `ui/role-skills.js` | 24 | … |
+| `ui/rooms-panel.js` | 192 | "Phòng in 3D" and "Phòng camera": a dialog over the office for each (server/print-farm.mjs, server/cameras.mjs). |
 | `ui/session-account.js` | 54 | "Change account" in a session's drawer (on this computer only): the accounts of the plan card, each with what it has left. |
 | `ui/session-drawer.js` | 398 | The session drawer: chat, steps, subagents. |
 | `ui/settings.js` | 141 | Settings popover: backdrop, floor plan, look, time, toggles. |
@@ -286,10 +287,11 @@ engine switches to demo mode and talks to no API.
 | `world/furniture/rocket.js` | 22 | The deploy rocket on its launch pad. |
 | `world/furniture/room-pieces.js` | 107 | Wall clock, framed art, bookshelf, sofa corner and the globe. |
 | `world/furniture/server-racks.js` | 65 | Server racks with LEDs and fans that follow the Mac's CPU. |
-| `world/layout.js` | 58 | The floor plans (cozy, pro, hq): where the shared furniture stands, and the headquarters wing. |
+| `world/layout.js` | 63 | The floor plans (cozy, pro, hq): where the shared furniture stands, and the headquarters wing. |
 | `world/pro/floor.js` | 347 | The company floor: rooms, partitions and furniture. |
 | `world/pro/pieces.js` | 142 | Company floor building pieces: floor finishes, walls, glass, chairs, dining sets. |
-| `world/pro/wing.js` | 190 | Headquarters' wing: in front of the company floor, a corridor along it, a corridor down the middle and four department rooms of two pods each (the desks, pods' screens and carpets come from the shared code). |
+| `world/pro/wing.js` | 191 | Headquarters' wing: in front of the company floor, a corridor along it, a corridor down the middle and four department rooms of two pods each (the desks, pods' screens and carpets come from the shared code). |
+| `world/pro/workrooms.js` | 154 | The wing's two rooms without desks (world/layout.js WORKROOMS), beside the asset room:   "Phòng in 3D"   a rack of filament spools (their colours from the stock you entered), a bench with a Bambu Lab A1 and a                   Flashforge Adventurer 5M; each printer's screen glows with its state (free, printing, paused, error)   "Phòng camera"  a wall of six screens showing the Dahua cameras' snapshots, a desk and a chair facing it Both ask the office now and then (server/print-farm.mjs, server/cameras.mjs: this computer only; elsewhere they stay as they are built). |
 | `world/props/aquarium.js` | 44 | The aquarium. |
 | `world/props/arcade.js` | 62 | The arcade cabinet and its little game. |
 | `world/props/billiards.js` | 124 | The pool table (company floor), on the lounge's right side between the sofa and the arcade: a 7-foot table (green cloth with its spots, cushions, walnut rails inlaid with pearl diamonds, six leather pockets, turned legs), a rug under it, chalk on the rail, and a round cue stand by the arcade. |

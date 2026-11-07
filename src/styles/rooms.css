@@ -1,0 +1,53 @@
+/* "Phòng in 3D" and "Phòng camera" (src/office/ui/rooms-panel.js): a dialog over the office. */
+.rp-overlay { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(5, 8, 12, .55); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.rp-card { width: min(980px, 100%); max-height: calc(100dvh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 10px; padding: 16px 18px; box-sizing: border-box; background: var(--side); color: var(--ink); border: 1px solid var(--line-2); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+.rp-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 1.05rem; }
+.rp-head b:focus { outline: none; }
+.rp-card .zc-task-note { margin: 0; }
+.rp-body { display: flex; flex-direction: column; gap: 10px; }
+.rp-sec { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--card); }
+.rp-sec > summary { cursor: pointer; font-weight: 700; padding: 4px 0; }
+.rp-note { display: block; color: var(--muted); font-size: .76rem; line-height: 1.45; margin: 2px 0 6px; }
+.rp-why { display: block; color: var(--red); font-size: .76rem; }
+.rp-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; margin: 6px 0 10px; }
+.rp-field { display: flex; flex-direction: column; gap: 3px; flex: 1 1 150px; min-width: 0; font-size: .78rem; color: var(--muted); }
+.rp-field.is-narrow { flex: 0 1 110px; }
+.rp-field input, .rp-field select { height: 36px; box-sizing: border-box; padding: 0 9px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--side); color: var(--ink); font: inherit; font-size: .86rem; }
+.rp-field input[type=color] { padding: 2px 4px; }
+.rp-add > summary { cursor: pointer; font-size: .86rem; font-weight: 600; color: var(--accent); padding: 4px 0; }
+.rp-stock { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 6px; }
+.rp-spool { display: grid; grid-template-columns: auto 1fr auto auto auto auto; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 10px; background: var(--side); }
+.rp-spool.is-low { border-color: var(--amber, #F2B544); }
+.rp-spool.is-out { opacity: .6; }
+.rp-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .2); box-shadow: inset 0 0 0 4px rgba(255, 255, 255, .25); }
+.rp-spool-name { display: flex; flex-direction: column; min-width: 0; }
+.rp-spool-name b, .rp-spool-name small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rp-spool-name small { color: var(--muted); font-size: .72rem; }
+.rp-qty { font-style: normal; font-weight: 800; min-width: 2ch; text-align: right; }
+.rp-step { width: 30px; height: 30px; }
+.rp-printers { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 8px; margin-bottom: 8px; }
+.rp-printer { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: var(--side); }
+.rp-printer-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rp-badge { font-style: normal; font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; background: var(--line); }
+.rp-badge.is-free, .rp-badge.is-done { background: #DDF5E4; color: #146C2E; }
+.rp-badge.is-printing { background: #E1EEFF; color: #0B4FB3; }
+.rp-badge.is-paused, .rp-badge.is-busy { background: #FFF1D6; color: #8A5300; }
+.rp-badge.is-error, .rp-badge.is-offline { background: #FDE2E1; color: #A1211B; }
+.rp-bar { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.rp-bar > i { display: block; height: 100%; background: linear-gradient(90deg, #2F80ED, #27AE60); border-radius: inherit; transition: width .6s ease; }
+.rp-pct { font-weight: 700; font-size: .8rem; }
+.rp-cams { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 10px; }
+.rp-cam { position: relative; margin: 0; border-radius: 12px; overflow: hidden; background: #0B0E13; border: 1px solid var(--line-2); }
+.rp-cam img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #0B0E13; }
+.rp-cam:fullscreen img { height: 100%; aspect-ratio: auto; }
+.rp-cam-msg { position: absolute; inset: 0 0 46px; display: grid; place-items: center; padding: 12px; text-align: center; color: #C9D1DC; font-size: .8rem; }
+.rp-cam figcaption { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 6px 8px; background: var(--side); }
+.rp-cam figcaption b { flex: 1 1 auto; }
+.rp-cam figcaption small { color: var(--muted); font-size: .72rem; }
+.rp-cam figcaption select { height: 30px; border-radius: 8px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font: inherit; font-size: .76rem; }
+@media (max-width: 560px) { .rp-overlay { padding: 0; } .rp-card { max-height: 100dvh; height: 100dvh; border-radius: 0; } }
+.rp-btn { height: 34px; padding: 0 14px; border-radius: 9px; border: 1px solid var(--line-2); background: var(--card); color: var(--ink); font: inherit; font-size: .84rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.rp-btn:hover:not(:disabled) { border-color: var(--accent); }
+.rp-btn.is-go { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rp-btn:disabled { opacity: .5; cursor: not-allowed; }
+.rp-card .lib-acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }

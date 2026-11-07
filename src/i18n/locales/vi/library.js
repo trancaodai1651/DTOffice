@@ -31,7 +31,10 @@ export default {
     title: 'Bài chờ đăng · {n}',
     sub: 'Content Creator viết, Social Media chọn tài khoản và giờ đăng. Bấm Đăng: trang đăng bài của tài khoản mở ra, nội dung đã được chép, thư mục ảnh/video mở sẵn để kéo vào; bạn bấm nút Đăng của nền tảng rồi bấm Đã đăng.',
     none: 'Chưa có bài nào. Giao việc cho đội Marketing, ví dụ: "Viết 3 bài Facebook và Instagram cho áo thun basic trắng".',
-    status: { draft: 'Nháp', ready: 'Sẵn sàng', posted: 'Đã đăng' },
+    status: { draft: 'Nháp', proposed: 'Chờ sếp duyệt giờ', ready: 'Đã duyệt · sẵn sàng', posted: 'Đã đăng' },
+    proposedSub: 'Nhân sự đăng bài đề xuất giờ đăng. Chọn một giờ (hoặc đặt giờ khác) rồi bấm Duyệt.',
+    noProposal: 'Chưa có giờ đề xuất. Đặt giờ đăng rồi bấm Duyệt.',
+    ownTime: 'Giờ khác', approve: 'Duyệt giờ đăng', pickTime: 'Chọn hoặc đặt một giờ đăng.', approved: 'Đã duyệt giờ đăng {when}. Bài đã sẵn sàng để đăng.',
     media: '{n} tệp', noAccount: 'Chưa có tài khoản {platform}',
     publish: 'Đăng {platform} · {account}', markDone: 'Đã đăng {platform}',
     opened: 'Đã mở trang đăng {platform} và chép nội dung. Dán nội dung (Ctrl+V), kéo ảnh/video từ thư mục vừa mở, rồi bấm Đăng của nền tảng.',
@@ -41,6 +44,6 @@ export default {
   err: {
     badDir: 'Đường dẫn phải là đường dẫn đầy đủ.', noDir: 'Không tìm thấy thư mục.', dup: 'Thư mục này đã được liên kết.', full: 'Đã đạt số lượng tối đa.',
     badPlatform: 'Nền tảng không hỗ trợ.', noLabel: 'Nhập tên gợi nhớ cho tài khoản.', noAccount: 'Không tìm thấy tài khoản.',
-    noBrowser: 'Không tìm thấy Microsoft Edge hoặc Google Chrome trên máy.', noPost: 'Không đọc được bài đăng này.',
+    noBrowser: 'Không tìm thấy Microsoft Edge hoặc Google Chrome trên máy.', noPost: 'Không đọc được bài đăng này.', badTime: 'Giờ đăng không hợp lệ (dạng YYYY-MM-DD HH:mm).', notApproved: 'Bài chưa được duyệt giờ đăng. Duyệt giờ trước khi đăng.',
   },
 };
